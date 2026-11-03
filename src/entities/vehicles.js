@@ -21,6 +21,13 @@ const JEEP = { hw: 1.02, hd: 2.15, y0: 0.32, y1: 1.28, hp: 700, maxF: 17, maxR: 
 // seat offsets in jeep space (x right, z backwards): driver front-left, gunner standing at the back on the gun ring
 const SEATS = [{ x: -0.45, y: 0.45, z: -0.15, crouch: 0.75 }, { x: 0, y: 0.72, z: 1.05, crouch: 0 }];
 const GUN_PIVOT = { x: 0, y: 1.95, z: 0.55 };
+// helicopter: pilot (flies, nose gun at the crosshair) + door gunner on the right side
+const HELI = { hw: 1.12, hd: 2.6, y0: 0.3, y1: 2.35, hp: 900, respawn: 30, maxH: 27, accel: 15, climb: 7, yawRate: 1.7, ceiling: 46,
+  seats: [{ x: 0, y: 0.72, z: -1.05, crouch: 0.6 }, { x: 0.62, y: 0.55, z: 0.15, crouch: 0.45 }], gunPivot: { x: 1.2, y: 1.45, z: 0.15 }, gunArc: [-Math.PI / 2 - 1.25, -Math.PI / 2 + 1.25],
+  name: 'Helicopter', who: ['Fly the helicopter', 'Man the door gun', 'Helicopter full'],
+  keys: [['W A S D', 'Fly'], ['Space / C', 'Up / down'], ['Mouse', 'Turn and aim']] };
+Object.assign(JEEP, { seats: SEATS, gunPivot: GUN_PIVOT, name: 'Jeep', who: ['Drive the jeep', 'Man the jeep gun', 'Jeep full'], keys: [['Space', 'Handbrake']] });
+const SPEC = { jeep: JEEP, heli: HELI };
 export const vehicles = [];
 
 // ---------- model ----------
@@ -102,10 +109,11 @@ export function resetVehicles() {
 }
 
 function spawnVehicle(home) {
-  const v = { type: 'jeep', home, x: home.x, y: home.y || 0, z: home.z, yaw: home.yaw || 0, speed: 0, steer: 0, vy: 0, hp: JEEP.hp, alive: true,
-    seats: [null, null], pitch: 0, roll: 0, heat: 0, overheated: false, fireAt: 0, wheelSpin: 0, deadAt: 0, lastHitBy: null, m: makeJeepMesh(), engine: null, gunYaw: 0, gunPitch: 0 };
-  v.y = supportHeight(v.x, v.z, 0.3, v.y + 1);
-  v.dyn = { vehicle: v, x: v.x, z: v.z, yaw: v.yaw, hw: JEEP.hw, hd: JEEP.hd, y0: v.y + JEEP.y0, y1: v.y + JEEP.y1, mat: 'metal' };
+  const type = home.type || 'jeep', spec = SPEC[type];
+  const v = { type, spec, home, x: home.x, y: home.y || 0, z: home.z, yaw: home.yaw || 0, speed: 0, steer: 0, vx: 0, vz: 0, vy: 0, hp: spec.hp, alive: true,
+    seats: [null, null], pitch: 0, roll: 0, heat: 0, overheated: false, fireAt: 0, wheelSpin: 0, rotor: 0, deadAt: 0, lastHitBy: null, m: type === 'heli' ? makeHeliMesh() : makeJeepMesh(), engine: null, gunYaw: type === 'heli' ? -Math.PI / 2 : 0, gunPitch: 0 };
+  v.y = supportHeight(v.x, v.z, type === 'heli' ? 1 : 0.3, v.y + 1);
+  v.dyn = { vehicle: v, x: v.x, z: v.z, yaw: v.yaw, hw: spec.hw, hd: spec.hd, y0: v.y + spec.y0, y1: v.y + spec.y1, mat: 'metal' };
   G.world.dynamic.push(v.dyn);
   vehicles.push(v); syncMesh(v, 0);
   return v;
@@ -119,7 +127,7 @@ export function nearestVehicle(u, range = 3.4) {
   let best = null, bd = range;
   for (const v of vehicles) {
     if (!v.alive) continue;
-    const [lx, lz] = local(v, u.x, u.z), d = Math.hypot(Math.max(0, Math.abs(lx) - JEEP.hw), Math.max(0, Math.abs(lz) - JEEP.hd));
+    const [lx, lz] = local(v, u.x, u.z), d = Math.hypot(Math.max(0, Math.abs(lx) - v.spec.hw), Math.max(0, Math.abs(lz) - v.spec.hd));
     if (d < bd && Math.abs(u.y - v.y) < 1.8) { bd = d; best = v; }
   }
   return best;
@@ -136,17 +144,17 @@ export function exitVehicle(u) {
   const v = u.vehicle; if (!v) return false;
   v.seats[u.seat] = null; u.vehicle = null; u.seat = -1;
   for (const [lx, lz] of [[-2.0, -0.2], [2.0, -0.2], [0, 3.2], [-2.0, 1.2], [2.0, 1.2], [0, -3.3]]) {
-    const [x, z] = world(v, lx, lz), y = supportHeight(x, z, 0.3, v.y + 1.2);
+    const [x, z] = world(v, lx, lz), y = Math.max(supportHeight(x, z, 0.3, v.y + 1.2), v.type === 'heli' ? v.y : -1e9);
     if (!blocked(x, z, u.r, y, u.h)) { u.x = x; u.z = z; u.y = y; break; }
   }
-  u.crouchT = 0; u.grounded = true; u.vy = 0;
+  u.crouchT = 0; u.vy = 0; u.grounded = supportHeight(u.x, u.z, 0.3, u.y + 0.1) >= u.y - 0.05;
   if (u.isPlayer) { u.yaw = Math.atan2(Math.sin(u.yaw), Math.cos(u.yaw)); play('doorOpen', { x: v.x, y: v.y + 1, z: v.z }, { gain: 0.6 }); }
   return true;
 }
 export function switchSeat(u, seat) { const v = u.vehicle; if (!v || v.seats[seat] || seat === u.seat) return false; v.seats[u.seat] = null; v.seats[seat] = u; u.seat = seat; placeOccupant(v, u); return true; }
 
 function placeOccupant(v, u) {
-  const S = SEATS[u.seat], [x, z] = world(v, S.x, S.z);
+  const S = v.spec.seats[u.seat], [x, z] = world(v, S.x, S.z);
   u.x = x; u.z = z; u.y = v.y + S.y; u.crouchT = S.crouch; u.moveSpeed = 0;
   if (!u.isPlayer) u.yaw = u.seat === 1 ? v.yaw + v.gunYaw : v.yaw;
 }
@@ -172,7 +180,7 @@ export function damageVehicle(v, amount, attacker, kind = 'bullet') {
 export function explodeNearVehicles(x, y, z, R, maxD, owner) {
   for (const v of vehicles) {
     if (!v.alive) continue;
-    const [lx, lz] = local(v, x, z), d = Math.hypot(Math.max(0, Math.abs(lx) - JEEP.hw), Math.max(0, Math.abs(lz) - JEEP.hd), Math.max(0, Math.abs(y - (v.y + 0.8)) - 0.6));
+    const [lx, lz] = local(v, x, z), d = Math.hypot(Math.max(0, Math.abs(lx) - v.spec.hw), Math.max(0, Math.abs(lz) - v.spec.hd), Math.max(0, Math.abs(y - (v.y + 0.8)) - 0.6));
     if (d < R) damageVehicle(v, (maxD * Math.pow(1 - d / R, 0.8) + 15) * 2.2, owner, 'explosive');
   }
 }
@@ -229,6 +237,83 @@ function drive(v, dt, thr, steerIn, handbrake) {
   v.roll = damp(v.roll, Math.atan2(hl - hr, 1.7), 8, dt);
 }
 
+// arcade helicopter: hovers when crewed, turns toward wantYaw (the pilot's view), W/S/A/D push, lift climbs/descends
+function fly(v, dt, fwd, strafe, lift, wantYaw, powered) {
+  const S = v.spec;
+  v.rotorSpeed = damp(v.rotorSpeed || 0, powered ? 30 : (v.alive && v.y > supportHeight(v.x, v.z, 1, v.y + 0.1) + 0.2 ? 14 : 0), 0.8, dt);
+  v.rotor += v.rotorSpeed * dt;
+  const g = supportHeight(v.x, v.z, 1.0, v.y + 0.5), airborne = v.y > g + 0.05;
+  const lifting = powered && v.rotorSpeed > 18;
+  if (wantYaw !== null && (airborne || lift > 0)) { const dy = Math.atan2(Math.sin(wantYaw - v.yaw), Math.cos(wantYaw - v.yaw)); v.yaw += clamp(dy * 3, -S.yawRate, S.yawRate) * dt; }
+  const sy = Math.sin(v.yaw), cy = Math.cos(v.yaw);
+  if (lifting && (airborne || lift > 0)) { v.vx += (-sy * fwd + cy * strafe) * S.accel * dt; v.vz += (-cy * fwd - sy * strafe) * S.accel * dt; }
+  const drag = Math.exp(-(airborne ? 0.75 : 6) * dt); v.vx *= drag; v.vz *= drag;
+  const hs = Math.hypot(v.vx, v.vz); if (hs > S.maxH) { v.vx *= S.maxH / hs; v.vz *= S.maxH / hs; }
+  if (!v.alive) v.vy -= 18 * dt;                               // wreck falls
+  else if (lifting) v.vy = damp(v.vy, lift * S.climb, 3, dt);   // hover / climb / descend
+  else v.vy = damp(v.vy, airborne ? -4.5 : 0, 1.2, dt);        // autorotation
+  const nx = v.x + v.vx * dt, nz = v.z + v.vz * dt;
+  let ny = Math.min(S.ceiling, v.y + v.vy * dt);
+  const hullFree = (x, z, y) => { G.ignoreDyn = v.dyn; let ok = true; for (const o of [-1.6, 0, 1.6, 4.2]) { const r = o > 3 ? 0.45 : 1.15; if (blocked(x - sy * o, z - cy * o, r, y + (o > 3 ? 1.1 : 0.15), o > 3 ? 1.2 : 2.1)) { ok = false; break; } } G.ignoreDyn = null; return ok; };
+  if (hullFree(nx, nz, Math.max(ny, g))) { v.x = nx; v.z = nz; }
+  else { if (hs > 8 && v.alive) { damageVehicle(v, hs * 6, null); play('impactMetal', { x: v.x, y: v.y + 1, z: v.z }, { gain: 1 }); } v.vx *= -0.3; v.vz *= -0.3; }
+  const g2 = supportHeight(v.x, v.z, 1.0, Math.max(ny, v.y) + 0.5);
+  if (ny <= g2) { if (v.vy < -7 && v.alive) damageVehicle(v, (-v.vy - 7) * 45, null); ny = g2; v.vy = Math.max(0, v.vy); }
+  v.y = ny; v.speed = Math.hypot(v.vx, v.vz);
+  // nose dips into the direction of travel
+  const lf = (-sy * v.vx - cy * v.vz), ls = (cy * v.vx - sy * v.vz);
+  v.pitch = damp(v.pitch, clamp(-lf * 0.022, -0.32, 0.32), 4, dt); v.roll = damp(v.roll, clamp(-ls * 0.03, -0.35, 0.35) + (!v.alive ? v.rotor * 0.0 : 0), 4, dt);
+  if (!v.alive) { v.roll += dt * 1.5; }
+}
+
+function makeHeliMesh() {
+  if (!jeepGeo) buildModels();
+  if (!heliGeo) buildHeli();
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const hull = new THREE.Mesh(heliGeo.body, vMat); hull.castShadow = true; body.add(hull);
+  const rotor = new THREE.Group(); rotor.position.set(0, 2.78, 0.25); body.add(rotor);
+  const blades = new THREE.Mesh(heliGeo.rotor, vMat); blades.castShadow = true; rotor.add(blades);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(4.7, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x202426, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+  rotor.add(disc);
+  const tail = new THREE.Group(); tail.position.set(0.2, 1.95, 5.65); body.add(tail);
+  tail.add(new THREE.Mesh(heliGeo.tail, vMat));
+  const GP = HELI.gunPivot, turret = new THREE.Group(); turret.position.set(GP.x, GP.y, GP.z); body.add(turret);
+  const gun = new THREE.Group(); turret.add(gun); const mg = new THREE.Mesh(mgGeo, vMat); mg.scale.setScalar(0.85); gun.add(mg);
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(3, 5.6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  blob.position.y = 0.02;
+  G.scene.add(root);
+  return { root, body, wheels: [], turret, gun, hull, rotor, blades, disc, tail, blob };
+}
+let heliGeo = null;
+function buildHeli() {
+  const OD = 0x4b5541, ODd = 0x3a4233, K = 0x1d2022, GL = 0x86a8b6, ST = 0xc9b25a;
+  let b = new Builder();
+  b.add(0, lathe2([[0.0, -2.35], [0.45, -2.2], [0.88, -1.55], [1.05, -0.6], [1.08, 0.4], [0.95, 1.2], [0.6, 1.75], [0.3, 2.0], [0, 2.05]], 14), OD, [0, 1.35, 0], [Math.PI / 2, 0, 0], [1, 0.95, 1]);
+  b.add(0, sphere(1, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), GL, [0, 1.45, -1.35], [-1.25, 0, 0], [0.86, 1.05, 0.8], { ao: 0 }); // canopy
+  b.add(0, rbox(0.95, 0.42, 1.7, 0.12, 2), ODd, [0, 2.38, 0.35]);    // engine housing
+  for (const sx of [-1, 1]) b.add(0, cyl(0.12, 0.12, 0.25, 8), K, [sx * 0.42, 2.38, 1.25], [Math.PI / 2, 0, 0]); // exhausts
+  b.add(0, cyl(0.08, 0.08, 0.35, 8), K, [0, 2.62, 0.25]);             // mast
+  b.add(0, cyl(0.24, 0.12, 4.0, 10), OD, [0, 1.62, 3.7], [Math.PI / 2, 0, 0]); // tail boom
+  b.add(0, rbox(0.08, 1.05, 0.62, 0.03, 1), OD, [0, 2.05, 5.6], [0.25, 0, 0]); // fin
+  b.add(0, rbox(1.3, 0.05, 0.36, 0.02, 1), OD, [0, 1.58, 5.0]);       // stabiliser
+  for (const sx of [-1, 1]) {
+    b.add(0, cyl(0.05, 0.05, 3.3, 8), K, [sx * 0.88, 0.07, -0.15], [Math.PI / 2, 0, 0]); // skids
+    for (const z of [-0.9, 0.8]) b.add(0, cyl(0.035, 0.035, 0.8, 6), K, [sx * 0.72, 0.42, z], [0, 0, sx * 0.4]);
+    b.add(0, rbox(0.04, 0.12, 1.4, 0.02, 1), ST, [sx * 1.04, 1.1, -0.1]); // stripe
+  }
+  b.add(0, rbox(1.75, 0.95, 1.15, 0.12, 2), ODd, [0, 1.15, 0.2]); // cabin sides (open doors)
+  const body = b.geometry(); body.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.5, 1.5), 5);
+  b = new Builder();
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; b.add(0, rbox(0.28, 0.035, 4.5, 0.012, 1), K, [Math.sin(a) * 2.35, 0.05, Math.cos(a) * 2.35], [0, a, 0]); }
+  b.add(0, cyl(0.16, 0.16, 0.12, 10), K, [0, 0.05, 0]);
+  const rotor = b.geometry(); rotor.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 5);
+  b = new Builder();
+  for (let i = 0; i < 2; i++) b.add(0, rbox(0.03, 0.14, 1.1, 0.01, 1), K, [0, 0, 0], [i * Math.PI / 2, 0, 0]);
+  const tail = b.geometry(); tail.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 0.8);
+  heliGeo = { body, rotor, tail };
+}
+const lathe2 = (profile, rs) => new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(Math.max(0.0001, r), y)), rs);
+
 function runOver(v, driver) {
   if (Math.abs(v.speed) < 2) return;
   for (const u of G.units) {
@@ -251,7 +336,7 @@ function fireMG(v, u, dirx, diry, dirz, ox, oy, oz) {
   v.fireAt = G.now + w.rate; v.heat = Math.min(1, v.heat + 0.032);
   if (v.heat >= 1) { v.overheated = true; play('dry', null, { gain: 0.8 }); }
   const d = { x: 0, y: 0, z: 0 }; coneDir(dirx, diry, dirz, u.isPlayer ? 0.008 : 0.02, d);
-  const s = newShot(u, 'm2', ox, oy, oz, 1, 0); traceSegment(s, d.x, d.y, d.z, w.range);
+  const s = newShot(u, 'm2', ox, oy, oz, 1, 0); G.ignoreDyn = v.dyn; traceSegment(s, d.x, d.y, d.z, w.range); G.ignoreDyn = null;
   const mx = ox + dirx * 1.3, my = oy + diry * 1.3, mz = oz + dirz * 1.3;
   tracer(mx, my, mz, s.x, s.y, s.z, 0xffd080, 520);
   play(w.sound, u.isPlayer ? null : { x: mx, y: my, z: mz }, { gain: 0.95, important: u.isPlayer });
@@ -262,8 +347,9 @@ function fireMG(v, u, dirx, diry, dirz, ox, oy, oz) {
 
 // gunner aim in world space -> turret angles; returns muzzle origin + dir
 function aimGun(v, yaw, pitch) {
-  v.gunYaw = Math.atan2(Math.sin(yaw - v.yaw), Math.cos(yaw - v.yaw)); v.gunPitch = clamp(pitch, -0.45, 0.75);
-  const [px, pz] = world(v, GUN_PIVOT.x, GUN_PIVOT.z), py = v.y + GUN_PIVOT.y;
+  v.gunYaw = Math.atan2(Math.sin(yaw - v.yaw), Math.cos(yaw - v.yaw)); v.gunPitch = clamp(pitch, v.type === 'heli' ? -1.0 : -0.45, 0.75);
+  if (v.spec.gunArc) { v.gunYaw = clamp(v.gunYaw, v.spec.gunArc[0], v.spec.gunArc[1]); yaw = v.yaw + v.gunYaw; }
+  const GP = v.spec.gunPivot, [px, pz] = world(v, GP.x, GP.z), py = v.y + GP.y;
   const cp = Math.cos(v.gunPitch);
   return { ox: px, oy: py, oz: pz, dx: -Math.sin(yaw) * cp, dy: Math.sin(v.gunPitch), dz: -Math.cos(yaw) * cp };
 }
@@ -271,29 +357,47 @@ function aimGun(v, yaw, pitch) {
 // ---------- player in a vehicle (called from updatePlayer after mouse look) ----------
 export function playerVehicle(P, dt) {
   const v = P.vehicle, frozen = G.state !== 'playing';
-  if (P.seat === 0) {
+  const heli = v.type === 'heli';
+  if (P.seat === 0 && heli) {
+    const k = (a) => !frozen && down(a) ? 1 : 0;
+    fly(v, dt, k('forward') - k('back'), k('right') - k('left'), k('jump') - (k('crouch') || k('crouchAlt')), frozen ? null : P.yaw, true);
+  } else if (P.seat === 0) {
     drive(v, dt, frozen ? 0 : (down('forward') ? 1 : 0) - (down('back') ? 1 : 0), frozen ? 0 : (down('left') ? 1 : 0) - (down('right') ? 1 : 0), !frozen && down('jump'));
     runOver(v, P);
   }
   placeOccupant(v, P);
   const cam = G.camera;
-  if (P.seat === 0) { // chase camera, mouse orbits; pulled in by walls
+  if (P.seat === 0 && heli) { // pilot: chase cam further back; nose gun fires at whatever the crosshair is on
+    P.pitch = clamp(P.pitch, -0.9, 0.5);
+    const dist = 11, cp = Math.cos(P.pitch), cx = Math.sin(P.yaw) * cp * dist, cz = Math.cos(P.yaw) * cp * dist, cy = 3.2 - Math.sin(P.pitch) * dist;
+    const tx = v.x, ty = v.y + 1.8, tz = v.z, l = Math.hypot(cx, cy, cz);
+    G.ignoreDyn = v.dyn; const h = rayWorld(tx, ty, tz, cx / l, cy / l, cz / l, l);
+    G.ignoreDyn = null; const kk = h ? Math.max(0.2, (h.t - 0.4) / l) : 1;
+    cam.position.set(tx + cx * kk, ty + cy * kk, tz + cz * kk);
+    cam.rotation.set(P.pitch - 0.12, P.yaw, 0);
+    if (!frozen && input.fire) {
+      const fwd = new THREE.Vector3(0, 0, -1).applyEuler(cam.rotation), hit = (G.ignoreDyn = v.dyn, rayWorld(cam.position.x, cam.position.y, cam.position.z, fwd.x, fwd.y, fwd.z, 220)); G.ignoreDyn = null;
+      const T = hit ? [hit.x, hit.y, hit.z] : [cam.position.x + fwd.x * 220, cam.position.y + fwd.y * 220, cam.position.z + fwd.z * 220];
+      const [nx, nz] = world(v, 0, -2.5), ny = v.y + 0.75, dx = T[0] - nx, dy = T[1] - ny, dz = T[2] - nz, dl = Math.hypot(dx, dy, dz) || 1;
+      if ((dx * -Math.sin(v.yaw) + dz * -Math.cos(v.yaw)) / dl > 0.5) fireMG(v, P, dx / dl, dy / dl, dz / dl, nx, ny, nz); // nose gun only covers the front
+    }
+  } else if (P.seat === 0) { // chase camera, mouse orbits; pulled in by walls
     P.pitch = clamp(P.pitch, -0.6, 0.5);
     const dist = 6.2, cx = Math.sin(P.yaw) * Math.cos(P.pitch) * dist, cz = Math.cos(P.yaw) * Math.cos(P.pitch) * dist, cy = 2.4 - Math.sin(P.pitch) * dist;
     const tx = v.x, ty = v.y + 1.6, tz = v.z, l = Math.hypot(cx, cy - 1.6 + 1.6, cz);
-    const h = rayWorld(tx, ty, tz, cx / l, (cy - 0.8) / l, cz / l, l);
-    const k = h ? Math.max(0.25, (h.t - 0.3) / l) : 1;
+    G.ignoreDyn = v.dyn; const h = rayWorld(tx, ty, tz, cx / l, (cy - 0.8) / l, cz / l, l);
+    G.ignoreDyn = null; const k = h ? Math.max(0.25, (h.t - 0.3) / l) : 1;
     cam.position.set(tx + cx * k, ty + (cy - 0.8) * k, tz + cz * k);
     cam.rotation.set(P.pitch - 0.16, P.yaw, 0);
   } else { // gunner: look over the gun
     const a = aimGun(v, P.yaw, P.pitch);
-    P.pitch = v.gunPitch;
-    cam.position.set(a.ox - a.dx * 0.5, a.oy + 0.5, a.oz - a.dz * 0.5);
+    P.pitch = v.gunPitch; P.yaw = v.yaw + v.gunYaw; // the view stops where the gun's arc stops
+    const back = v.type === 'heli' ? 0.2 : 0.5; cam.position.set(a.ox - a.dx * back, a.oy + (v.type === 'heli' ? 0.44 : 0.5), a.oz - a.dz * back);
     cam.rotation.set(P.pitch - 0.05, P.yaw, 0);
     if (!frozen && input.fire) fireMG(v, P, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9);
   }
-  cam.fov = damp(cam.fov, G.profile.settings.fov + (P.seat === 0 ? Math.min(8, Math.abs(v.speed) * 0.4) : 0), 6, dt); cam.updateProjectionMatrix();
-  hud.vehicleHud(v, P.seat, Math.abs(v.speed) * 3.6, v.heat, v.overheated);
+  cam.fov = damp(cam.fov, G.profile.settings.fov + (P.seat === 0 ? Math.min(8, Math.abs(v.speed) * 0.35) : 0), 6, dt); cam.updateProjectionMatrix();
+  hud.vehicleHud(v, P.seat, Math.abs(v.speed) * 3.6, v.heat, v.overheated, heli ? Math.max(0, v.y - supportHeight(v.x, v.z, 0.5, v.y + 0.1)) : -1);
   playerBody(P, v, P.seat === 0, dt);
 }
 
@@ -314,13 +418,14 @@ export function updateVehicles(dt) {
   const P = G.player;
   for (const v of vehicles) {
     if (!v.alive) {
-      if (G.now - v.deadAt > JEEP.respawn) respawnVehicle(v);
+      if (v.type === 'heli') { fly(v, dt, 0, 0, 0, null, false); syncMesh(v, dt); }
+      if (G.now - v.deadAt > v.spec.respawn) respawnVehicle(v);
       continue;
     }
     // occupants who died leave their seat
     v.seats.forEach((u, i) => { if (u && (!u.alive || u.vehicle !== v)) { v.seats[i] = null; if (u.vehicle === v) { u.vehicle = null; u.seat = -1; } } });
     if (!v.seats[0] || !v.seats[0].isPlayer) { // no player driver: coast to a stop (bots drive in 6c)
-      if (!v.seats[0]) drive(v, dt, 0, 0, true);
+      if (!v.seats[0]) { if (v.type === 'heli') fly(v, dt, 0, 0, 0, null, false); else drive(v, dt, 0, 0, true); }
     }
     for (const u of v.seats) if (u && !u.isPlayer) placeOccupant(v, u);
     // gun cools down
@@ -332,7 +437,7 @@ export function updateVehicles(dt) {
   // prompt to get in
   if (P && P.alive && !P.vehicle && G.state === 'playing') {
     const v = nearestVehicle(P);
-    if (v) hud.prompt(`<kbd>${keyName('interact')}</kbd> ${v.seats[0] ? (v.seats[1] ? 'Jeep full' : 'Man the jeep gun') : 'Drive the jeep'}`);
+    if (v) hud.prompt(`<kbd>${keyName('interact')}</kbd> ${v.spec.who[v.seats[0] ? (v.seats[1] ? 2 : 1) : 0]}`);
   }
   if (P && !P.vehicle) { hud.vehicleHud(null); hidePlayerBody(); }
 }
@@ -342,7 +447,7 @@ function respawnVehicle(v) {
   const i = vehicles.indexOf(v); vehicles.splice(i, 1);
   const j = G.world.dynamic.indexOf(v.dyn); if (j >= 0) G.world.dynamic.splice(j, 1);
   // only respawn if the home spot is clear of units
-  for (const u of G.units) if (u.alive && Math.hypot(u.x - v.home.x, u.z - v.home.z) < 3) { vehicles.splice(i, 0, v); G.world.dynamic.push(v.dyn); G.scene.add(v.m.root); v.deadAt = G.now - JEEP.respawn + 2; return; }
+  for (const u of G.units) if (u.alive && Math.hypot(u.x - v.home.x, u.z - v.home.z) < 3) { vehicles.splice(i, 0, v); G.world.dynamic.push(v.dyn); G.scene.add(v.m.root); v.deadAt = G.now - v.spec.respawn + 2; return; }
   spawnVehicle(v.home);
 }
 
@@ -350,10 +455,17 @@ function syncMesh(v, dt) {
   const m = v.m;
   m.root.position.set(v.x, v.y, v.z); m.root.rotation.set(0, v.yaw, 0);
   m.body.rotation.set(-v.pitch, 0, v.roll); m.body.position.y = Math.sin(G.now * 30) * 0.008 * Math.min(1, Math.abs(v.speed) / 4);
+  if (v.type === 'heli') {
+    m.body.position.y = 0; m.rotor.rotation.y = v.rotor; m.tail.rotation.x = v.rotor * 2.3;
+    const fast = Math.min(1, (v.rotorSpeed || 0) / 25); m.disc.material.opacity = 0.16 * fast; m.blades.visible = fast < 0.85;
+    m.turret.rotation.y = v.gunYaw; m.gun.rotation.x = v.gunPitch; m.gun.position.z = (v.kick || 0) * 0.03;
+    const d = v.dyn; d.x = v.x; d.z = v.z; d.yaw = v.yaw; d.y0 = v.y + v.spec.y0; d.y1 = v.y + v.spec.y1;
+    return;
+  }
   v.wheelSpin += v.speed * dt / 0.42;
   for (const w of m.wheels) { w.w.rotation.x = -v.wheelSpin; w.pivot.rotation.y = w.front ? v.steer : 0; }
   m.turret.rotation.y = v.gunYaw; m.gun.rotation.x = v.gunPitch; m.gun.position.z = (v.kick || 0) * 0.03;
-  const d = v.dyn; d.x = v.x; d.z = v.z; d.yaw = v.yaw; d.y0 = v.y + JEEP.y0; d.y1 = v.y + JEEP.y1;
+  const d = v.dyn; d.x = v.x; d.z = v.z; d.yaw = v.yaw; d.y0 = v.y + v.spec.y0; d.y1 = v.y + v.spec.y1;
 }
 
 // ---------- engine: one continuous tone per crewed jeep ----------
@@ -367,13 +479,15 @@ function engineSound(v) {
     o.connect(f); o2.connect(f); f.connect(g); g.connect(masterNode()); o.start(); o2.start();
     v.engine = { o, o2, f, g };
   }
-  const L = G.camera.position, d = Math.hypot(L.x - v.x, L.y - v.y, L.z - v.z), sp = Math.abs(v.speed) / JEEP.maxF;
+  if (v.type === 'heli' && !v.engine.lfo) { const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 11; lg.gain.value = 0.06; lfo.connect(lg); lg.connect(v.engine.g.gain); lfo.start(); v.engine.lfo = lfo; v.engine.o.type = 'triangle'; }
+  const L = G.camera.position, d = Math.hypot(L.x - v.x, L.y - v.y, L.z - v.z), sp = v.type === 'heli' ? Math.min(1, (v.rotorSpeed || 0) / 30) : Math.abs(v.speed) / JEEP.maxF;
+  if (v.engine.lfo) { v.engine.lfo.frequency.setTargetAtTime(4 + sp * 8, ctx.currentTime, 0.2); }
   const t = ctx.currentTime;
   v.engine.o.frequency.setTargetAtTime(42 + sp * 70, t, 0.08); v.engine.o2.frequency.setTargetAtTime(21 + sp * 35, t, 0.08);
   v.engine.f.frequency.setTargetAtTime(300 + sp * 700, t, 0.1);
   v.engine.g.gain.setTargetAtTime(0.11 * (0.55 + sp * 0.6) / (1 + d * d * 0.012), t, 0.08);
 }
-function stopEngine(v) { if (!v.engine) return; try { v.engine.o.stop(); v.engine.o2.stop(); v.engine.g.disconnect(); } catch (e) { /* already stopped */ } v.engine = null; }
+function stopEngine(v) { if (!v.engine) return; try { v.engine.o.stop(); v.engine.o2.stop(); if (v.engine.lfo) v.engine.lfo.stop(); v.engine.g.disconnect(); } catch (e) { /* already stopped */ } v.engine = null; }
 
 // ---------- geometry queries used by physics ----------
 // circle (x,z,r) vs a dynamic oriented box

@@ -56,16 +56,17 @@ export function startMatch() {
 let hudMagText = '';
 // vehicle panel (null hides it)
 let vhShown = false, vhKeysFor = -1;
-export function vehicleHud(v, seat, kmh, heat, over) {
+export function vehicleHud(v, seat, kmh, heat, over, alt = -1) {
   if (!v) { if (vhShown) { $('vehHud').classList.add('hidden'); $('hud').classList.remove('in-vehicle'); vhShown = false; vhKeysFor = -1; } return; }
   if (!vhShown) { $('vehHud').classList.remove('hidden'); $('hud').classList.add('in-vehicle'); vhShown = true; }
-  $('vhHp').style.width = Math.max(0, v.hp / 700 * 100).toFixed(1) + '%';
-  $('vhHp').classList.toggle('low', v.hp < 250);
-  $('vhSpeed').textContent = seat === 0 ? Math.round(kmh) + ' km/h' : 'Gunner';
+  $('vhHp').style.width = Math.max(0, v.hp / v.spec.hp * 100).toFixed(1) + '%';
+  $('vhHp').classList.toggle('low', v.hp < v.spec.hp * 0.35);
+  $('vhName').textContent = v.spec.name;
+  $('vhSpeed').textContent = seat === 0 ? Math.round(kmh) + ' km/h' + (alt >= 0 ? `   ${Math.round(alt)} m up` : '') : 'Gunner';
   $('vhHeatWrap').classList.toggle('hidden', seat !== 1);
   if (seat === 1) { $('vhHeat').style.width = (heat * 100).toFixed(1) + '%'; $('vhHeat').classList.toggle('over', !!over); }
   $('hud').classList.toggle('gunner', seat === 1);
-  if (vhKeysFor !== seat) { vhKeysFor = seat; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, '<kbd>1</kbd> Drive', '<kbd>2</kbd> Gun', ...(seat === 0 ? ['<kbd>Space</kbd> Handbrake'] : [])].map((t) => `<span>${t}</span>`).join(''); }
+  const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, `<kbd>1</kbd> ${v.type === 'heli' ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun', ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
 }
 export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); $('board').classList.add('hidden'); boardOpen = false; }
 

@@ -38,9 +38,13 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 5b Capture the Flag (bots grab, escort, return flags; flag bases per map)
 - [x] 5c Zombies (endless rounds, points for hits/kills, wall-buy weapons, mystery box, power-ups: Max Ammo, Insta-Kill, Double Points)
 
+## Extra requests (added mid-Phase 6)
+- [ ] X1 Prone / crawl (Z toggles prone? -> key: Z is scope zoom, so prone = X; hold-crouch then crouch again also fine)
+- [ ] X2 Fix Gorge train car enter/exit lag and stutter (and same bug class elsewhere); openable train doors
+
 ## Then: Phase 6 — vehicles (match setting "Vehicles: On/Off", default OFF)
 - [x] 6a Drivable jeep with gunner turret (E enter/exit). DONE: Vehicles On/Off in the lobby (default Off; Gorge, FFA/TDM/Sandbox/CTF), dynamic OBB collider, chase cam, M2 gunner with overheat, roadkill, explosions, respawn 20 s.
-- [ ] 6b Flyable helicopter
+- [x] 6b Flyable helicopter. DONE: camera-directed arcade flight (WASD, Space/C), nose gun for the pilot, right door M2 with arc, autorotation, crash damage, two helipads on Gorge plateaus.
 - [ ] 6c Bots drive, gun and fly
 - [ ] 6d Vehicle placements on Cascade Gorge (+ a larger vehicle-friendly map if needed); keep performance acceptable
 

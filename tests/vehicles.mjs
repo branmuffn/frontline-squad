@@ -53,7 +53,7 @@ const r4 = await s.page.evaluate(async () => {
   const mod = F.vehiclesApi; // not exposed; use damage path through an explosion helper
   let n = 0; while (v.alive && n++ < 20) { G.player.protectUntil = 1e9; F.damageVehicle(v, 200, G.bots[0]); }
   out.destroyed = !v.alive; window.__step(60 * 21);
-  out.respawned = F.vehicles.length === 3 && F.vehicles.every((q) => q.alive);
+  out.respawned = F.vehicles.length === 5 && F.vehicles.every((q) => q.alive);
   return out;
 });
 console.log(JSON.stringify({ off, ...r, ...r2, ...r3, ...r4 }), 'ERRORS', s.errors.length, s.errors.slice(0, 3));
