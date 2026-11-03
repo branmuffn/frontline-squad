@@ -17,6 +17,7 @@ export async function open({ stub = true, w = 1280, h = 720, html = path.join(HE
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: w, height: h } });
   const errors = [];
+  page.on('request', (q) => { if (!q.url().startsWith('http://game.local/') && !q.url().startsWith('data:') && !q.url().startsWith('blob:')) errors.push('EXTERNAL REQUEST ' + q.url()); });
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push('PAGEERR ' + e.message + ' ' + (e.stack||'').split('\n').slice(0,3).join(' | ')));
   await page.route('**/three.min.js', r => r.fulfill({ contentType: 'application/javascript', body: THREE + (stub ? STUB : '') }));
