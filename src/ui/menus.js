@@ -59,7 +59,8 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); $('modeDesc').textContent = MODES[v].desc; });
+  $('modeDesc').textContent = MODES[L.mode].desc;
   seg($('diffSel'), Object.entries(DIFFICULTY).map(([k, d]) => ({ v: k, html: d.label })), L.difficulty, (v) => { L.difficulty = v; saveProfile(); refreshBest(); });
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
@@ -86,14 +87,15 @@ function refreshCounts() {
   if (!m.counts) return;
   $('countLabel').textContent = m.countLabel;
   const cur = L.counts[L.mode] ?? m.defaultCount;
-  seg($('countSel'), m.counts.map((n) => ({ v: n, html: L.mode === 'tdm' ? `${n}v${n}` : String(n) })), cur, (v) => { L.counts[L.mode] = Number(v); saveProfile(); });
+  seg($('countSel'), m.counts.map((n) => ({ v: n, html: L.mode === 'tdm' || m.teamSize ? `${n}v${n}` : String(n) })), cur, (v) => { L.counts[L.mode] = Number(v); saveProfile(); });
 }
 function refreshBest() {
   const pr = G.profile, L = pr.lobby;
   let t;
   if (L.mode === 'sandbox') t = 'Nothing in Sandbox counts toward XP or career stats.';
   else if (L.mode === 'survival') t = `Best on ${DIFFICULTY[L.difficulty].label.toLowerCase()}: ${(pr.best.survival[L.difficulty] || 0).toLocaleString()} points · furthest wave ${pr.best.wave}`;
-  else t = `Most kills in a ${L.mode === 'ffa' ? 'free-for-all' : 'team'} match: ${pr.best[L.mode]}`;
+  else if (L.mode === 'zombies') t = `Furthest round: ${pr.best.zombies || 0}`;
+  else t = `Most kills in a ${MODES[L.mode].name.toLowerCase()} match: ${pr.best[L.mode] || 0}`;
   $('bestLine').textContent = t;
 }
 
@@ -234,7 +236,9 @@ export function showEnd(r) {
   $('end').dataset.result = r.result;
   $('endDetail').textContent = r.detail;
   const acc = st.shots ? Math.round(st.hits / st.shots * 100) + '%' : '—';
-  const tiles = r.mode === 'survival'
+  const tiles = r.mode === 'zombies'
+    ? [['Round', m.round], ['Points', m.points.toLocaleString()], ['Kills', P.kills], ['Accuracy', acc], ['Headshots', st.headHits], ['Downs', P.deaths]]
+    : r.mode === 'survival'
     ? [['Wave', r.wave], ['Points', r.points.toLocaleString()], ['Kills', P.kills], ['Accuracy', acc], ['Headshots', st.headHits], ['Best streak', P.bestStreak]]
     : [['Kills', P.kills], ['Deaths', P.deaths], ['K/D', (P.kills / Math.max(1, P.deaths)).toFixed(2)], ['Assists', P.assists], ['Accuracy', acc], ['Best streak', P.bestStreak]];
   $('endStats').innerHTML = tiles.map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join('');

@@ -71,7 +71,11 @@ h3 { margin: 22px 0 4px; font-size: 20px; font-weight: 700; color: var(--ink); }
 .badge { flex: none; display: block; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .flabel { font-size: 15px; font-weight: 600; color: var(--ink-dim); }
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.modes button { padding: 8px 9px !important; }
+.modes button b { font-size: 15px !important; }
+.modes button small { display: none !important; }
+.mode-desc { color: var(--ink-dim); font-size: 13px; margin: 4px 0 -6px; }
 .modes button, .maps button { border: 1px solid var(--line); background: rgba(29, 36, 40, 0.8); text-align: left; padding: 10px 12px; transition: border-color 0.12s, background 0.12s; }
 .modes button b { display: block; font-size: 18px; font-weight: 800; letter-spacing: 0.02em; }
 .modes button small, .maps button small { display: block; color: var(--ink-dim); font-size: 14px; line-height: 1.25; margin-top: 3px; }

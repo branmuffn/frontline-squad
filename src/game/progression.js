@@ -54,6 +54,8 @@ export function finishMatch(result) {
   let newBest = false;
   if (m.mode === 'ffa' && p.kills > pr.best.ffa) { pr.best.ffa = p.kills; newBest = true; }
   if (m.mode === 'tdm' && p.kills > pr.best.tdm) { pr.best.tdm = p.kills; newBest = true; }
+  if (m.mode === 'zombies' && m.round > (pr.best.zombies || 0)) { pr.best.zombies = m.round; newBest = true; }
+  if ((m.mode === 'gungame' || m.mode === 'ctf' || m.mode === 'infection') && p.kills > (pr.best[m.mode] || 0)) { pr.best[m.mode] = p.kills; newBest = true; }
   if (m.mode === 'survival') {
     if (m.points > (pr.best.survival[m.difficulty] || 0)) { pr.best.survival[m.difficulty] = m.points; newBest = true; }
     pr.best.wave = Math.max(pr.best.wave, m.wave);

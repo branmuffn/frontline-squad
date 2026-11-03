@@ -36,11 +36,13 @@ export function damage(victim, amount, attacker, info = {}) {
     if (R.headshots && attacker && attacker !== victim && !info.headshot && !info.melee) return 0;
     if (R.oneShot && attacker && attacker !== victim) amount = victim.health + 1;
   }
-  let dmg = amount;
+  const H = G.match && G.match.hook;
+  let dmg = H && H.modDamage ? H.modDamage(victim, attacker, amount) : amount;
   if (attacker === victim) dmg *= 0.6;
   dmg = Math.min(dmg, victim.health + 200);
   victim.health -= dmg;
   victim.lastHitAt = G.now; victim.lastAttacker = attacker;
+  if (H && H.onDamage) H.onDamage(victim, attacker, dmg, info);
   if (attacker && attacker !== victim) {
     const rec = victim.damagers.get(attacker) || { dmg: 0, t: 0 };
     rec.dmg += dmg; rec.t = G.now; victim.damagers.set(attacker, rec);
@@ -84,12 +86,13 @@ export function kill(victim, attacker, info = {}) {
     if (u.isPlayer) award('assist', 'Assist');
   }
   victim.damagers.clear();
-  if (victim.brain && !(G.match.rules && G.match.rules.knife)) dropWeapon(victim.brain.weapon, victim.x, victim.y + 0.02, victim.z);
+  if (victim.brain && !(G.match.rules && G.match.rules.knife) && !(G.match.hook && G.match.hook.noDrops)) dropWeapon(victim.brain.weapon, victim.x, victim.y + 0.02, victim.z);
   hud.killfeed(credited ? credited : victim, victim, info.weapon, !!info.headshot, !credited);
-  if (credited && !credited.isPlayer && !info.noStreak) botStreak(credited, credited.streak);
+  const noStreaks = G.match.hook && G.match.hook.noStreaks;
+  if (credited && !credited.isPlayer && !info.noStreak && !noStreaks) botStreak(credited, credited.streak);
   if (credited && credited.isPlayer) {
     awardKill(victim, info, victimStreak);
-    if (!info.noStreak) checkStreak(credited.streak);
+    if (!info.noStreak && !noStreaks) checkStreak(credited.streak);
     play('kill', null, { important: true, delay: 0.06 });
   }
   if (victim.isPlayer) G.player.lastKiller = credited;

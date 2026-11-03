@@ -45,10 +45,11 @@ export function startMatch() {
   $('banner').classList.remove('show');
   const lim = m.mode === 'sandbox' ? 'Sandbox · press B for weapons' : m.mode === 'tdm' ? `First team to ${m.scoreLimit}` : m.mode === 'ffa' ? `First to ${m.scoreLimit}` : 'Three lives';
   $('score').className = 'score mode-' + (m.teams ? 'tdm' : m.mode === 'survival' ? 'survival' : 'ffa');
-  $('score').innerHTML = m.mode === 'survival'
-    ? `<div class="sc-side"><small>Points</small><b id="scA">0</b></div><div class="sc-mid"><small>Wave</small><b id="scT">1</b></div><div class="sc-side"><small>Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`
+  $('score').innerHTML = m.mode === 'survival' || m.mode === 'zombies'
+    ? `<div class="sc-side"><small id="scAn">Points</small><b id="scA">0</b></div><div class="sc-mid"><small>${m.mode === 'zombies' ? 'Round' : 'Wave'}</small><b id="scT">1</b></div><div class="sc-side"><small id="scBn">Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`
     : `<div class="sc-side a"><small id="scAn">${m.teams ? TEAMS[0].name : 'You'}</small><b id="scA">0</b></div><div class="sc-mid"><b id="scT">--:--</b></div><div class="sc-side b"><small id="scBn">${m.teams ? TEAMS[1].name : 'Leader'}</small><b id="scB">0</b></div><div class="sc-sub" id="scSub">${lim}</div>`;
   $('mapLabel').textContent = `${G.world.def.name} · ${MODES[m.mode].name}`;
+  const pips = $('pip0') && $('pip0').parentElement; if (pips) pips.style.visibility = m.hook && m.hook.noStreaks ? 'hidden' : '';
   setStreaks(0, []);
   scoreChanged();
 }
@@ -56,6 +57,12 @@ export function endMatch() { $('hud').classList.remove('active'); $('scope').cla
 
 export function scoreChanged() {
   const m = G.match, P = G.player; if (!m || !P) return;
+  if (m.hook && m.hook.score) {
+    const s = m.hook.score();
+    set('scAn', 'text', s.an); set('scA', 'text', s.a); set('scBn', 'text', s.bn); set('scB', 'text', s.b); set('scSub', 'html', s.sub);
+    if (s.t !== undefined) set('scT', 'text', s.t);
+    return;
+  }
   if (!m.teams && m.mode !== 'survival') {
     const others = G.units.filter((u) => u !== P).sort((a, b) => b.kills - a.kills);
     const lead = others[0];
@@ -142,13 +149,14 @@ function drawBoard() {
   const m = G.match, P = G.player; if (!m) return;
   const row = (u) => `<tr class="${u === P ? 'me' : ''}${u.alive ? '' : ' dead'}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists}</td><td>${u.streak}</td></tr>`;
   const head = '<tr><th>Operator</th><th>K</th><th>D</th><th>A</th><th>Streak</th></tr>';
-  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.def.time ? fmtTime(m.time) : ''}</span></div>`;
+  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.mode === 'zombies' ? `Round ${m.round}` : m.def.time ? fmtTime(m.time) : ''}</span></div>`;
   if (m.teams) {
     for (const t of [0, 1]) {
       const us = G.units.filter((u) => u.team === t).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
-      html += `<div class="board-team t${t}"><div class="bt-name">${TEAMS[t].name}<b>${m.teamScores[t]}</b></div><table>${head}${us.map(row).join('')}</table></div>`;
+      const tn = m.hook && m.hook.teamNames ? m.hook.teamNames[t].name : TEAMS[t].name, ts = m.mode === 'infection' ? us.length : m.teamScores[t];
+      html += `<div class="board-team t${t}"><div class="bt-name">${tn}<b>${ts}</b></div><table>${head}${us.map(row).join('')}</table></div>`;
     }
-  } else if (m.mode === 'survival') {
+  } else if (m.mode === 'survival' || m.mode === 'zombies') {
     html += `<div class="board-surv"><div><small>Points</small><b>${m.points.toLocaleString()}</b></div><div><small>Kills</small><b>${P.kills}</b></div><div><small>Lives</small><b>${m.lives}</b></div><div><small>Hostiles left</small><b>${m.remaining ?? 0}</b></div></div>`;
   } else html += `<table>${head}${standings().map(row).join('')}</table>`;
   $('board').innerHTML = html;
@@ -182,9 +190,10 @@ export function updatePlayerHud(P, o) {
 export function updateHud(dt) {
   const m = G.match, P = G.player; if (!m || !P) return;
   const rt = G.realTime;
-  if (m.mode !== 'survival') set('scT', 'text', m.def.time ? fmtTime(m.time) : '∞');
+  if (m.mode === 'zombies') { if (rt > (cache.svT || 0)) { cache.svT = rt + 0.4; scoreChanged(); } }
+  else if (m.mode !== 'survival') set('scT', 'text', m.def.time ? fmtTime(m.time) : '∞');
   else { set('scB', 'text', String(m.remaining ?? 0)); if (m.waveState === 'intermission') set('scSub', 'html', `Next wave in ${Math.ceil(m.nextWaveAt - G.now)} · Lives ${m.lives}`); else if (rt > (cache.svT || 0)) { cache.svT = rt + 0.5; scoreChanged(); } }
-  if (m.mode !== 'survival') { if (rt > (cache.scT2 || 0)) { cache.scT2 = rt + 0.4; scoreChanged(); } }
+  if (m.mode !== 'survival' && m.mode !== 'zombies') { if (rt > (cache.scT2 || 0)) { cache.scT2 = rt + 0.4; scoreChanged(); } }
   // timers
   if (rt > hitUntil) $('hitmarker').className = '';
   if (rt > noticeUntil) $('notice').classList.remove('show');
@@ -288,6 +297,7 @@ function drawRadar() {
     ctx.beginPath(); ctx.arc(u.x, u.z, ally ? 1.2 : 1.4, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
+  if (m.hook && m.hook.radar) m.hook.radar(ctx);
   for (const s of streakState.sentries) { ctx.fillStyle = isEnemy(s.owner, G.player) ? '#ff6b5a' : '#9fe0ff'; ctx.fillRect(s.x - 0.9, s.z - 0.9, 1.8, 1.8); }
   for (const s of streakState.shells) { ctx.strokeStyle = 'rgba(229,96,74,0.7)'; ctx.lineWidth = 0.4; ctx.beginPath(); ctx.arc(s.x, s.z, 2, 0, Math.PI * 2); ctx.stroke(); }
   ctx.restore();

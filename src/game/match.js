@@ -20,6 +20,7 @@ import { play, startAmbience, stopAmbience } from '../engine/audio.js';
 import { resetMatchXp, award, finishMatch } from './progression.js';
 import * as hud from '../ui/hud.js';
 import { showEnd } from '../ui/menus.js';
+import { HOOKS } from './modes.js';
 
 let deployBeep = 0;
 
@@ -36,13 +37,14 @@ export function startMatch(cfg) {
   cleanupMatch();
   G.match = {
     mode: cfg.mode, map: cfg.map, difficulty: cfg.difficulty, count: cfg.count, def: mode,
-    time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? cfg.count * 10 : mode.scoreLimit || 0,
+    time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? cfg.count * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
     rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
   };
   const m = G.match;
-  m.teams = cfg.mode === 'tdm' || !!(m.rules && m.rules.teams);
+  m.teams = cfg.mode === 'tdm' || !!mode.teamSize || !!(m.rules && m.rules.teams);
+  const waves = cfg.mode === 'survival' || (m.hook && m.hook.waves);
   m.slots = effectiveSlots(cfg.mode);
   if (m.rules) m.loadout = { guns: loadoutGuns(G.profile.loadout, m.slots) };
   G.gravMul = m.rules && m.rules.lowGrav ? 0.4 : 1;
@@ -51,16 +53,18 @@ export function startMatch(cfg) {
   const P = createPlayer(0);
   G.units = [P]; G.bots = [];
   const names = shuffle(BOT_NAMES.slice());
-  if (!m.teams && cfg.mode !== 'survival') {
+  if (!m.teams && !waves) {
     for (let i = 0; i < cfg.count; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
   } else if (m.teams) {
-    const allies = cfg.mode === 'tdm' ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = cfg.mode === 'tdm' ? cfg.count : cfg.count - allies;
+    const squads = cfg.mode === 'tdm' || mode.teamSize;
+    const allies = squads ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies;
     for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
+  if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
   resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
-  const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw);
-  for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); }
+  const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);
+  for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); hookSpawn(b); }
   G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix();
   G.state = 'deploy'; G.deployUntil = 3; deployBeep = 0;
   hud.startMatch();
@@ -91,7 +95,13 @@ function addBot(o) {
   return b;
 }
 
+function hookSpawn(u) { const h = G.match && G.match.hook; if (h && h.onSpawn) h.onSpawn(u); }
+// helpers modes use to add and remove wave enemies
+G.spawnBot = (o) => { const b = addBot(o); const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); b.protectUntil = 0; return b; };
+G.removeBot = (b) => { disposeBot(b); G.bots.splice(G.bots.indexOf(b), 1); G.units.splice(G.units.indexOf(b), 1); };
+
 export function cleanupMatch() {
+  for (const h of Object.values(HOOKS)) if (h.cleanup) h.cleanup();
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];
   clearGrenades(); clearRockets(); clearBullets(); clearDrops();
@@ -101,8 +111,8 @@ export function cleanupMatch() {
 export function pickSpawn(u, opts = {}) {
   const sp = G.world.spawns, m = G.match;
   let list = sp.ffa;
-  if (m.teams) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
-  if (m.mode === 'survival' && !u.isPlayer) list = sp.ffa.concat(sp.teams[0], sp.teams[1]);
+  if (m.teams && !(m.hook && m.hook.ffaSpawns)) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
+  if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && !u.isPlayer) list = sp.ffa.concat(sp.teams[0], sp.teams[1]);
   let best = null, bs = -1e9;
   for (const [x, z, sy] of list) {
     const y = supportHeight(x, z, 0.2, (sy || 0) + 0.5);
@@ -116,7 +126,7 @@ export function pickSpawn(u, opts = {}) {
       if (d < 50 && losClear(o.x, o.y + 1.6, o.z, x, y + 1.2, z)) seen++;
     }
     let s = Math.min(minD, 45) + rand(0, 7) - seen * 30 + Math.min(friends, 2) * 4;
-    if (m.mode === 'survival' && !u.isPlayer) { const p = G.player; const d = Math.hypot(p.x - x, p.z - z); if (d < 22) s -= 80; }
+    if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && !u.isPlayer) { const p = G.player; const d = Math.hypot(p.x - x, p.z - z); if (d < 22) s -= 80; }
     if (minD < 6) s -= 60;
     if (s > bs) { bs = s; best = { x, y, z }; }
   }
@@ -128,11 +138,12 @@ export function pickSpawn(u, opts = {}) {
 export function onKill(credited, victim, info) {
   const m = G.match; if (!m || m.ended) return;
   m.killsTotal++;
-  if (credited && m.teams) m.teamScores[credited.team]++;
+  if (credited && m.teams && !m.hook) m.teamScores[credited.team]++;
+  const hookEnd = m.hook && m.hook.onKill ? m.hook.onKill(credited, victim, info) : null;
   if (victim.isPlayer) {
     onPlayerDeath();
     G.state = 'dead';
-    if (m.mode === 'survival') {
+    if (m.mode === 'survival' || (m.hook && m.hook.waves)) {
       m.lives--;
       if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); hud.showDeath(credited, info, 99); return; }
     }
@@ -142,6 +153,7 @@ export function onKill(credited, victim, info) {
     victim.respawnAt = G.now + 3; // same delay as the player
     if (m.mode === 'survival') m.alive = Math.max(0, (m.alive || 0) - 1);
   }
+  if (hookEnd === 'end') { setTimeout(() => endMatch('limit'), 300); hud.scoreChanged(); return; }
   if (m.mode === 'ffa' && credited && credited.kills >= m.scoreLimit) endMatch('limit');
   if (m.mode === 'tdm' && (m.teamScores[0] >= m.scoreLimit || m.teamScores[1] >= m.scoreLimit)) endMatch('limit');
   hud.scoreChanged();
@@ -216,14 +228,15 @@ export function updateMatch(dt) {
     m.time -= dt;
     if (m.time <= 0) { m.time = 0; endMatch('time'); return; }
   } else if (m.mode === 'survival') updateSurvival();
-  if (m.mode !== 'survival') {
+  if (m.hook && m.hook.update && m.hook.update(dt) === 'end') { endMatch('limit'); return; }
+  if (m.mode !== 'survival' && !(m.hook && m.hook.waves)) {
     for (const b of G.bots) {
-      if (!b.alive && b.respawnAt && G.now >= b.respawnAt) { const s = pickSpawn(b); resetBotForSpawn(b, s.x, s.y, s.z, s.yaw); }
+      if (!b.alive && b.respawnAt && G.now >= b.respawnAt) { const s = pickSpawn(b); resetBotForSpawn(b, s.x, s.y, s.z, s.yaw); hookSpawn(b); }
     }
   }
   const P = G.player;
   if (G.state === 'dead' && G.now >= P.respawnAt && !m.ended) {
-    const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw);
+    const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);
     G.state = 'playing'; hud.hideDeath(); hud.setStreaks(0, null);
   }
 }
@@ -240,7 +253,8 @@ export function endMatch(reason) {
   clearInput();
   const P = G.player;
   let result, title, detail;
-  if (m.mode === 'ffa') {
+  if (m.hook && m.hook.result) ({ result, title, detail } = m.hook.result());
+  else if (m.mode === 'ffa') {
     const ranks = [...G.units].sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
     const top = ranks[0], second = ranks[1];
     if (top === P && (!second || P.kills > second.kills || P.deaths < second.deaths)) { result = 'victory'; title = 'Victory'; detail = 'Top of the leaderboard. Excellent work, operator.'; }

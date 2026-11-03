@@ -58,10 +58,20 @@ export function spawnPlayer(x, y, z, yaw) {
 export function startingWeapons() {
   const m = G.match;
   if (m && m.rules && m.rules.knife) return ['knife'];
+  const hw = m && m.hook && m.hook.weapons && m.hook.weapons(P);
+  if (hw) return hw.slice();
   const guns = m && m.loadout ? m.loadout.guns : loadoutGuns(G.profile.loadout, (m && m.slots) || 'classic');
   return [...guns, 'knife'];
 }
 export const knifeSlot = () => P.weapons.length - 1;
+// Replace the whole kit mid-life (Gun Game tiers, Zombies purchases); draws `select` or the first weapon
+export function giveWeapons(list, select) {
+  for (const id of list) if (!WEAPONS[id].melee && !P.ammo[id]) P.ammo[id] = { mag: WEAPONS[id].mag, res: WEAPONS[id].reserve };
+  P.weapons = list.slice();
+  P.slot = Math.max(0, select ? P.weapons.indexOf(select) : 0); P.lastSlot = Math.min(1, P.weapons.length - 1);
+  P.reloadStart = -1; P.meleeStart = -1; P.bloom = 0; P.switchStart = G.now; P.switchDur = WEAPONS[P.weapons[P.slot]].draw;
+  play('switch'); hud.setWeapon(P);
+}
 // Which slot a picked-up gun goes into: Classic swaps the same type, Two-Gun/Overkill swap the gun in hand.
 export function pickupSlot(id) {
   const have = P.weapons.indexOf(id);
@@ -295,7 +305,7 @@ export function updatePlayer(dt) {
   const firingRecently = G.now - P.lastShotAt < 0.25;
   P.sprinting = !frozen && down('sprint') && f > 0 && !P.crouch && P.adsT < 0.35 && P.cookStart < 0 && !firingRecently && G.now > P.noSprintUntil && P.meleeStart < 0;
   P.sprintT = damp(P.sprintT, P.sprinting ? 1 : 0, 10, dt);
-  let speed = PHYS.walk * (w.speed || 1);
+  let speed = PHYS.walk * (w.speed || 1) * (P.speedMul || 1);
   if (P.sprinting) speed *= PHYS.sprintMul; else if (P.crouch) speed *= PHYS.crouchMul; else if (P.adsT > 0.5) speed *= PHYS.adsMul;
   if (inWater(P)) speed *= 0.62;
   // ladders: walk into one and hold forward to climb, back to descend, jump to let go

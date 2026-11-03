@@ -32,9 +32,9 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
 - [x] A10 Music: original procedural music (Web Audio) for menus/lobby/end screen + short match start/end stingers; NO in-match music (matches Halo MP / Combat Arms); separate Music volume slider; starts after first user click.
 
 ## Then: Phase 5 — modes
-- [ ] 5a Gun Game (advance weapon per kill, knife kill demotes victim) + Infection (Quarantine-style: infected are fast melee, kills convert survivors, survivors win at the timer)
-- [ ] 5b Capture the Flag (bots grab, escort, return flags; flag bases per map)
-- [ ] 5c Zombies (endless rounds, points for hits/kills, wall-buy weapons, mystery box, power-ups: Max Ammo, Insta-Kill, Double Points)
+- [x] 5a Gun Game (advance weapon per kill, knife kill demotes victim) + Infection (Quarantine-style: infected are fast melee, kills convert survivors, survivors win at the timer)
+- [x] 5b Capture the Flag (bots grab, escort, return flags; flag bases per map)
+- [x] 5c Zombies (endless rounds, points for hits/kills, wall-buy weapons, mystery box, power-ups: Max Ammo, Insta-Kill, Double Points)
 
 ## Then: Phase 6 — vehicles (match setting "Vehicles: On/Off", default OFF)
 - [ ] 6a Drivable jeep with gunner turret (E enter/exit)

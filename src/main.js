@@ -166,7 +166,7 @@ function onKeyDown(code, e) {
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
-  else if (matches('interact', code)) tryPickup();
+  else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact())) tryPickup(); }
   else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
 function onKeyUp(code) {

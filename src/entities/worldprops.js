@@ -115,5 +115,5 @@ export function updateWorldProps(dt) {
     d.mesh.children[d.mesh.children.length - 1].material.opacity = 0.35 + 0.25 * Math.sin(G.realTime * 4);
   }
   near = nearestDrop();
-  hud.prompt(near ? `<kbd>${keyName('interact')}</kbd> Pick up ${WEAPONS[near.id].name}` : '');
+  if (!(G.match && G.match.hook && G.match.hook.prompting)) hud.prompt(near ? `<kbd>${keyName('interact')}</kbd> Pick up ${WEAPONS[near.id].name}` : '');
 }

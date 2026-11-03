@@ -188,7 +188,7 @@ for (const [id, w] of Object.entries(WEAPONS)) {
   Object.defineProperty(w, 'desc', { get() { return desc.replace(/\{(\w+)\}/g, (_, k) => WEAPONS[k].name); }, enumerable: true });
 }
 
-export const SOURCE_NAMES = { frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };
+export const SOURCE_NAMES = { claws: 'CLAWS', frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };
 
 // explosion types: radius, max damage, visual size
 export const EXPLOSIONS = { frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 170, big: 1.25 }, rpg: { R: 5.5, D: 150, big: 1 }, barrel: { R: 6.5, D: 140, big: 1.1 } };
@@ -221,6 +221,22 @@ export const MODES = {
   },
   survival: {
     id: 'survival', name: 'SURVIVAL', desc: 'Hold out against escalating waves. Three lives, no timer.',
+    counts: null, lives: 3,
+  },
+  gungame: {
+    id: 'gungame', name: 'GUN GAME', desc: 'Every kill swaps your gun for the next one. Knife kills knock the victim back a tier.',
+    time: 600, counts: [3, 5, 7, 9], defaultCount: 5, countLabel: 'Opponents',
+  },
+  infection: {
+    id: 'infection', name: 'INFECTION', desc: 'One player starts infected. Their knife kills spread it. Survivors win at the timer.',
+    time: 300, counts: [5, 7, 9, 11], defaultCount: 7, countLabel: 'Bots',
+  },
+  ctf: {
+    id: 'ctf', name: 'CAPTURE THE FLAG', desc: 'Steal their flag and bring it home while yours is safe. Three captures win.',
+    time: 600, scoreLimit: 3, teamSize: true, counts: [3, 4, 5, 6], defaultCount: 4, countLabel: 'Squad size',
+  },
+  zombies: {
+    id: 'zombies', name: 'ZOMBIES', desc: 'Endless undead rounds. Earn points, buy wall weapons, gamble on the mystery box.',
     counts: null, lives: 3,
   },
   sandbox: {

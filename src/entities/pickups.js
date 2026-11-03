@@ -38,7 +38,11 @@ export function buildPickups() {
   built = G.world.id;
 }
 export function clearPickups() { for (const p of pickups) G.scene.remove(p.g); pickups.length = 0; }
-export function resetPickups() { if (built !== G.world.id) buildPickups(); for (const p of pickups) { p.available = true; p.g.visible = true; } }
+export function resetPickups() {
+  if (built !== G.world.id) buildPickups();
+  const off = !!(G.match && G.match.hook && G.match.hook.noPickups); // Zombies uses these spots for buy stations
+  for (const p of pickups) { p.available = !off; p.g.visible = !off; p.respawnAt = off ? Infinity : 0; }
+}
 
 function take(p, u) {
   if (p.type === 'health') {

@@ -29,12 +29,12 @@ function freshProfile() {
       { primary: 'ak47', secondary: 'deagle', third: 'm870', camo: 'std' },
       { primary: 'l96', secondary: 'usp', third: 'mp5', camo: 'std' },
     ],
-    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', counts: { ffa: 5, tdm: 5, sandbox: 5 },
+    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
       sandbox: { teams: false, infAmmo: true, god: false, lowGrav: false, oneShot: false, headshots: false, knife: false, passive: false } },
     hints: {},
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0 },
-    best: { ffa: 0, tdm: 0, survival: { easy: 0, normal: 0, hard: 0 }, wave: 0 },
+    best: { ffa: 0, tdm: 0, survival: { easy: 0, normal: 0, hard: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },
   };
 }
 

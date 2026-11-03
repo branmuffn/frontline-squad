@@ -26,6 +26,8 @@ const TYPES = {
   rusher: { hp: 75, speed: 1.28, aggro: 1, acc: 1.15, dmg: 0.9, noCover: true, noHelmet: true },
   heavy: { hp: 220, speed: 0.8, aggro: 0.8, acc: 1.1, dmg: 1, heavy: true },
   marksman: { hp: 90, speed: 0.95, aggro: 0, acc: 0.55, dmg: 1 },
+  infected: { hp: 100, speed: 1.25, aggro: 1, acc: 1, dmg: 1, noCover: true },
+  zombie: { hp: 100, speed: 1, aggro: 1, acc: 1, dmg: 0.6, noCover: true, noHelmet: true, claws: true },
 };
 
 const laserGeo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)); return g; };
@@ -33,7 +35,7 @@ const laserGeo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('p
 export function createBot(o) {
   const type = TYPES[o.type || 'soldier'];
   const u = makeUnit({ name: o.name, team: o.team, maxHealth: type.hp, health: type.hp });
-  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: o.weapon, heavy: type.heavy, noHelmet: type.noHelmet, helmet: o.helmet });
+  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin });
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {
@@ -51,6 +53,13 @@ export function createBot(o) {
     u.laser.visible = false; u.laser.frustumCulled = false; G.scene.add(u.laser);
   }
   return u;
+}
+
+// Mode conversions (Infection): new role, gun and accent colour, keeping the same soldier
+export function convertBot(u, type, weapon) {
+  const b = u.brain; b.T = TYPES[type]; b.type = type; b.guns = [weapon]; setBotWeapon(u, weapon, false);
+  b.alwaysHunt = true; b.target = null; b.state = 'patrol';
+  if (u.soldier) u.soldier.mats.acc.color.setHex(type === 'infected' ? 0x6fbf4a : 0x888888).convertSRGBToLinear();
 }
 
 // Ladder climbing, same speed and exit as the player's
@@ -235,6 +244,12 @@ function think(u, cfg) {
     b.huntPing = G.now + 3; b.target = G.player; b.lastSeen = Math.max(b.lastSeen, G.now - 2);
     b.lastKnown = { x: G.player.x + rand(-4, 4), y: G.player.y, z: G.player.z + rand(-4, 4) };
   }
+  // zombies and the infected always sense the nearest living enemy
+  if (b.alwaysHunt && !b.visible && G.now > (b.huntPing || 0)) {
+    let best = null, bd = Infinity;
+    for (const t of G.units) if (t.alive && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
+    if (best) { b.huntPing = G.now + 1.5; b.target = best; b.lastSeen = Math.max(b.lastSeen, G.now - 2); b.lastKnown = { x: best.x, y: best.y, z: best.z }; }
+  }
   // hearing
   if (!b.visible) {
     for (let i = G.noise.length - 1; i >= 0; i--) {
@@ -279,6 +294,12 @@ function think(u, cfg) {
     if (hp) { b.state = 'heal'; setGoal(u, hp.x, hp.y, hp.z); } else b.state = 'patrol';
   } else b.state = 'patrol';
   if (b.state !== 'cover' && prev === 'cover') b.wantCrouch = false;
+  // mode objectives (Capture the Flag): carriers always run home, others take objectives when no one is in sight
+  const H = G.match.hook;
+  if (H && H.botGoal && b.state !== 'evade') {
+    const g = H.botGoal(u);
+    if (g && (!b.visible || (H.isCarrier && H.isCarrier(u)))) { b.state = 'objective'; setGoal(u, g.x, g.y, g.z); }
+  }
   // parity with the player: pick up better guns, use earned killstreaks, UAV reveals enemies
   if (!b.visible && b.state !== 'evade') considerLoot(u, b);
   if (b.loot) { if (b.visible || b.state === 'evade') b.loot = null; else b.state = 'loot'; }
@@ -397,7 +418,7 @@ export function updateBots(dt) {
     // ---- desired movement ----
     let mvx = 0, mvz = 0;
     // same speeds as the player: walk = PHYS.walk x gun handling, sprint = x sprintMul when not fighting
-    const baseSpeed = PHYS.walk * (WEAPONS[b.weapon].speed || 1) * cfg.speed * b.T.speed, sprint = baseSpeed * PHYS.sprintMul;
+    const baseSpeed = PHYS.walk * (WEAPONS[b.weapon].speed || 1) * cfg.speed * b.T.speed * (b.speedMul || 1), sprint = baseSpeed * PHYS.sprintMul;
     let speed = baseSpeed;
     if (b.state === 'evade' && b.evade) {
       const dx = u.x - b.evade.x, dz = u.z - b.evade.z, l = Math.hypot(dx, dz) || 1;
@@ -459,7 +480,7 @@ export function updateBots(dt) {
         if (Math.hypot(t.x - u.x, t.z - u.z) < 1.9 && Math.abs(t.y - u.y) < 1.3 && G.now >= b.nextShot) {
           b.nextShot = G.now + 0.75;
           play('knife', { x: u.x, y: u.y + 1.4, z: u.z }, { gain: 0.8 });
-          damage(t, WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 });
+          damage(t, WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: b.T.claws ? 'claws' : 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 });
         }
       } else if (b.scoped) {
         if (!b.aimStart) b.aimStart = G.now;
