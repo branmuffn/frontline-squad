@@ -6,6 +6,7 @@ import { input } from '../core/input.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
 import { badgeSVG } from './badges.js';
+import { setScene, stinger } from '../engine/music.js';
 import { codeName, keyName } from './hud.js';
 
 const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory'];
@@ -180,6 +181,7 @@ const SLIDERS = [
   ['adsSens', 'Aim-down-sights sensitivity', 0.3, 1.5, 0.05, (v) => Math.round(v * 100) + '%'],
   ['fov', 'Field of view', 60, 95, 1, (v) => v + '°'],
   ['volume', 'Volume', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
+  ['music', 'Music volume (menus only)', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
 ];
 const CROSS = ['#eaf2e4', '#7dff9a', '#ffd34d', '#5fd0ff', '#ff6b6b'];
 function refreshSettings() {
@@ -225,6 +227,8 @@ function refreshCareer() {
 
 // ---------- end of match ----------
 export function showEnd(r) {
+  stinger(r.result);
+  setTimeout(() => { if (G.state === 'ended') setScene('end'); }, 2600);
   const P = G.player, m = G.match, st = m.stats;
   $('endTitle').textContent = r.title;
   $('end').dataset.result = r.result;
@@ -290,7 +294,7 @@ export function initMenus(callbacks) {
   $('streaksDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
-  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });
+  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'music', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });
   $('resume').addEventListener('click', () => cb.onResume());
   $('freeLook').addEventListener('click', () => cb.onFreeLook());
   $('pauseSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'pause'); });

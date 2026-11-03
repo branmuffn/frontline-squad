@@ -28,6 +28,8 @@ export function initAudio() {
   } catch (e) { ctx = null; }
 }
 
+export const audioCtx = () => ctx;
+export const masterNode = () => master;
 export function setVolume(v) { if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02); }
 export function setListener(x, y, z, yaw) { L.x = x; L.y = y; L.z = z; L.yaw = yaw; }
 

@@ -5,6 +5,7 @@ import { initInput, input, matches, requestLock, exitLock, isLocked, clearInput 
 import { initRenderer, render, resize } from './engine/render.js';
 import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
+import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
@@ -47,9 +48,16 @@ function boot() {
     onRestart: () => { if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
+  // music can only start after the first user gesture (browser autoplay rules)
+  const firstGesture = () => {
+    window.removeEventListener('pointerdown', firstGesture, true); window.removeEventListener('keydown', firstGesture, true);
+    initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
+    setTimeout(() => { if (G.state === 'menu') setScene('menu'); }, 0);
+  };
+  window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -60,6 +68,7 @@ function applySetting(k) {
   const s = G.profile.settings;
   if (k === 'names') { setNameStyle(s.names); if (G.player && G.player.weapons) setWeaponHud(G.player); }
   if (k === 'volume') setVolume(s.volume);
+  if (k === 'music') setMusicVolume(s.music);
   if (k === 'shadows') setShadows(s.shadows);
   if (k === 'renderScale') resize();
   if (k === 'showFps') $('fps').classList.toggle('hidden', !s.showFps);
@@ -69,7 +78,8 @@ function applySetting(k) {
 
 function deploy(cfg) {
   lastCfg = cfg;
-  initAudio(); setVolume(G.profile.settings.volume);
+  initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
+  setScene(null); stinger('start'); // no music in a match, just the cue
   startMatch(cfg);
   showScreen(null);
   wantResume = false;
@@ -120,7 +130,7 @@ function redeploy() {
 function quit() {
   armoryOpen = false;
   abandonMatch(); exitLock(); input.freeLook = false;
-  showScreen('menu');
+  showScreen('menu'); setScene('menu');
 }
 
 function onLockChange(locked) {

@@ -29,7 +29,7 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
 - [x] A7 Weapon names toggle in Settings: Real (default) / Fictional (e.g. M4A1 -> AR-4 Carbine, Barrett .50 -> Thunder .50); applies to menus, HUD, killfeed.
 - [x] A8 Killstreak explanations: "Killstreaks" page in the menu, summary on the loadout screen, one-time hint the first time each is earned.
 - [x] A9 Bot parity: bots sprint at player speed, climb ladders (add ladder links to the nav graph), pick up dropped weapons, earn and use killstreaks (UAV, mortar, sentry), same respawn and spawn-protection rules.
-- [ ] A10 Music: original procedural music (Web Audio) for menus/lobby/end screen + short match start/end stingers; NO in-match music (matches Halo MP / Combat Arms); separate Music volume slider; starts after first user click.
+- [x] A10 Music: original procedural music (Web Audio) for menus/lobby/end screen + short match start/end stingers; NO in-match music (matches Halo MP / Combat Arms); separate Music volume slider; starts after first user click.
 
 ## Then: Phase 5 — modes
 - [ ] 5a Gun Game (advance weapon per kill, knife kill demotes victim) + Infection (Quarantine-style: infected are fast melee, kills convert survivors, survivors win at the timer)
