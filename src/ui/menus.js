@@ -178,6 +178,7 @@ function refreshSettings() {
   $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate']]
     .map(([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
   for (const k of ['invertY', 'shadows', 'showFps']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
+  seg($('namesSel'), [{ v: 'real', html: 'Real' }, { v: 'fictional', html: 'Fictional' }], s.names, (v) => { s.names = v; cb.onSetting('names'); saveProfile(); });
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Medium' }, { v: 1, html: 'Full' }], s.renderScale, (v) => { s.renderScale = Number(v); cb.onSetting('renderScale'); saveProfile(); });
   $('crossSel').innerHTML = CROSS.map((c) => `<button type="button" class="${s.crosshair === c ? 'sel' : ''}" data-v="${c}" style="--c:${c}" aria-label="Crosshair colour ${c}"></button>`).join('');
@@ -276,7 +277,7 @@ export function initMenus(callbacks) {
   $('careerDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
-  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'shadows', 'showFps', 'crosshair', 'renderScale']) cb.onSetting(k); refreshSettings(); });
+  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });
   $('resume').addEventListener('click', () => cb.onResume());
   $('freeLook').addEventListener('click', () => cb.onFreeLook());
   $('pauseSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'pause'); });

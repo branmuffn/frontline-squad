@@ -74,7 +74,7 @@ export const WEAPONS = {
     recoil: { v: 0.016, h: 0.006, drift: 0.0016, recover: 6 },
     reload: 2.2, reloadEmpty: 2.7, draw: 0.6, speed: 0.95, adsZoom: 0.78, adsTime: 0.18,
     sound: 'ak', noise: 40, tracer: 1, sight: 'iron',
-    desc: 'Hard-hitting full-auto rifle. Kicks harder than the M4, kills faster.',
+    desc: 'Hard-hitting full-auto rifle. Kicks harder than the {m4}, kills faster.',
     stats: { damage: 0.66, rate: 0.62, accuracy: 0.6, range: 0.7, mobility: 0.56 },
   },
   m249: {
@@ -94,7 +94,7 @@ export const WEAPONS = {
     recoil: { v: 0.04, h: 0.012, drift: 0, recover: 7 },
     reloadStart: 0.3, shellReload: 0.42, draw: 0.6, speed: 0.95, adsZoom: 0.88, adsTime: 0.18,
     sound: 'shotgun', noise: 45, tracer: 0.35, sight: 'bead',
-    desc: 'Semi-auto shotgun. Less punch per shell than the M870, far faster follow-ups.',
+    desc: 'Semi-auto shotgun. Less punch per shell than the {m870}, far faster follow-ups.',
     stats: { damage: 0.75, rate: 0.5, accuracy: 0.25, range: 0.18, mobility: 0.6 },
   },
   barrett: {
@@ -171,6 +171,23 @@ export function loadoutGuns(preset, mode) {
 }
 
 // Killfeed tags for non-gun damage sources
+// Weapon names (A7): real names by default, original fictional names when the setting says so.
+// WEAPONS[id].name and .desc are getters, so every menu, HUD line and killfeed entry follows the setting.
+const FICTIONAL = {
+  m4: 'AR-4 CARBINE', ak47: 'KR-47', mp5: 'SP-5', m870: 'FIELD PUMP 12', spas12: 'RIOT-12', m249: 'RHINO LMG',
+  l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
+};
+let nameStyle = 'real';
+export function setNameStyle(v) { nameStyle = v === 'fictional' ? 'fictional' : 'real'; }
+for (const [id, w] of Object.entries(WEAPONS)) {
+  const real = w.name, desc = w.desc;
+  delete w.name; delete w.desc;
+  Object.defineProperty(w, 'realName', { value: real });
+  Object.defineProperty(w, 'fakeName', { value: FICTIONAL[id] || real });
+  Object.defineProperty(w, 'name', { get() { return nameStyle === 'fictional' ? this.fakeName : this.realName; }, enumerable: true });
+  Object.defineProperty(w, 'desc', { get() { return desc.replace(/\{(\w+)\}/g, (_, k) => WEAPONS[k].name); }, enumerable: true });
+}
+
 export const SOURCE_NAMES = { frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };
 
 // explosion types: radius, max damage, visual size

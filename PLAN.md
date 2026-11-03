@@ -26,7 +26,7 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
   - Two-gun (Halo): any 2 guns + knife; pickup replaces the gun in hand.
   - Overkill: 3 guns + knife (key 4); unlocks at Sergeant rank; always available in Sandbox.
   - Controls: 1-4, mouse wheel, Q = last weapon; list them in Controls.
-- [ ] A7 Weapon names toggle in Settings: Real (default) / Fictional (e.g. M4A1 -> AR-4 Carbine, Barrett .50 -> Thunder .50); applies to menus, HUD, killfeed.
+- [x] A7 Weapon names toggle in Settings: Real (default) / Fictional (e.g. M4A1 -> AR-4 Carbine, Barrett .50 -> Thunder .50); applies to menus, HUD, killfeed.
 - [ ] A8 Killstreak explanations: "Killstreaks" page in the menu, summary on the loadout screen, one-time hint the first time each is earned.
 - [ ] A9 Bot parity: bots sprint at player speed, climb ladders (add ladder links to the nav graph), pick up dropped weapons, earn and use killstreaks (UAV, mortar, sentry), same respawn and spawn-protection rules.
 - [ ] A10 Music: original procedural music (Web Audio) for menus/lobby/end screen + short match start/end stingers; NO in-match music (matches Halo MP / Combat Arms); separate Music volume slider; starts after first user click.

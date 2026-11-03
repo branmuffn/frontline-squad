@@ -18,7 +18,8 @@ import { updateGrenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
 import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
 import { startMatch, updateMatch, abandonMatch, pickSpawn } from './game/match.js';
-import { initHud, updateHud, toggleBoard, setFps } from './ui/hud.js';
+import { initHud, updateHud, toggleBoard, setFps, setWeapon as setWeaponHud } from './ui/hud.js';
+import { setNameStyle } from './core/config.js';
 import { initMenus, showScreen, showPause, showArmory } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
@@ -34,7 +35,7 @@ function boot() {
   initViewmodel();
   loadMap(G.profile.lobby.map);
   initHud();
-  applySetting('crosshair'); applySetting('showFps');
+  applySetting('crosshair'); applySetting('showFps'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => isLive() || G.state === 'paused',
     onKeyDown, onKeyUp, onMouseDown, onWheel: (d) => { if (G.state === 'playing') cycleWeapon(d); },
@@ -56,6 +57,7 @@ function boot() {
 
 function applySetting(k) {
   const s = G.profile.settings;
+  if (k === 'names') { setNameStyle(s.names); if (G.player && G.player.weapons) setWeaponHud(G.player); }
   if (k === 'volume') setVolume(s.volume);
   if (k === 'shadows') setShadows(s.shadows);
   if (k === 'renderScale') resize();
