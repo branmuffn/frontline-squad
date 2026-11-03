@@ -2,7 +2,7 @@ import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
 import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
-import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS } from '../core/storage.js';
+import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
 import { input } from '../core/input.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
@@ -288,6 +288,23 @@ export function initMenus(callbacks) {
     cb.onDeploy({ mode: L.mode, map: L.map, difficulty: L.difficulty, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
+  // export / import profile
+  const saveMsg = (t, ok) => { const m = $('saveMsg'); m.textContent = t; m.className = 'save-msg ' + (ok ? 'ok' : 'err'); };
+  $('exportProfile').addEventListener('click', () => {
+    const txt = exportProfile(), name = 'frontline-profile-' + new Date().toISOString().slice(0, 10) + '.json';
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { /* downloads blocked */ }
+    // the download can be blocked inside an embedded page, so the text also goes to the clipboard
+    const done = (c) => saveMsg(c ? `Saved ${name} and copied the profile to the clipboard.` : `Saved ${name} to your downloads.`, true);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); else done(false);
+  });
+  const doImport = (txt) => {
+    const r = importProfile(txt); saveMsg(r.ok ? r.msg + ' Reloading\u2026' : r.msg, r.ok);
+    if (r.ok) setTimeout(() => location.reload(), 700);
+  };
+  $('importProfile').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; if (f.size > 2e6) { saveMsg('That file is too large to be a profile.', false); return; } f.text().then(doImport); });
+  $('pasteProfile').addEventListener('click', () => { $('pasteBox').classList.toggle('hidden', false); $('pasteText').focus(); });
+  $('pasteGo').addEventListener('click', () => doImport($('pasteText').value));
   $('openStreaks').addEventListener('click', () => { refreshStreaks(); open('streaks'); });
   $('streaksDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });

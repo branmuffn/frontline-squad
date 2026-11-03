@@ -100,7 +100,19 @@
 <section id="career" class="screen hidden">
   <div class="panel wide">
     <h2>Career</h2>
-    <div class="cols c-career"><div id="careerStats" class="tiles"></div><div id="rankLadder" class="ladder"></div></div>
+    <div class="cols c-career"><div><div id="careerStats" class="tiles"></div>
+      <div class="save-box">
+      <p class="save-note">Progress saves in this browser only. The online page and a downloaded copy keep separate saves, so use Export and Import to move your rank, stats and settings between them.</p>
+      <div class="save-actions">
+        <button id="exportProfile" class="btn-ghost" type="button">Export profile</button>
+        <button id="importProfile" class="btn-ghost" type="button">Import profile</button>
+        <button id="pasteProfile" class="btn-link" type="button">Paste instead</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div id="pasteBox" class="paste-box hidden"><textarea id="pasteText" rows="3" spellcheck="false" placeholder="Paste the exported profile text here"></textarea><button id="pasteGo" class="btn-ghost" type="button">Import pasted profile</button></div>
+      <p id="saveMsg" class="save-msg" aria-live="polite"></p>
+    </div>
+    </div><div id="rankLadder" class="ladder"></div></div>
     <div class="btn-row"><button id="careerDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>

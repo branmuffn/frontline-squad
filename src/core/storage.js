@@ -49,26 +49,49 @@ function merge(base, saved) {
   return base;
 }
 
-export function loadProfile() {
+function fromSaved(saved) {
   let p = freshProfile();
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const saved = JSON.parse(raw), defs = p.presets.map((d) => ({ ...d }));
-      p = merge(p, saved);
-      // older saves had a single loadout: it becomes preset A
-      if (!Array.isArray(saved.presets) && saved.loadout) Object.assign(defs[0], saved.loadout);
-      p.presets = defs.map((d, i) => ({ ...d, ...(Array.isArray(saved.presets) && saved.presets[i] || {}) }));
-    }
-    else {
-      const old = Number(localStorage.getItem('frontline_solo_ops_best')) || 0; // carry over v1 high score
-      p.best.ffa = old;
-    }
-  } catch (e) { /* storage blocked: play with defaults */ }
+  const defs = p.presets.map((d) => ({ ...d }));
+  p = merge(p, saved);
+  // older saves had a single loadout: it becomes preset A
+  if (!Array.isArray(saved.presets) && saved.loadout) Object.assign(defs[0], saved.loadout);
+  p.presets = defs.map((d, i) => ({ ...d, ...(Array.isArray(saved.presets) && saved.presets[i] && typeof saved.presets[i] === 'object' ? saved.presets[i] : {}) }));
   p.preset = Math.max(0, Math.min(2, p.preset | 0));
   p.loadout = p.presets[p.preset];
-  G.profile = p;
   return p;
+}
+
+export function loadProfile() {
+  let p = null;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) p = fromSaved(JSON.parse(raw));
+    else {
+      p = fromSaved({});
+      p.best.ffa = Number(localStorage.getItem('frontline_solo_ops_best')) || 0; // carry over v1 high score
+    }
+  } catch (e) { /* storage blocked: play with defaults */ }
+  G.profile = p || fromSaved({});
+  return G.profile;
+}
+
+// ---- moving progress between browsers / the artifact page and a downloaded copy ----
+export function exportProfile() {
+  const { loadout, ...rest } = G.profile;
+  return JSON.stringify({ app: 'frontline-solo-ops', format: 1, exported: new Date().toISOString(), profile: rest }, null, 1);
+}
+// Returns { ok, msg }. Accepts an export file or a raw profile; unknown keys are ignored, missing ones get defaults.
+export function importProfile(text) {
+  let data;
+  try { data = JSON.parse(String(text).trim()); } catch (e) { return { ok: false, msg: 'That isn\u2019t a profile file. Choose a .json file made with Export profile.' }; }
+  const saved = data && data.app === 'frontline-solo-ops' ? data.profile : data;
+  const valid = saved && typeof saved === 'object' && !Array.isArray(saved) && saved.settings && typeof saved.settings === 'object'
+    && (typeof saved.xp === 'number' || (saved.career && typeof saved.career === 'object'));
+  if (!valid) return { ok: false, msg: 'This file doesn\u2019t contain a Frontline profile. Nothing was changed.' };
+  const p = fromSaved(saved);
+  if (!(p.xp >= 0 && isFinite(p.xp))) p.xp = 0;
+  G.profile = p; saveProfile();
+  return { ok: true, msg: 'Profile imported.' };
 }
 
 export function saveProfile() {
