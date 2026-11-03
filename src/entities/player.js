@@ -3,6 +3,7 @@ import { G } from '../core/state.js';
 import { PHYS, WEAPONS, GRENADE, loadoutGuns } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
+import { updateDeathCam, endDeathCam } from '../game/killcam.js';
 import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, kill } from './units.js';
@@ -42,6 +43,7 @@ export function refillAmmo() {
 }
 
 export function spawnPlayer(x, y, z, yaw) {
+  endDeathCam();
   Object.assign(P, {
     x, y, z, vx: 0, vz: 0, vy: 0, yaw, pitch: 0, alive: true, health: 100, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH,
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
@@ -283,7 +285,7 @@ export function updatePlayer(dt) {
   const s = G.profile.settings;
   const [mdx, mdy] = consumeMouse();
   P.mdx = mdx; P.mdy = mdy;
-  if (!P.alive) { updateDeathCam(dt); updateViewmodel(dt, { visible: false }); return; }
+  if (!P.alive) { if (!updateDeathCam(dt, P, mdx, mdy)) updateViewmodel(dt, { visible: false }); return; }
   const frozen = G.state === 'deploy';
   const w = W(), id = cur();
   // look
@@ -436,26 +438,6 @@ export function updatePlayer(dt) {
 
 export function onPlayerDeath() {
   P.deathT = 0; P.cookStart = -1; P.reloadStart = -1; P.adsT = 0;
-  P.deathFrom = { x: G.camera.position.x, y: G.camera.position.y, z: G.camera.position.z, yaw: P.yaw, pitch: P.pitch };
-}
-
-function updateDeathCam(dt) {
-  P.deathT += dt;
-  const t = Math.min(1, P.deathT / 0.7), e = 1 - Math.pow(1 - t, 3), d = P.deathFrom || { x: P.x, y: P.y + 1.6, z: P.z, yaw: P.yaw, pitch: 0 };
-  G.camera.position.set(d.x, lerp(d.y, P.y + 0.35, e), d.z);
-  let yaw = d.yaw, pitch = lerp(d.pitch, -0.1, e);
-  const k = P.lastKiller;
-  if (k && k.alive !== undefined && P.deathT > 0.6) {
-    const ty = Math.atan2(-(k.x - P.x), -(k.z - P.z));
-    const tt = Math.min(1, (P.deathT - 0.6) / 0.6);
-    const diff = Math.atan2(Math.sin(ty - d.yaw), Math.cos(ty - d.yaw));
-    yaw = d.yaw + diff * tt * tt * (3 - 2 * tt);
-    const dist = Math.hypot(k.x - P.x, k.z - P.z);
-    pitch = lerp(pitch, Math.atan2((k.y + 1.2) - (P.y + 0.35), dist), tt);
-  }
-  G.camera.rotation.set(pitch, yaw, e * 0.5);
-  G.camera.fov = damp(G.camera.fov, G.profile.settings.fov, 6, dt); G.camera.updateProjectionMatrix();
-  setListener(G.camera.position.x, G.camera.position.y, G.camera.position.z, yaw);
 }
 
 export function killPlayerSelf() { if (P.alive) kill(P, null, { weapon: 'fall' }); }

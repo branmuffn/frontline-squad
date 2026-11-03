@@ -133,6 +133,13 @@ export function animateSoldier(s, u, dt) {
     if (s.deathT > 2.4) r.position.y = u.y - Math.min(1.2, (s.deathT - 2.4) * 0.9);
     return;
   }
+  poseSoldier(s, u, dt);
+}
+// alive pose from a unit-like state {x,y,z,yaw,aimPitch,crouchT,moveSpeed,walkPhase} (also used by the kill cam)
+export function poseSoldier(s, u, dt) {
+  const r = s.root;
+  r.position.set(u.x, u.y, u.z);
+  r.rotation.y = u.yaw;
   const crouch = u.crouchT || 0;
   const speed = Math.min(1.4, (u.moveSpeed || 0) / 5);
   u.walkPhase = (u.walkPhase || 0) + dt * (4 + speed * 7) * (speed > 0.05 ? 1 : 0);

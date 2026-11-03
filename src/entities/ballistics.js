@@ -9,6 +9,7 @@ import { damage, isEnemy } from './units.js';
 import { damageBarrel } from './worldprops.js';
 import { impact, blood, tracer } from '../engine/fx.js';
 import { play } from '../engine/audio.js';
+import { recordShot } from '../game/killcam.js';
 
 export function falloff(w, d) {
   const [f0, f1, mn] = w.falloff;
@@ -48,7 +49,9 @@ function waterSurface(wh) {
 
 // One bullet state, shared by hitscan traces and projectiles in flight.
 export function newShot(shooter, wid, x, y, z, mul, k = 0) {
-  return { shooter, wid, w: WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false };
+  const s = { shooter, wid, w: WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false };
+  recordShot(s);
+  return s;
 }
 
 // Trace the shot `len` metres along (dx,dy,dz). Applies damage, penetration and effects. Returns true when the bullet stops.

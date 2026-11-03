@@ -411,3 +411,15 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #loadout .wcard .stat { grid-template-columns: 62px 1fr 34px; font-size: 12px; line-height: 1.15; margin-top: 1px; }
 #loadout .wc-head b { font-size: 18px; } #loadout .wc-head small { font-size: 13px; }
 #slotDesc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* kill cam */
+#killcam { position: absolute; inset: 0; pointer-events: none; }
+#killcam .kc-bar { position: absolute; left: 0; right: 0; height: 7vh; background: rgba(6, 8, 9, 0.88); }
+#killcam .kc-bar.top { top: 0; } #killcam .kc-bar.bot { bottom: 0; }
+#killcam .kc-tag { position: absolute; top: calc(7vh + 14px); left: 50%; transform: translateX(-50%); display: flex; align-items: baseline; gap: 10px; padding: 6px 14px; background: rgba(14, 19, 21, 0.8); border-left: 3px solid #c8452f; }
+#killcam .kc-tag b { color: #e8735e; font-size: 18px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+#killcam .kc-tag span { font-size: 18px; font-weight: 700; }
+#killcam .kc-tag small { color: var(--ink-dim); font-size: 14px; }
+#hud.kc-on > :not(#killcam):not(#death):not(#killfeed) { visibility: hidden; }
+#hud.kc-on #death { bottom: calc(7vh + 10px); padding: 8px; }
+#hud.kc-on #death small { display: none; }

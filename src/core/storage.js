@@ -14,7 +14,7 @@ export const KEY_LABELS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false,
+  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true,
   crosshair: '#eaf2e4', slots: 'classic', names: 'real', keys: { ...DEFAULT_KEYS },
 };
 

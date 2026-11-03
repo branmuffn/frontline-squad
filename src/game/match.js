@@ -20,6 +20,7 @@ import { play, startAmbience, stopAmbience } from '../engine/audio.js';
 import { resetMatchXp, award, finishMatch } from './progression.js';
 import * as hud from '../ui/hud.js';
 import { showEnd } from '../ui/menus.js';
+import { onDeathCam, resetKillcam } from './killcam.js';
 import { HOOKS } from './modes.js';
 
 let deployBeep = 0;
@@ -33,6 +34,7 @@ function pickWeapon() {
 export function startMatch(cfg) {
   const mode = MODES[cfg.mode];
   loadMap(cfg.map);
+  resetKillcam();
   if (!G.world.nav) buildNav();
   cleanupMatch();
   G.match = {
@@ -101,6 +103,7 @@ G.spawnBot = (o) => { const b = addBot(o); const sp = pickSpawn(b); resetBotForS
 G.removeBot = (b) => { disposeBot(b); G.bots.splice(G.bots.indexOf(b), 1); G.units.splice(G.units.indexOf(b), 1); };
 
 export function cleanupMatch() {
+  resetKillcam();
   for (const h of Object.values(HOOKS)) if (h.cleanup) h.cleanup();
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];
@@ -145,10 +148,11 @@ export function onKill(credited, victim, info) {
     G.state = 'dead';
     if (m.mode === 'survival' || (m.hook && m.hook.waves)) {
       m.lives--;
-      if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); hud.showDeath(credited, info, 99); return; }
+      if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); hud.showDeath(credited, info, 99); victim.respawnAt = G.now + 1.6; onDeathCam(victim, credited); return; }
     }
     victim.respawnAt = G.now + (m.mode === 'survival' ? 5 : 3);
     hud.showDeath(credited, info, victim.respawnAt);
+    onDeathCam(victim, credited);
   } else {
     victim.respawnAt = G.now + 3; // same delay as the player
     if (m.mode === 'survival') m.alive = Math.max(0, (m.alive || 0) - 1);

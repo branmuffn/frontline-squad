@@ -26,6 +26,7 @@ import { initMenus, showScreen, showPause, showArmory, showLoadout } from './ui/
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
+import { recordFrame, killcamActive, skipKillcam } from './game/killcam.js';
 import { damage, kill } from './entities/units.js';
 
 let wantResume = false, lastCfg = null;
@@ -41,7 +42,7 @@ function boot() {
   applySetting('crosshair'); applySetting('showFps'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => isLive() || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown, onWheel: (d) => { if (G.state === 'playing') cycleWeapon(d); },
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing') cycleWeapon(d); },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
   initMenus({
@@ -152,6 +153,7 @@ function onCanvasClick() {
 function onKeyDown(code, e) {
   if (!(isLive() || G.state === 'paused')) return;
   if (code === 'F9') { e.preventDefault(); toggleColliderDebug(); return; }
+  if (G.state === 'dead' && !e.repeat && code !== 'Escape' && !matches('scoreboard', code) && skipKillcam()) return;
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
@@ -204,6 +206,7 @@ function loop(t) {
       updatePickups(dt);
       updateStreaks(dt);
       updateHud(dt);
+      recordFrame();
       ambienceTick(dt, G.world.def.ambience);
     }
   } else if (G.state === 'menu') {
@@ -215,7 +218,7 @@ function loop(t) {
   }
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
   updateFx(dt);
-  render(isLive() && G.player && G.player.alive || (G.state === 'paused' && G.player && G.player.alive));
+  render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive));
 }
 
 try { boot(); } catch (err) {
