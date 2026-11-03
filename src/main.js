@@ -19,10 +19,10 @@ import { separateUnits } from './entities/units.js';
 import { updateGrenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
 import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
-import { startMatch, updateMatch, abandonMatch, pickSpawn } from './game/match.js';
+import { startMatch, updateMatch, abandonMatch, pickSpawn, endMatch } from './game/match.js';
 import { initHud, updateHud, toggleBoard, setFps, setWeapon as setWeaponHud } from './ui/hud.js';
 import { setNameStyle } from './core/config.js';
-import { initMenus, showScreen, showPause, showArmory } from './ui/menus.js';
+import { initMenus, showScreen, showPause, showArmory, showLoadout } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
@@ -58,7 +58,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

@@ -115,7 +115,8 @@ function pickSlots(v, sandbox) {
   if (v === 'overkill' && overkillLocked(sandbox)) return false;
   G.profile.settings.slots = v; saveProfile(); return true;
 }
-const card = (w, id, sel, full) => `<button type="button" class="wcard ${full ? '' : 'compact'} ${sel ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div>${full ? `<p>${esc(w.desc)}</p>` : ''}${statBars(w)}</button>`;
+const card = (w, id, sel, full) => `<button type="button" class="wcard ${full ? '' : 'compact'} ${sel ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div>${statBars(w)}</button>`;
+let loTab = 0;
 function refreshLoadout() {
   const pr = G.profile, lo = pr.loadout, rank = rankFor(pr.xp), sandbox = prematch && pr.lobby.mode === 'sandbox';
   let mode = pr.settings.slots;
@@ -124,20 +125,28 @@ function refreshLoadout() {
     pr.preset = Number(v); pr.loadout = pr.presets[pr.preset]; saveProfile(); cb.onCamo(pr.loadout.camo); refreshLoadout();
   });
   seg($('slotSel'), slotItems(sandbox), mode, (v) => { pickSlots(v, sandbox); refreshLoadout(); });
-  $('slotDesc').textContent = SLOT_MODES[mode].desc + (overkillLocked(sandbox) ? ` Overkill unlocks at ${RANKS[SLOT_MODES.overkill.rank].name} (always open in Sandbox).` : '');
+  $('slotDesc').textContent = SLOT_MODES[mode].desc;
+  const okBtn = $('slotSel').querySelector('[data-v="overkill"]');
+  if (okBtn) okBtn.title = overkillLocked(sandbox) ? `Overkill unlocks at ${RANKS[SLOT_MODES.overkill.rank].name} (always open in Sandbox).` : '';
   const guns = loadoutGuns(lo, mode), keys = ['primary', 'secondary', 'third'];
   // write back the resolved guns so the preset is always valid for this rule
   guns.forEach((g, i) => { lo[keys[i]] = g; });
   const lists = ['weaponList', 'pistolList', 'thirdList'];
+  const labels = mode === 'classic' ? ['Primary', 'Sidearm'] : ['Weapon 1', 'Weapon 2', 'Weapon 3'];
   if (mode === 'classic') {
-    $('g1Label').textContent = 'Primary'; $('g2Label').textContent = 'Sidearm';
     $('weaponList').innerHTML = PRIMARIES.map((id) => card(WEAPONS[id], id, guns[0] === id, true)).join('');
     $('pistolList').innerHTML = SECONDARIES.map((id) => card(WEAPONS[id], id, guns[1] === id, true)).join('');
   } else {
-    $('g1Label').textContent = 'Weapon 1'; $('g2Label').textContent = 'Weapon 2';
     for (let i = 0; i < SLOT_MODES[mode].guns; i++) $(lists[i]).innerHTML = ALL_GUNS.map((id) => card(WEAPONS[id], id, guns[i] === id, false)).join('');
   }
-  $('g3Wrap').classList.toggle('hidden', mode !== 'overkill');
+  // tabs: one list at a time so the screen fits; each tab shows what is picked in it
+  const nGuns = SLOT_MODES[mode].guns, camo = CAMOS.find((c) => c.id === lo.camo) || CAMOS[0];
+  const tabs = [...labels.slice(0, nGuns).map((l, i) => [i, l, WEAPONS[guns[i]].name]), [3, 'Camo', camo.name]];
+  if (!tabs.some((t) => t[0] === loTab)) loTab = 0;
+  $('loTabs').innerHTML = tabs.map(([i, l, v]) => `<button type="button" role="tab" aria-selected="${i === loTab}" class="${i === loTab ? 'sel' : ''}" data-t="${i}"><b>${l}</b><small>${esc(v)}</small></button>`).join('');
+  $('loTabs').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { loTab = Number(bt.dataset.t); refreshLoadout(); }));
+  document.querySelectorAll('#loadout .lo-pane').forEach((p) => p.classList.toggle('hidden', Number(p.dataset.tab) !== loTab));
+  $('loDetail').textContent = loTab === 3 ? 'New finishes unlock as you rank up.' : WEAPONS[guns[loTab]].desc;
   lists.forEach((l, i) => $(l).querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => {
     const id = bt.dataset.v, other = guns.indexOf(id);
     if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; // picking a gun already in another slot swaps them
@@ -156,7 +165,7 @@ function refreshStreaks() {
   $('streakRules').innerHTML = STREAK_RULES.map((r) => `<li>${esc(r)}</li>`).join('');
 }
 function streakSummary() {
-  return `<h3>Killstreaks</h3><div class="sk-summary">${STREAKS.map((s) => `<span><b>${s.kills}</b> ${esc(s.name)} <small>${esc(s.desc)}</small></span>`).join('')}</div>`;
+  return `<div class="sk-summary"><span class="flabel">Killstreaks</span>${STREAKS.map((s) => `<span title="${esc(s.desc)}"><b>${s.kills}</b> ${esc(s.name)}</span>`).join('')}</div>`;
 }
 
 // prematch = shown after Deploy, before the match loads
