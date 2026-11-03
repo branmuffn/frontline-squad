@@ -1,14 +1,14 @@
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS } from '../core/storage.js';
 import { input } from '../core/input.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
 import { badgeSVG } from './badges.js';
-import { codeName } from './hud.js';
+import { codeName, keyName } from './hud.js';
 
-const SCREENS = ['menu', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory'];
+const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory'];
 let cb = null, back = 'menu';
 
 export function showScreen(id) {
@@ -152,6 +152,16 @@ function refreshLoadout() {
   }).join('');
   $('camoList').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { lo.camo = bt.dataset.v; saveProfile(); cb.onCamo(lo.camo); refreshLoadout(); }));
 }
+// ---------- killstreaks ----------
+export const streakHow = (s) => s.how.replace('{streak}', keyName('streak'));
+function refreshStreaks() {
+  $('streakCards').innerHTML = STREAKS.map((s) => `<div class="streak-card"><div class="sk-kills"><b>${s.kills}</b><small>kills</small></div><div><h3>${esc(s.name)}</h3><p>${esc(streakHow(s))}</p></div></div>`).join('');
+  $('streakRules').innerHTML = STREAK_RULES.map((r) => `<li>${esc(r)}</li>`).join('');
+}
+function streakSummary() {
+  return `<h3>Killstreaks</h3><div class="sk-summary">${STREAKS.map((s) => `<span><b>${s.kills}</b> ${esc(s.name)} <small>${esc(s.desc)}</small></span>`).join('')}</div>`;
+}
+
 // prematch = shown after Deploy, before the match loads
 export function showLoadout(isPrematch) {
   prematch = !!isPrematch;
@@ -160,6 +170,7 @@ export function showLoadout(isPrematch) {
   $('loLede').textContent = prematch ? `${MODES[L.mode].name} on ${MAP_LIST.find((m) => m.id === L.map).name}. Pick a preset, then deploy.` : 'Three saved presets. Pick one, set it up, and it’s remembered.';
   $('loadoutDone').textContent = prematch ? 'Deploy' : 'Done';
   $('loadoutBack').classList.toggle('hidden', !prematch);
+  $('streakSummary').innerHTML = streakSummary();
   refreshLoadout(); open('loadout');
 }
 
@@ -275,6 +286,8 @@ export function initMenus(callbacks) {
     cb.onDeploy({ mode: L.mode, map: L.map, difficulty: L.difficulty, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
+  $('openStreaks').addEventListener('click', () => { refreshStreaks(); open('streaks'); });
+  $('streaksDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
   $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });

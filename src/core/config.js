@@ -262,9 +262,19 @@ export const XP = {
 };
 
 export const STREAKS = [
-  { kills: 3, id: 'uav', name: 'RECON UAV', desc: 'Reveals enemies on the radar', duration: 25, auto: true },
-  { kills: 5, id: 'mortar', name: 'MORTAR STRIKE', desc: 'Shells the spot you aim at' },
-  { kills: 7, id: 'sentry', name: 'SENTRY GUN', desc: 'Auto-turret that guards a position', duration: 35 },
+  { kills: 3, id: 'uav', name: 'RECON UAV', desc: 'Reveals enemies on the radar', duration: 25, auto: true,
+    how: 'Starts on its own. For 25 seconds every enemy shows on your radar as a red dot, even behind walls.' },
+  { kills: 5, id: 'mortar', name: 'MORTAR STRIKE', desc: 'Shells the spot you aim at',
+    how: 'Look at the ground or a rooftop and press {streak}. Six shells land around that spot over a few seconds. Keep clear: they can hit you too.' },
+  { kills: 7, id: 'sentry', name: 'SENTRY GUN', desc: 'Auto-turret that guards a position', duration: 35,
+    how: 'Press {streak} to set a turret down just in front of you. It shoots any enemy it can see for 35 seconds.' },
+];
+
+export const STREAK_RULES = [
+  'Killstreaks count kills in one life. Dying resets the count to zero.',
+  'Kills made by your mortar or sentry don’t add to your streak.',
+  'An earned reward waits until you use it, even if you die, until the match ends.',
+  'Bots earn and use the same killstreaks.',
 ];
 
 export const PICKUP = { health: 50, respawn: 25 };

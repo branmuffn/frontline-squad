@@ -324,3 +324,19 @@ tr.dead td { opacity: 0.5; }
 #slotSel button small, #setSlotSel button small { font-size: 11px; font-weight: 500; opacity: 0.8; }
 .wcard { display: flex; flex-direction: column; justify-content: flex-start; }
 #loadout .btn-row { position: sticky; bottom: -1px; background: linear-gradient(transparent, var(--panel) 30%); padding: 18px 0 4px; margin-top: 8px; z-index: 2; }
+
+.streak-cards { display: grid; gap: 10px; margin: 8px 0 14px; }
+.streak-card { display: grid; grid-template-columns: 80px 1fr; gap: 14px; align-items: center; border: 1px solid var(--line); background: var(--panel-2); padding: 12px 14px; }
+.streak-card h3 { margin: 0 0 4px; }
+.streak-card p { margin: 0; color: var(--ink-dim); }
+.sk-kills { text-align: center; border-right: 1px solid var(--line); }
+.sk-kills b { display: block; font-size: 36px; color: var(--brass); line-height: 1; }
+.sk-kills small { color: var(--ink-dim); }
+.streak-rules { color: var(--ink-dim); margin: 0 0 6px 18px; padding: 0; line-height: 1.5; }
+.sk-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+.sk-summary span { border: 1px solid var(--line); background: var(--panel-2); padding: 6px 10px; font-weight: 700; }
+.sk-summary b { color: var(--brass); margin-right: 4px; }
+.sk-summary small { font-weight: 500; color: var(--ink-dim); margin-left: 6px; }
+.hint { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); max-width: min(560px, 80vw); background: rgba(14, 18, 20, 0.85); border-left: 3px solid var(--brass); padding: 10px 14px; font-size: 16px; line-height: 1.4; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.hint b { display: block; color: var(--brass); font-size: 15px; letter-spacing: 0.04em; margin-bottom: 2px; }
+.hint.show { opacity: 1; }

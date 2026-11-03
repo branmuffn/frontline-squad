@@ -1,3 +1,4 @@
+import { saveProfile } from '../core/storage.js';
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { STREAKS } from '../core/config.js';
@@ -32,6 +33,9 @@ export function checkStreak(n) {
     hud.banner(s.name + ' ready', `Press ${hud.keyName('streak')} to deploy`);
   }
   hud.setStreaks(n, streakState.ready);
+  // first time each reward is earned: explain what it does and how to use it
+  const hints = G.profile.hints;
+  if (!hints[s.id]) { hints[s.id] = true; saveProfile(); hud.hint(`New: ${s.name}`, s.how.replace('{streak}', hud.keyName('streak')), 9); }
 }
 
 export function grantStreak(id) {

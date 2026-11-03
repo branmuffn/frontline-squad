@@ -37,6 +37,7 @@
     <nav class="menu-nav">
       <button id="openLoadout" type="button">Loadout</button>
       <button id="openSettings" type="button">Settings</button>
+      <button id="openStreaks" type="button">Killstreaks</button>
       <button id="openCareer" type="button">Career</button>
       <button id="openControls" type="button">Controls</button>
     </nav>
@@ -85,6 +86,16 @@
       </div>
     </div>
     <div class="btn-row"><button id="resetSettings" class="btn-ghost" type="button">Reset to defaults</button><button id="settingsDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="streaks" class="screen hidden">
+  <div class="panel wide">
+    <h2>Killstreaks</h2>
+    <p class="lede">Chain kills without dying to earn rewards.</p>
+    <div id="streakCards" class="streak-cards"></div>
+    <ul id="streakRules" class="streak-rules"></ul>
+    <div class="btn-row"><button id="streaksDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
 
@@ -177,6 +188,7 @@
   <div id="cook"></div>
   <div id="xpfeed"></div>
   <div id="notice"></div>
+  <div id="hint" class="hint"></div>
   <div id="banner"><b id="bannerTitle"></b><span id="bannerSub"></span></div>
   <div id="center"></div>
   <div class="hud-health">

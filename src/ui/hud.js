@@ -119,6 +119,8 @@ export function xpPopup(label, amount) {
   setTimeout(() => el.remove(), 2100);
 }
 
+let hintUntil = 0;
+export function hint(title, text, secs = 8) { const h = $('hint'); h.innerHTML = `<b>${esc(title)}</b>${esc(text)}`; h.classList.add('show'); hintUntil = G.realTime + secs; }
 export function notice(text) { if (!text) return; set('notice', 'text', text); $('notice').classList.add('show'); noticeUntil = G.realTime + 1.8; }
 export function banner(title, sub = '') { bannerQ.push({ title, sub }); if (bannerQ.length > 4) bannerQ.shift(); }
 export function center(text, dur = 0.95) { const c = $('center'); c.textContent = text; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); centerUntil = G.realTime + dur; }
@@ -186,6 +188,7 @@ export function updateHud(dt) {
   // timers
   if (rt > hitUntil) $('hitmarker').className = '';
   if (rt > noticeUntil) $('notice').classList.remove('show');
+  if (rt > hintUntil) $('hint').classList.remove('show');
   if (rt > centerUntil) $('center').classList.remove('pop');
   if (rt > bannerUntil) {
     const b = $('banner');
