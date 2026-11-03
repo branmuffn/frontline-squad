@@ -1,4 +1,6 @@
 import { G } from '../core/state.js';
+import { loadoutGuns, SLOT_MODES, ALL_GUNS } from '../core/config.js';
+import { rankFor } from './progression.js';
 import { MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY } from '../core/config.js';
 import { rand, randInt, pick, shuffle, chance } from '../core/util.js';
 import { clearInput, exitLock } from '../core/input.js';
@@ -41,7 +43,8 @@ export function startMatch(cfg) {
   };
   const m = G.match;
   m.teams = cfg.mode === 'tdm' || !!(m.rules && m.rules.teams);
-  if (m.rules) m.loadout = { primary: G.profile.loadout.primary, secondary: G.profile.loadout.secondary || 'usp' };
+  m.slots = effectiveSlots(cfg.mode);
+  if (m.rules) m.loadout = { guns: loadoutGuns(G.profile.loadout, m.slots) };
   G.gravMul = m.rules && m.rules.lowGrav ? 0.4 : 1;
   resetMatchXp();
   G.now = 0; G.noise.length = 0;
@@ -64,7 +67,25 @@ export function startMatch(cfg) {
   startAmbience(G.world.def.ambience);
 }
 
+// Overkill needs Sergeant outside Sandbox; anything else falls back to Classic
+export function effectiveSlots(mode) {
+  const want = G.profile.settings.slots;
+  if (!SLOT_MODES[want]) return 'classic';
+  if (want === 'overkill' && mode !== 'sandbox' && rankFor(G.profile.xp) < SLOT_MODES.overkill.rank) return 'classic';
+  return want;
+}
+
+// a bot's guns follow the same slot rule as the player
+function botGuns(primary) {
+  const m = G.match;
+  if (primary === 'knife' || primary === 'rpg') return [primary];
+  if (m.slots === 'classic') return [primary, chance(0.3) ? 'deagle' : 'usp'];
+  const pool = shuffle(ALL_GUNS.filter((g) => g !== primary));
+  return [primary, ...pool.slice(0, SLOT_MODES[m.slots].guns - 1)];
+}
+
 function addBot(o) {
+  if (!o.guns) o.guns = botGuns(o.weapon);
   const b = createBot(o);
   G.bots.push(b); G.units.push(b);
   return b;

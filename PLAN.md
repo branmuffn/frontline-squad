@@ -20,8 +20,8 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
   - Snipers and Barrett fire real projectiles (muzzle velocity ~600-800 m/s, gravity drop, travel time); others stay hitscan.
   - Penetration by calibre: pistol/SMG thin wood only, rifles thin wood + 1 thin wall, Barrett most cover; damage reduced per surface.
   - Tracer speed matches projectile speed; bots use the same rules.
-- [ ] A5 Pre-match loadout screen after Deploy: 3 saved presets (A/B/C), primary, secondary, camo, stat bars incl. Power; remembered per profile.
-- [ ] A6 "Weapon slots" setting (Settings and the pre-match screen), bots obey the same rule:
+- [x] A5 Pre-match loadout screen after Deploy: 3 saved presets (A/B/C), primary, secondary, camo, stat bars incl. Power; remembered per profile.
+- [x] A6 "Weapon slots" setting (Settings and the pre-match screen), bots obey the same rule:
   - Classic (Combat Arms): primary / sidearm / knife; pickups replace the same slot type. DEFAULT.
   - Two-gun (Halo): any 2 guns + knife; pickup replaces the gun in hand.
   - Overkill: 3 guns + knife (key 4); unlocks at Sergeant rank; always available in Sandbox.

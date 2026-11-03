@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { PHYS, WEAPONS, GRENADE } from '../core/config.js';
+import { PHYS, WEAPONS, GRENADE, loadoutGuns } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
@@ -20,7 +20,7 @@ let P = null;
 export function createPlayer(team) {
   P = makeUnit({ name: 'YOU', isPlayer: true, team });
   Object.assign(P, {
-    weapons: [G.profile.loadout.primary, G.profile.loadout.secondary || 'usp', 'knife'], slot: 0, lastSlot: 1, ammo: {},
+    weapons: ['m4', 'usp', 'knife'], slot: 0, lastSlot: 1, ammo: {},
     nextFire: 0, semiReady: true, bloom: 0, recoilP: 0, recoilY: 0, adsT: 0, sprintT: 0, sprinting: false,
     switchStart: -10, switchDur: 0.01, reloadStart: -1, reloadEnd: 0, reloadKind: 'mag', shellNext: 0, reloadSfx: 0,
     pumpStart: -1, boltStart: -1, adsBlockUntil: 0, meleeStart: -1, meleeHeavy: false, meleeHitAt: -1,
@@ -47,15 +47,30 @@ export function spawnPlayer(x, y, z, yaw) {
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
     pumpStart: -1, boltStart: -1, grenades: GRENADE.perLife, protectUntil: G.now + 2.2, streak: 0, eye: PHYS.eyeStand, semiReady: true,
   });
-  const lo = (G.match && G.match.loadout) || G.profile.loadout;
-  P.weapons = G.match && G.match.rules && G.match.rules.knife ? ['knife', 'knife', 'knife'] : [lo.primary, lo.secondary || 'usp', 'knife'];
+  P.weapons = startingWeapons();
   refillAmmo();
   P.switchStart = G.now; P.switchDur = WEAPONS[cur()].draw;
   P.damagers.clear();
   hud.setWeapon(P);
 }
 
+// guns from the active preset under the match's slot rule, then the knife
+export function startingWeapons() {
+  const m = G.match;
+  if (m && m.rules && m.rules.knife) return ['knife'];
+  const guns = m && m.loadout ? m.loadout.guns : loadoutGuns(G.profile.loadout, (m && m.slots) || 'classic');
+  return [...guns, 'knife'];
+}
+export const knifeSlot = () => P.weapons.length - 1;
+// Which slot a picked-up gun goes into: Classic swaps the same type, Two-Gun/Overkill swap the gun in hand.
+export function pickupSlot(id) {
+  const have = P.weapons.indexOf(id);
+  if (have >= 0) return have;
+  if ((G.match && G.match.slots) === 'classic') return WEAPONS[id].slot === 1 ? 1 : 0;
+  return WEAPONS[cur()].melee ? 0 : P.slot;
+}
 function switchTo(slot) {
+  if (slot < 0 || slot >= P.weapons.length) return;
   if (slot === P.slot || !P.alive || P.cookStart >= 0 || P.throwStart >= 0) return;
   P.lastSlot = P.slot; P.slot = slot;
   P.reloadStart = -1; P.meleeStart = -1; P.meleeHitAt = -1; P.pumpStart = -1; P.boltStart = -1; P.bloom = 0;
@@ -68,24 +83,24 @@ function switchTo(slot) {
 export function selectSlot(slot) { switchTo(slot); }
 // Swap in a weapon picked up off the ground (keeps its remaining ammo)
 export function takeWeapon(id, ammo) {
-  const w = WEAPONS[id], slot = w.slot === 1 ? 1 : 0;
+  const w = WEAPONS[id], slot = pickupSlot(id);
   P.weapons[slot] = id; P.ammo[id] = { mag: ammo.mag, res: ammo.res };
-  if (G.match.loadout) G.match.loadout[slot ? 'secondary' : 'primary'] = id;
+  if (G.match.loadout) G.match.loadout.guns[slot] = id;
   P.lastSlot = P.slot; P.slot = slot; P.reloadStart = -1; P.meleeStart = -1; P.bloom = 0;
   P.switchStart = G.now; P.switchDur = w.draw;
   hud.setWeapon(P); hud.notice(`Picked up ${w.name}`);
 }
 // Sandbox weapon menu: put any weapon in its slot and draw it
 export function equipWeapon(id) {
-  const w = WEAPONS[id], slot = w.slot === 1 ? 1 : 0;
+  const w = WEAPONS[id], slot = pickupSlot(id);
   P.weapons[slot] = id; P.ammo[id] = { mag: w.mag, res: w.reserve };
-  if (G.match.loadout) G.match.loadout[slot ? 'secondary' : 'primary'] = id;
+  if (G.match.loadout) G.match.loadout.guns[slot] = id;
   P.lastSlot = P.slot; P.slot = slot; P.reloadStart = -1; P.meleeStart = -1; P.bloom = 0;
   P.switchStart = G.now; P.switchDur = w.draw;
   play('switch'); hud.setWeapon(P);
 }
 export function swapLast() { switchTo(P.lastSlot); }
-export function cycleWeapon(dir) { switchTo((P.slot + (dir > 0 ? 1 : 2)) % 3); }
+export function cycleWeapon(dir) { const n = P.weapons.length; switchTo((P.slot + (dir > 0 ? 1 : n - 1)) % n); }
 
 export function startReload() {
   const id = cur(), w = WEAPONS[id], a = P.ammo[id];

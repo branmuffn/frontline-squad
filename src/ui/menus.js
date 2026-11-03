@@ -1,5 +1,5 @@
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, weaponPower } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -108,21 +108,59 @@ function statBars(w, only) {
   if (!only && w.stats) for (const [k, v] of Object.entries(w.stats)) if (k !== 'damage') rows.push([k === 'rate' ? 'Fire rate' : k[0].toUpperCase() + k.slice(1), v, '']);
   return rows.map(([k, v, t]) => `<div class="stat"><span>${k}</span><i><b style="width:${(v * 100).toFixed(0)}%"></b></i><em>${t}</em></div>`).join('');
 }
+// ---------- loadout / pre-match ----------
+let prematch = false;
+const overkillLocked = (sandbox) => !sandbox && rankFor(G.profile.xp) < SLOT_MODES.overkill.rank;
+function slotItems(sandbox) {
+  return Object.entries(SLOT_MODES).map(([k, m]) => ({ v: k, html: m.name + (k === 'overkill' && overkillLocked(sandbox) ? ' <small>🔒 ' + esc(RANKS[m.rank].name) + '</small>' : '') }));
+}
+function pickSlots(v, sandbox) {
+  if (v === 'overkill' && overkillLocked(sandbox)) return false;
+  G.profile.settings.slots = v; saveProfile(); return true;
+}
+const card = (w, id, sel, full) => `<button type="button" class="wcard ${full ? '' : 'compact'} ${sel ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div>${full ? `<p>${esc(w.desc)}</p>` : ''}${statBars(w)}</button>`;
 function refreshLoadout() {
-  const lo = G.profile.loadout, rank = rankFor(G.profile.xp);
-  $('weaponList').innerHTML = PRIMARIES.map((id) => {
-    const w = WEAPONS[id];
-    const bars = statBars(w);
-    return `<button type="button" class="wcard ${lo.primary === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p>${bars}</button>`;
-  }).join('');
-  $('weaponList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.primary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
-  $('pistolList').innerHTML = SECONDARIES.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="wcard ${(lo.secondary || 'usp') === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p>${statBars(w)}</button>`; }).join('');
-  $('pistolList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.secondary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
+  const pr = G.profile, lo = pr.loadout, rank = rankFor(pr.xp), sandbox = prematch && pr.lobby.mode === 'sandbox';
+  let mode = pr.settings.slots;
+  if (mode === 'overkill' && overkillLocked(sandbox)) mode = 'classic';
+  seg($('presetTabs'), pr.presets.map((p, i) => ({ v: i, html: `${'ABC'[i]} <small>${esc(WEAPONS[loadoutGuns(p, mode)[0]].name)}</small>` })), pr.preset, (v) => {
+    pr.preset = Number(v); pr.loadout = pr.presets[pr.preset]; saveProfile(); cb.onCamo(pr.loadout.camo); refreshLoadout();
+  });
+  seg($('slotSel'), slotItems(sandbox), mode, (v) => { pickSlots(v, sandbox); refreshLoadout(); });
+  $('slotDesc').textContent = SLOT_MODES[mode].desc + (overkillLocked(sandbox) ? ` Overkill unlocks at ${RANKS[SLOT_MODES.overkill.rank].name} (always open in Sandbox).` : '');
+  const guns = loadoutGuns(lo, mode), keys = ['primary', 'secondary', 'third'];
+  // write back the resolved guns so the preset is always valid for this rule
+  guns.forEach((g, i) => { lo[keys[i]] = g; });
+  const lists = ['weaponList', 'pistolList', 'thirdList'];
+  if (mode === 'classic') {
+    $('g1Label').textContent = 'Primary'; $('g2Label').textContent = 'Sidearm';
+    $('weaponList').innerHTML = PRIMARIES.map((id) => card(WEAPONS[id], id, guns[0] === id, true)).join('');
+    $('pistolList').innerHTML = SECONDARIES.map((id) => card(WEAPONS[id], id, guns[1] === id, true)).join('');
+  } else {
+    $('g1Label').textContent = 'Weapon 1'; $('g2Label').textContent = 'Weapon 2';
+    for (let i = 0; i < SLOT_MODES[mode].guns; i++) $(lists[i]).innerHTML = ALL_GUNS.map((id) => card(WEAPONS[id], id, guns[i] === id, false)).join('');
+  }
+  $('g3Wrap').classList.toggle('hidden', mode !== 'overkill');
+  lists.forEach((l, i) => $(l).querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => {
+    const id = bt.dataset.v, other = guns.indexOf(id);
+    if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; // picking a gun already in another slot swaps them
+    lo[keys[i]] = id; saveProfile(); refreshLoadout();
+  })));
   $('camoList').innerHTML = CAMOS.map((c) => {
     const locked = rank < c.rank;
     return `<button type="button" class="camo ${lo.camo === c.id ? 'sel' : ''} ${locked ? 'locked' : ''}" data-v="${c.id}" ${locked ? 'disabled' : ''} title="${locked ? 'Unlocks at ' + esc(RANKS[c.rank].name) : esc(c.name)}"><i style="${camoStyle(c)}"></i><span>${esc(c.name)}</span>${locked ? `<small>${esc(RANKS[c.rank].name)}</small>` : ''}</button>`;
   }).join('');
   $('camoList').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { lo.camo = bt.dataset.v; saveProfile(); cb.onCamo(lo.camo); refreshLoadout(); }));
+}
+// prematch = shown after Deploy, before the match loads
+export function showLoadout(isPrematch) {
+  prematch = !!isPrematch;
+  const L = G.profile.lobby;
+  $('loTitle').textContent = prematch ? 'Choose your loadout' : 'Loadout';
+  $('loLede').textContent = prematch ? `${MODES[L.mode].name} on ${MAP_LIST.find((m) => m.id === L.map).name}. Pick a preset, then deploy.` : 'Three saved presets. Pick one, set it up, and it’s remembered.';
+  $('loadoutDone').textContent = prematch ? 'Deploy' : 'Done';
+  $('loadoutBack').classList.toggle('hidden', !prematch);
+  refreshLoadout(); open('loadout');
 }
 
 // ---------- settings ----------
@@ -140,6 +178,7 @@ function refreshSettings() {
   $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate']]
     .map(([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
   for (const k of ['invertY', 'shadows', 'showFps']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
+  seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Medium' }, { v: 1, html: 'Full' }], s.renderScale, (v) => { s.renderScale = Number(v); cb.onSetting('renderScale'); saveProfile(); });
   $('crossSel').innerHTML = CROSS.map((c) => `<button type="button" class="${s.crosshair === c ? 'sel' : ''}" data-v="${c}" style="--c:${c}" aria-label="Crosshair colour ${c}"></button>`).join('');
   $('crossSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { s.crosshair = bt.dataset.v; cb.onSetting('crosshair'); saveProfile(); refreshSettings(); }));
@@ -223,15 +262,18 @@ export function showPause(lockError) {
 
 export function initMenus(callbacks) {
   cb = callbacks;
-  $('deploy').addEventListener('click', () => {
-    const L = G.profile.lobby;
-    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: L.difficulty, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
-  });
-  $('openLoadout').addEventListener('click', () => { refreshLoadout(); open('loadout'); });
+  $('deploy').addEventListener('click', () => showLoadout(true));
+  $('openLoadout').addEventListener('click', () => showLoadout(false));
+  $('loadoutBack').addEventListener('click', () => showScreen('menu'));
   $('openSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'menu'); });
   $('openCareer').addEventListener('click', () => { refreshCareer(); open('career'); });
   $('openControls').addEventListener('click', () => open('controls', 'menu'));
-  for (const id of ['loadoutDone', 'careerDone']) $(id).addEventListener('click', () => showScreen('menu'));
+  $('loadoutDone').addEventListener('click', () => {
+    if (!prematch) { showScreen('menu'); return; }
+    const L = G.profile.lobby;
+    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: L.difficulty, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
+  });
+  $('careerDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
   $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'shadows', 'showFps', 'crosshair', 'renderScale']) cb.onSetting(k); refreshSettings(); });

@@ -7,7 +7,7 @@ import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { spawnPlayer, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
+import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
 import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
@@ -149,6 +149,7 @@ function onKeyDown(code, e) {
   else if (matches('primary', code)) selectSlot(0);
   else if (matches('secondary', code)) selectSlot(1);
   else if (matches('melee', code)) selectSlot(2);
+  else if (matches('slot4', code)) selectSlot(knifeSlot());
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();

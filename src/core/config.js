@@ -125,6 +125,7 @@ export const WEAPONS = {
     reload: 1.7, reloadEmpty: 2.0, draw: 0.4, speed: 1.0, adsZoom: 0.85, adsTime: 0.12,
     sound: 'deagle', noise: 40, tracer: 1, sight: 'iron',
     desc: 'A headshot kills outright. Seven rounds, heavy kick.',
+    stats: { damage: 0.6, rate: 0.3, accuracy: 0.5, range: 0.4, mobility: 0.9 },
   },
   usp: {
     id: 'usp', slot: 1, name: 'USP .45', cls: 'Pistol', auto: false, rate: 0.15, mag: 15, reserve: 75,
@@ -134,6 +135,7 @@ export const WEAPONS = {
     reload: 1.35, reloadEmpty: 1.6, draw: 0.3, speed: 1.05, adsZoom: 0.86, adsTime: 0.1,
     sound: 'pistol', noise: 30, tracer: 1, sight: 'iron',
     desc: 'Reliable sidearm. Fifteen rounds, quick draw.',
+    stats: { damage: 0.4, rate: 0.55, accuracy: 0.62, range: 0.3, mobility: 0.95 },
   },
   knife: {
     id: 'knife', slot: 2, name: 'KNIFE', cls: 'Melee', melee: true, rate: 0.45, heavyRate: 1.0,
@@ -149,6 +151,24 @@ export function weaponPower(w) {
 export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'l96', 'barrett'];
 export const SECONDARIES = ['usp', 'deagle'];
 export const ALL_PRIMARIES = [...PRIMARIES, 'rpg'];
+export const ALL_GUNS = [...PRIMARIES, ...SECONDARIES];
+
+// Weapon slot rules (A6). Bots follow the same rule as the player.
+export const SLOT_MODES = {
+  classic: { name: 'Classic', guns: 2, desc: 'Primary, sidearm and knife. A pickup replaces the weapon of the same type.' },
+  two: { name: 'Two-Gun', guns: 2, desc: 'Any two guns and a knife. A pickup replaces the gun in your hands.' },
+  overkill: { name: 'Overkill', guns: 3, desc: 'Any three guns and a knife (key 4). A pickup replaces the gun in your hands.', rank: 5 },
+};
+// Guns a loadout preset gives under a slot mode (always valid, never duplicated)
+export function loadoutGuns(preset, mode) {
+  if (mode === 'classic') {
+    return [PRIMARIES.includes(preset.primary) ? preset.primary : 'm4', SECONDARIES.includes(preset.secondary) ? preset.secondary : 'usp'];
+  }
+  const out = [];
+  for (const id of [preset.primary, preset.secondary, preset.third]) if (ALL_GUNS.includes(id) && !out.includes(id)) out.push(id);
+  for (const id of ['m4', 'usp', 'mp5', 'ak47']) if (out.length < SLOT_MODES[mode].guns && !out.includes(id)) out.push(id);
+  return out.slice(0, SLOT_MODES[mode].guns);
+}
 
 // Killfeed tags for non-gun damage sources
 export const SOURCE_NAMES = { frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };

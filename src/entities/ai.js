@@ -6,7 +6,7 @@ import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfa
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
-import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
+import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
 import { damageBarrel } from './worldprops.js';
@@ -35,6 +35,7 @@ export function createBot(o) {
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {
+    guns: o.guns || [o.weapon], switchAt: 0,
     type: o.type || 'soldier', T: type, weapon: o.weapon, scoped: !!w.scope, melee: !!w.melee, style: STYLE[o.weapon], magMax: w.mag, mag: w.mag, reloadUntil: 0,
     state: 'patrol', path: null, pathI: 0, goal: null, repathAt: 0, thinkAt: rand(0, 0.3), target: null, visible: false,
     lastSeen: -99, lastKnown: null, reactAt: 0, trackStart: 0, burst: 0, nextShot: 0, pauseUntil: 0,
@@ -50,6 +51,34 @@ export function createBot(o) {
   return u;
 }
 
+// Change the gun a bot is holding: brain stats, model and sniper laser
+export function setBotWeapon(u, id, drawTime = true) {
+  const b = u.brain, w = WEAPONS[id];
+  if (b.weapon === id) return;
+  Object.assign(b, { weapon: id, scoped: !!w.scope, melee: !!w.melee, style: STYLE[id] || STYLE.m4, magMax: w.mag, mag: w.mag, burst: 0 });
+  if (drawTime) b.reloadUntil = Math.max(b.reloadUntil, G.now + w.draw + 0.15);
+  if (u.soldier) setSoldierGun(u.soldier, id);
+  if (w.scope && !u.laser) {
+    u.laser = new THREE.Line(laserGeo(), new THREE.LineBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.55, depthWrite: false }));
+    u.laser.visible = false; u.laser.frustumCulled = false; G.scene.add(u.laser);
+  }
+  if (!w.scope && u.laser) u.laser.visible = false;
+}
+// With more than one gun, bots draw whichever suits the fight's range.
+function chooseGun(u) {
+  const b = u.brain;
+  if (b.guns.length < 2 || G.now < b.switchAt || !b.target) return;
+  const d = Math.hypot(b.target.x - u.x, b.target.z - u.z);
+  let best = b.weapon, bs = -Infinity;
+  for (const g of b.guns) {
+    const st = STYLE[g] || STYLE.m4;
+    const fit = d < st.min ? -(st.min - d) / Math.max(1, st.min) : d > st.max ? -(d - st.max) / st.max : 1;
+    const sc = fit + (g === b.weapon ? 0.25 : 0) + (b.mag <= 0 && g === b.weapon ? -1 : 0);
+    if (sc > bs) { bs = sc; best = g; }
+  }
+  if (best !== b.weapon) { setBotWeapon(u, best); b.switchAt = G.now + 4; }
+}
+
 export function disposeBot(u) {
   disposeSoldier(u.soldier);
   if (u.laser) { G.scene.remove(u.laser); u.laser.geometry.dispose(); u.laser.material.dispose(); }
@@ -59,6 +88,7 @@ export function resetBotForSpawn(u, x, y, z, yaw) {
   Object.assign(u, { x, y, z, vx: 0, vz: 0, vy: 0, yaw, alive: true, health: u.maxHealth, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH, protectUntil: G.now + 1.2, streak: 0 });
   u.damagers.clear();
   const b = u.brain;
+  if (b.guns[0] !== b.weapon) setBotWeapon(u, b.guns[0], false);
   Object.assign(b, { state: 'patrol', path: null, pathI: 0, goal: null, target: null, visible: false, lastSeen: -99, lastKnown: null, burst: 0, mag: b.magMax, reloadUntil: 0, cover: null, wantCover: false, investigate: null, evade: null, grenades: 1, thinkAt: G.now + rand(0.1, 0.4), reactAt: G.now + 0.6, stuck: 0, aimStart: 0, wantCrouch: false });
   const s = u.soldier; s.deathT = -1; s.root.visible = true; s.root.position.set(x, y, z); s.pose.rotation.set(0, 0, 0);
   if (u.laser) u.laser.visible = false;
@@ -294,7 +324,7 @@ export function updateBots(dt) {
     const s = u.soldier, b = u.brain;
     if (!u.alive) { animateSoldier(s, u, dt); if (u.laser) u.laser.visible = false; continue; }
     if (frozen) { u.moveSpeed = 0; animateSoldier(s, u, dt); continue; }
-    if (G.now >= b.thinkAt) { b.thinkAt = G.now + rand(0.2, 0.32); think(u, cfg); }
+    if (G.now >= b.thinkAt) { b.thinkAt = G.now + rand(0.2, 0.32); think(u, cfg); chooseGun(u); }
     if (b.reloadUntil && G.now >= b.reloadUntil) { b.reloadUntil = 0; b.mag = b.magMax; }
     const t = b.target;
     // ---- desired movement ----

@@ -102,6 +102,16 @@ export function makeSoldier(opts) {
   return { root, pose, hips, torso, head, legs, arms, gun, mats, flinch: 0, deathT: -1, deathDir: 1 };
 }
 
+// swap the gun a soldier is holding (weapon change or pickup)
+export function setSoldierGun(s, id) {
+  const pos = s.gun.position.clone();
+  s.gun.parent.remove(s.gun);
+  s.gun.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  s.gun = gunModel(s.torso, id, s.mats.gun);
+  s.gun.position.copy(pos);
+  s.gun.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+}
+
 export function setFlash(s, amount, color = 0x9a2a1c) {
   for (const k in s.mats) { const m = s.mats[k]; if (amount > 0) { m.emissive.setHex(color).convertSRGBToLinear(); m.emissiveIntensity = amount; } else m.emissiveIntensity = 0; }
 }

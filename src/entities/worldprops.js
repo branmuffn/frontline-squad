@@ -5,7 +5,7 @@ import { explode } from './grenades.js';
 import { gunModel } from './soldier.js';
 import { play } from '../engine/audio.js';
 import { trail } from '../engine/fx.js';
-import { takeWeapon } from './player.js';
+import { takeWeapon, pickupSlot } from './player.js';
 import * as hud from '../ui/hud.js';
 import { keyName } from '../ui/hud.js';
 
@@ -80,7 +80,7 @@ function nearestDrop() {
 
 export function tryPickup() {
   const d = nearestDrop(); if (!d) return;
-  const P = G.player, w = WEAPONS[d.id], slot = w.slot === 1 ? 1 : 0, old = P.weapons[slot];
+  const P = G.player, slot = pickupSlot(d.id), old = P.weapons[slot];
   if (old === d.id) { P.ammo[old].res = Math.max(P.ammo[old].res, d.ammo.res + d.ammo.mag); hud.setAmmo(P); }
   else {
     const oldAmmo = P.ammo[old];

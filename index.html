@@ -45,15 +45,23 @@
 
 <section id="loadout" class="screen hidden">
   <div class="panel wide">
-    <h2>Loadout</h2>
-    <p class="lede">Pick your primary. You always carry a USP .45, a knife and two frag grenades.</p>
+    <h2 id="loTitle">Loadout</h2>
+    <p id="loLede" class="lede">Three saved presets. Pick one, set it up, and it’s remembered.</p>
+    <div class="lo-top">
+      <div class="field"><span class="flabel">Preset</span><div id="presetTabs" class="seg"></div></div>
+      <div class="field"><span class="flabel">Weapon slots</span><div id="slotSel" class="seg"></div></div>
+    </div>
+    <p id="slotDesc" class="lede small"></p>
+    <h3 id="g1Label">Primary</h3>
     <div id="weaponList" class="weapons"></div>
-    <h3>Sidearm</h3>
-    <div id="pistolList" class="pistols"></div>
+    <h3 id="g2Label">Sidearm</h3>
+    <div id="pistolList" class="weapons"></div>
+    <div id="g3Wrap"><h3>Weapon 3</h3><div id="thirdList" class="weapons"></div></div>
     <h3>Weapon camo</h3>
     <p class="lede small">New finishes unlock as you rank up.</p>
     <div id="camoList" class="camos"></div>
-    <div class="btn-row"><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
+    <div id="streakSummary"></div>
+    <div class="btn-row"><button id="loadoutBack" class="btn-ghost hidden" type="button">Back</button><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
 
@@ -64,6 +72,7 @@
       <div>
         <div id="sliders"></div>
         <div class="field"><span class="flabel">Render resolution</span><div id="scaleSel" class="seg"></div></div>
+        <div class="field"><span class="flabel">Weapon slots</span><div id="setSlotSel" class="seg"></div></div>
         <div id="toggles" class="toggles"></div>
         <div class="field"><span class="flabel">Crosshair colour</span><div id="crossSel" class="swatches"></div></div>
       </div>
@@ -98,7 +107,7 @@
       <div><kbd>C</kbd> <kbd>Ctrl</kbd><span>Crouch</span></div>
       <div><kbd>Space</kbd><span>Jump (vault crates and sandbags)</span></div>
       <div><kbd>R</kbd><span>Reload</span></div>
-      <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd><span>Primary · pistol · knife</span></div>
+      <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd><span>Weapon slots. Classic: primary · sidearm · knife. Two-Gun: gun · gun · knife. Overkill: three guns, knife on 4</span></div>
       <div><kbd>Wheel</kbd> <kbd>Q</kbd><span>Cycle weapons · last weapon</span></div>
       <div><kbd>G</kbd><span>Frag grenade, hold to cook</span></div>
       <div><kbd>F</kbd><span>Deploy killstreak</span></div>
