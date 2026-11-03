@@ -2,6 +2,8 @@
 
 Resume note: attach the project zip in a new chat; work top to bottom, checking items off as they ship.
 Always: commit after each item group, rebuild `dist-standalone/frontline_solo_ops.html`, test headless, republish, re-zip.
+Core working rule: be token-efficient (short replies, brief reasoning, targeted file reads with grep/sed instead of whole files, batch edits in one python/sed call), and commit early and often (also mid-item when a big item is half done) so nothing is lost if a session or weekly usage limit is hit.
+Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new chat: NEXT_CHAT_PROMPT.md.
 
 ## Done
 - [x] v2.0 rebuilt game: Steel Yard + Dust Outpost, FFA/TDM/Survival, killstreaks, XP/ranks, camos, smart bots
@@ -42,7 +44,24 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
 - [ ] 6c Bots drive, gun and fly
 - [ ] 6d Vehicle placements on Cascade Gorge (+ a larger vehicle-friendly map if needed); keep performance acceptable
 
+## Next: Round B — quality, offline, fit (decisions made; build in order)
+- [ ] B1 Hit-box audit. User reports bullets hitting rocks that aren't in the way, mostly Cascade Gorge rocks and up on the plateau tops. Add a hidden debug toggle (F9) that draws every collider as a wireframe box; compare against visible meshes on all 4 maps (Gorge first). Rebuild irregular/rotated props (rocks, boulders, cliff edges, trees, rotated crates) from several tighter AABBs so no invisible corners stick out past the visible shape. Confirm player shots start at the camera/crosshair. Add a static test: sample points inside each collider and check a visible mesh is nearby.
+- [ ] B2 Fully offline single HTML: inline three.js r128 into the standalone build (file grows to ~0.9 MB, approved); drop Google Fonts for a bundled or system font stack; no network requests at all. Add Export Profile (download JSON) and Import Profile (upload JSON, validated, merged) buttons in Career or Settings. Progress already saves to localStorage; note in the UI that the artifact link and a downloaded copy keep separate saves.
+- [ ] B3 Fit to window: no page needs scrolling at 1280×720 and above; at 1024×640 scrolling only inside one clearly scrollable list. Menus size with the viewport (clamp/vh units); loadout screen uses tabs (Primary / Sidearm / Weapon 3 / Camo) with compact cards; Deploy button always visible. Screenshot-check 1024×640, 1280×720, 1366×768, 1920×1080.
+- [ ] B4 After death: kill cam replays the last ~4 s from the killer's eyes (ring buffer of every unit's position/yaw/pitch/weapon/fire events, sampled ~20 Hz, interpolated), any key skips. Then free look-around: mouse turns the camera at the death spot, it can drift up to ~6 m, clipped by walls (losClear). Settings: "Kill cam" On/Off, default On. Respawn timing unchanged.
+- [ ] B5 Scopes: L96 and Barrett get two zoom levels (4× and 8×), toggled by mouse wheel or Z while scoped (wheel does not switch weapons while scoped). New marksman rifle: real name "Mk 14 EBR", fictional "WARDEN DMR", semi-auto, fixed 2× scope, between the ARs and the L96 (≈45 dmg, 20-round mag, rifle penetration, hitscan, falloff [50, 200, 0.75]); add to primaries, bots, Gun Game ladder (after M249), Zombies wall-buys, stat bars.
+- [ ] B6 Graphics: "detailed stylized" (not realistic). Soldiers built from smooth rounded/tapered parts (lathe/capsule/extruded shapes), merged into one mesh per soldier with vertex colours; helmet with rim, vest with pouches, gloves, boots, goggles/face area; better walk/run cycles, knee bend, both hands on the gun, better death falls; a cheaper model for far-away bots. Zombies (hunched, torn uniforms, sickly skin) and infected get distinct looks. Weapon models (world and first-person) get a detail pass. Lighting pass: softer shadows, contact darkening, tone/colour balance. Budget: tens of KB, load time unchanged, keep 60 fps with 12 bots.
+
+## Then: Phase 6 vehicles (see above), then STOP and ask before Phase 7.
+
+## Later: Phase 7 — multiplayer (DO NOT BUILD until the user approves; decisions so far)
+- Goal: as seamless as possible, free (no accounts or trials), least lag possible.
+- Transport: WebRTC data channels, peer to peer, host-authoritative (the host's game runs the match and bots). Snapshots ~30 Hz on an unreliable/unordered channel, events (kills, chat, purchases) on a reliable channel. Client-side prediction for your own movement and shooting feel; interpolation (~100 ms) for others; host-side lag compensation (rewind hitboxes to the shooter's time) for FFA/TDM.
+- Joining (seamless first): short room code via a free public signaling broker (e.g. PeerJS cloud, library inlined so the file stays self-contained) plus Google public STUN; automatic fallback to manual copy-paste offer/answer codes if the broker is down; LAN play works offline with the manual codes. For networks that block P2P (~15–20%), recommend a free virtual LAN (Tailscale/ZeroTier); no paid TURN.
+- Order: 7a 2-player co-op Zombies and Survival; 7b FFA and TDM with lag compensation; 7c up to 4–8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard. Voice: optional later (push-to-talk over WebRTC); Discord is fine.
+- Note: may not work inside the claude.ai artifact preview; must work in the downloaded HTML.
+
 ## Constraints
-- The single HTML file must keep working (three.js r128 from cdnjs, no other external scripts).
+- The single HTML file must keep working and, from B2 on, run fully offline (three.js r128 inlined; no external scripts, fonts or requests). Multiplayer signaling (Phase 7) is the only future exception, and play must still work offline.
 - Original names for maps/modes; never use "Combat Arms", "Call of Duty", "Nuketown", "Halo" or "Kill Creek" in the game.
 - All audio generated in code; no copyrighted assets.
