@@ -9,6 +9,8 @@ import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { spawnPlayer, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
+import * as ballistics from './entities/ballistics.js';
+const { updateBullets, bullets } = ballistics;
 import { updateWorldProps, tryPickup } from './entities/worldprops.js';
 import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
@@ -45,7 +47,7 @@ function boot() {
   });
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -172,9 +174,16 @@ function loop(t) {
       updatePlayer(dt);
       updateBots(dt);
       separateUnits();
-      for (const u of G.units) if (u.alive) physics.depenetrate(u);
+      for (const u of G.units) {
+        if (!u.alive) continue;
+        physics.depenetrate(u);
+        // smoothed velocity estimate (bots lead moving targets with projectile rifles)
+        const vx = u._lx === undefined ? 0 : Math.max(-12, Math.min(12, (u.x - u._lx) / dt)), vz = u._lz === undefined ? 0 : Math.max(-12, Math.min(12, (u.z - u._lz) / dt));
+        u.velX = (u.velX || 0) * 0.8 + vx * 0.2; u.velZ = (u.velZ || 0) * 0.8 + vz * 0.2; u._lx = u.x; u._lz = u.z;
+      }
       updateGrenades(dt);
       updateRockets(dt);
+      updateBullets(dt);
       updateWorldProps(dt);
       updatePickups(dt);
       updateStreaks(dt);

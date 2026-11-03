@@ -4,6 +4,7 @@ import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
 import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
+import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
@@ -246,14 +247,17 @@ function botThrow(u, at, d) {
   play('pin', { x: u.x, y: u.y + 1.5, z: u.z }, { gain: 0.6 });
 }
 
-function falloff(w, d) { const [f0, f1, mn] = w.falloff; return d <= f0 ? 1 : d >= f1 ? mn : 1 + (mn - 1) * (d - f0) / (f1 - f0); }
 
 function fire(u, cfg) {
   const b = u.brain, t = b.target, w = WEAPONS[b.weapon];
   const my = u.y + (u.crouch ? 0.98 : 1.38);
   const mx = u.x - Math.sin(u.yaw) * 0.72 + Math.cos(u.yaw) * 0.08, mz = u.z - Math.cos(u.yaw) * 0.72 - Math.sin(u.yaw) * 0.08;
   const head = chance(cfg.headChance * (b.scoped ? 2 : 1));
-  const ax = t.x, ay = t.y + (head ? t.h - 0.17 : t.h * 0.6), az = t.z;
+  let ax = t.x, ay = t.y + (head ? t.h - 0.17 : t.h * 0.6), az = t.z;
+  if (w.velocity) { // projectile rifles: lead the target and hold over for drop
+    const tt = Math.hypot(ax - mx, az - mz) / w.velocity;
+    ax += (t.velX || 0) * tt; az += (t.velZ || 0) * tt; ay += 4.9 * tt * tt;
+  }
   let dx = ax - mx, dy = ay - my, dz = az - mz; const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
   const settle = clamp((G.now - b.trackStart) / cfg.settle, 0, 1);
   let err = cfg.aimErr * (2.4 - 1.6 * settle);
@@ -265,41 +269,14 @@ function fire(u, cfg) {
   const dir = { x: 0, y: 0, z: 0 };
   let anyEnd = null;
   const p = G.player;
+  const mul = cfg.dmgMul * b.T.dmg;
   for (let k = 0; k < w.pellets; k++) {
     coneDir(dx, dy, dz, err + (w.pellets > 1 ? w.spread.hip * 0.9 : 0), dir);
-    const range = w.range;
-    let wh = rayWorld(mx, my, mz, dir.x, dir.y, dir.z, range);
-    let uh = rayUnits(mx, my, mz, dir.x, dir.y, dir.z, wh ? wh.t : range, (q) => q === u || !isEnemy(u, q));
-    let pmul = 1, off = 0;
-    if (!uh && wh && PENETRABLE.has(wh.mat) && w.pellets === 1) {
-      const px = wh.x + dir.x * 0.45, py = wh.y + dir.y * 0.45, pz = wh.z + dir.z * 0.45;
-      if (!rayWorld(px, py, pz, dir.x, dir.y, dir.z, 0.02)) {
-        impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat); off = wh.t + 0.45;
-        wh = rayWorld(px, py, pz, dir.x, dir.y, dir.z, range - off); if (wh) wh.t += off;
-        uh = rayUnits(px, py, pz, dir.x, dir.y, dir.z, wh ? wh.t - off : range - off, (q) => q === u || !isEnemy(u, q)); if (uh) uh.t += off;
-        pmul = 0.55;
-      }
-    }
-    let end = range;
-    if (uh) {
-      end = uh.t;
-      const zone = uh.zone, mul = zone === 'head' ? w.headMul : zone === 'legs' ? w.legMul : 1;
-      damage(uh.unit, w.damage * falloff(w, uh.t) * mul * pmul * cfg.dmgMul * b.T.dmg, u, { weapon: b.weapon, zone, headshot: zone === 'head', sx: u.x, sz: u.z, dist: uh.t });
-      if (!uh.unit.isPlayer) blood(mx + dir.x * end, my + dir.y * end, mz + dir.z * end, dir.x, dir.z, zone === 'head');
-    } else if (wh) {
-      end = wh.t;
-      if (wh.col && wh.col.barrel) damageBarrel(wh.col, w.damage * cfg.dmgMul, u);
-      if (k < 2) impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat);
-    }
-    // near miss on the player
-    if (p.alive && isEnemy(u, p) && !(uh && uh.unit === p)) {
-      const hx = p.x - mx, hy = p.y + p.h - 0.2 - my, hz = p.z - mz;
-      const tt = clamp(hx * dir.x + hy * dir.y + hz * dir.z, 0, end);
-      const cx = mx + dir.x * tt - p.x, cy = my + dir.y * tt - (p.y + p.h - 0.2), cz = mz + dir.z * tt - p.z;
-      const md = Math.hypot(cx, cy, cz);
-      if (md < 1.4 && md > 0.25 && k === 0) play('whiz', { x: mx + dir.x * tt, y: my + dir.y * tt, z: mz + dir.z * tt }, { gain: 0.9 });
-    }
-    if (k === 0 || chance(0.3)) tracer(mx, my, mz, mx + dir.x * end, my + dir.y * end, mz + dir.z * end, 0xffb46a, b.scoped ? 560 : 300);
+    if (w.velocity) { fireBullet(u, b.weapon, mx, my, mz, dir.x, dir.y, dir.z, mul, [mx, my, mz], 0xffb46a); anyEnd = 1; continue; }
+    const s = newShot(u, b.weapon, mx, my, mz, mul, k);
+    traceSegment(s, dir.x, dir.y, dir.z, w.range);
+    const end = Math.hypot(s.x - mx, s.y - my, s.z - mz);
+    if (k === 0 || chance(0.3)) tracer(mx, my, mz, s.x, s.y, s.z, 0xffb46a, 420);
     anyEnd = end;
   }
   enemyFlash(mx, my, mz);

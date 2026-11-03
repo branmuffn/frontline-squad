@@ -15,7 +15,7 @@ Always: commit after each item group, rebuild `dist-standalone/frontline_solo_op
 - [x] A1 Stuck-in-geometry fix: per-frame depenetration (if a unit's current position is `blocked()`, push out along the shortest escape); move the Atomic Acres stairwell railing clear of the stairs; "Redeploy" button in the pause menu (respawn without a death in non-survival modes, counts as death in Survival).
 - [x] A2 Fall damage: starts at ~4 m drop, lethal at ~12 m (tune by impact speed in `updateVertical`); applies to bots too; killfeed source "FALL".
 - [x] A3 Weapon power: bots deal full weapon damage on Normal/Hard (Easy keeps a reduction); difficulty only changes aim, reaction, aggression. Add a "Power" stat bar (damage per shot) in loadout/weapon menu.
-- [ ] A4 Bullet physics and ranges (hybrid, like CA/COD with BF-style snipers):
+- [x] A4 Bullet physics and ranges (hybrid, like CA/COD with BF-style snipers):
   - Per-weapon effective range, falloff curve and hard max range by class: pistol ~30/60 m, SMG ~20/70, shotgun ~8/30 (pellets), AR ~35/150, LMG ~40/150, sniper/Barrett no falloff to 300.
   - Snipers and Barrett fire real projectiles (muzzle velocity ~600-800 m/s, gravity drop, travel time); others stay hitscan.
   - Penetration by calibre: pistol/SMG thin wood only, rifles thin wood + 1 thin wall, Barrett most cover; damage reduced per surface.

@@ -9,6 +9,7 @@ import { createPlayer, spawnPlayer, onPlayerDeath, refillAmmo } from '../entitie
 import { createBot, disposeBot, resetBotForSpawn } from '../entities/ai.js';
 import { clearGrenades } from '../entities/grenades.js';
 import { clearRockets } from '../entities/projectiles.js';
+import { clearBullets } from '../entities/ballistics.js';
 import { resetWorldProps, clearDrops } from '../entities/worldprops.js';
 import { resetPickups } from '../entities/pickups.js';
 import { resetStreaks } from '../entities/streaks.js';
@@ -72,7 +73,7 @@ function addBot(o) {
 export function cleanupMatch() {
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];
-  clearGrenades(); clearRockets(); clearDrops();
+  clearGrenades(); clearRockets(); clearBullets(); clearDrops();
 }
 
 // Choose the safest spawn: far from enemies, out of their sight, near friends in team modes.

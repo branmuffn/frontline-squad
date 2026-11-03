@@ -4,6 +4,7 @@ import { PHYS, WEAPONS, GRENADE } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
+import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
@@ -121,11 +122,6 @@ function aimDir(out) {
   return out;
 }
 
-function falloff(w, d) {
-  const [f0, f1, mn] = w.falloff;
-  if (d <= f0) return 1; if (d >= f1) return mn;
-  return lerp(1, mn, (d - f0) / (f1 - f0));
-}
 
 const cam = () => G.camera.position;
 function muzzleWorld() {
@@ -160,34 +156,11 @@ function fireOnce() {
   }
   for (let k = 0; k < (w.projectile ? 0 : w.pellets); k++) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
-    let sx = o.x, sy = o.y, sz = o.z, mul = 1, range = w.range, travelled = 0, wh, uh;
-    for (let pen = 0; pen < 2; pen++) { // bullets punch through thin wood (fences, siding, boxcars)
-      wh = rayWorld(sx, sy, sz, dir.x, dir.y, dir.z, range);
-      uh = rayUnits(sx, sy, sz, dir.x, dir.y, dir.z, wh ? wh.t : range, (u) => !isEnemy(P, u));
-      if (uh || !wh || pen === 1 || !PENETRABLE.has(wh.mat) || w.pellets > 1) break;
-      const px = wh.x + dir.x * 0.45, py = wh.y + dir.y * 0.45, pz = wh.z + dir.z * 0.45;
-      if (rayWorld(px, py, pz, dir.x, dir.y, dir.z, 0.02)) break;
-      impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat); play('impactWood', { x: wh.x, y: wh.y, z: wh.z }, { gain: 0.5 });
-      travelled += wh.t + 0.45; range -= wh.t + 0.45; sx = px; sy = py; sz = pz; mul = 0.55;
-    }
-    if (wh && G.world.water && wh.ny > 0.9 && wh.y < 0.4) { for (const a of G.world.water) if (wh.x > a.minX && wh.x < a.maxX && wh.z > a.minZ && wh.z < a.maxZ) { wh.mat = 'water'; wh.y = a.top; } }
-    let ex, ey, ez;
-    if (uh) {
-      const v = uh.unit, t = uh.t; ex = sx + dir.x * t; ey = sy + dir.y * t; ez = sz + dir.z * t;
-      const head = uh.zone === 'head';
-      const dmg = mul * w.damage * falloff(w, t + travelled) * (head ? w.headMul : uh.zone === 'legs' ? w.legMul : 1);
-      anyHit = true; hitHead = hitHead || head;
-      damage(v, dmg, P, { weapon: id, zone: uh.zone, headshot: head, sx: P.x, sz: P.z, dist: t });
-      blood(ex, ey, ez, dir.x, dir.z, head);
-      play('bodyHit', { x: ex, y: ey, z: ez }, { gain: 0.6 });
-    } else if (wh) {
-      ex = wh.x; ey = wh.y; ez = wh.z;
-      if (wh.col && wh.col.barrel) damageBarrel(wh.col, mul * w.damage * falloff(w, wh.t + travelled), P);
-      impact(ex, ey, ez, wh.nx, wh.ny, wh.nz, wh.mat);
-      if (wh.mat === 'metal' && k === 0 && Math.random() < 0.25) play('ricochet', { x: ex, y: ey, z: ez }, { gain: 0.8 });
-      if (k < 3) play(wh.mat === 'water' ? 'splash' : wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' || wh.mat === 'grass' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });
-    } else { ex = sx + dir.x * range; ey = sy + dir.y * range; ez = sz + dir.z * range; }
-    if (Math.random() < w.tracer) tracer(mx, my, mz, ex, ey, ez, 0xffe0a0, w.scope ? 600 : 360);
+    if (w.velocity) { fireBullet(P, id, o.x, o.y, o.z, dir.x, dir.y, dir.z, 1, [mx, my, mz], 0xffe0a0); continue; }
+    const s = newShot(P, id, o.x, o.y, o.z, 1, k);
+    traceSegment(s, dir.x, dir.y, dir.z, w.range);
+    if (s.hit) { anyHit = true; hitHead = hitHead || s.hit.head; }
+    if (Math.random() < w.tracer) tracer(mx, my, mz, s.x, s.y, s.z, 0xffe0a0, 420);
   }
   if (anyHit) G.match.stats.hits++;
   if (hitHead) G.match.stats.headHits++;

@@ -17,11 +17,19 @@ export const PHYS = {
   adsMul: 0.6,
 };
 
-// spread/recoil values are in radians. falloff: [full damage until m, min damage from m, min multiplier]
+// spread/recoil values are in radians. falloff: [full damage until m, hard max range m, damage multiplier at max range]
+// pen: penetration class (see PENETRATION). velocity: muzzle speed (m/s) for weapons that fire real projectiles.
+// What each calibre can punch through: max surfaces, thickest wood / non-wood wall (m), how many walls, damage kept per surface.
+export const PENETRATION = {
+  none: { max: 0, wood: 0, wall: 0, walls: 0, woodMul: 1, wallMul: 1 },
+  light: { max: 1, wood: 0.5, wall: 0, walls: 0, woodMul: 0.6, wallMul: 1 },              // pistols, SMGs: thin wood only
+  rifle: { max: 2, wood: 0.6, wall: 0.35, walls: 1, woodMul: 0.7, wallMul: 0.5 },         // rifles: thin wood + one thin wall
+  heavy: { max: 3, wood: 1.2, wall: 0.8, walls: 3, woodMul: 0.85, wallMul: 0.65 },        // .50 cal: most cover
+};
 export const WEAPONS = {
   m4: {
     id: 'm4', slot: 0, name: 'M4A1', cls: 'Assault rifle', auto: true, rate: 0.08, mag: 30, reserve: 180,
-    damage: 28, headMul: 2.1, legMul: 0.8, falloff: [30, 75, 0.7], pellets: 1, range: 160,
+    damage: 28, headMul: 2.1, legMul: 0.8, falloff: [35, 150, 0.6], pellets: 1, range: 150, pen: 'rifle',
     spread: { hip: 0.03, ads: 0.0035, move: 0.022, air: 0.06, bloom: 0.0045, bloomMax: 0.028, recover: 0.09 },
     recoil: { v: 0.0115, h: 0.0042, drift: 0.0011, recover: 7 },
     reload: 2.0, reloadEmpty: 2.5, draw: 0.55, speed: 0.97, adsZoom: 0.78, adsTime: 0.16,
@@ -31,7 +39,7 @@ export const WEAPONS = {
   },
   mp5: {
     id: 'mp5', slot: 0, name: 'MP5', cls: 'Submachine gun', auto: true, rate: 0.068, mag: 30, reserve: 150,
-    damage: 22, headMul: 2.0, legMul: 0.85, falloff: [16, 45, 0.55], pellets: 1, range: 120,
+    damage: 22, headMul: 2.0, legMul: 0.85, falloff: [20, 70, 0.5], pellets: 1, range: 70, pen: 'light',
     spread: { hip: 0.022, ads: 0.006, move: 0.011, air: 0.045, bloom: 0.004, bloomMax: 0.024, recover: 0.1 },
     recoil: { v: 0.0082, h: 0.005, drift: -0.0006, recover: 9 },
     reload: 1.7, reloadEmpty: 2.1, draw: 0.42, speed: 1.06, adsZoom: 0.85, adsTime: 0.12,
@@ -41,7 +49,7 @@ export const WEAPONS = {
   },
   m870: {
     id: 'm870', slot: 0, name: 'M870', cls: 'Shotgun', auto: false, pump: true, shells: true, rate: 0.82, mag: 7, reserve: 35,
-    damage: 17, pellets: 9, headMul: 1.6, legMul: 0.9, falloff: [7, 26, 0.2], range: 45,
+    damage: 17, pellets: 9, headMul: 1.6, legMul: 0.9, falloff: [8, 30, 0.15], range: 30, pen: 'none',
     spread: { hip: 0.072, ads: 0.052, move: 0.01, air: 0.03, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.05, h: 0.012, drift: 0, recover: 6 },
     reloadStart: 0.35, shellReload: 0.48, draw: 0.6, speed: 0.95, adsZoom: 0.88, adsTime: 0.18,
@@ -51,7 +59,7 @@ export const WEAPONS = {
   },
   l96: {
     id: 'l96', slot: 0, name: 'L96A1', cls: 'Sniper rifle', auto: false, bolt: true, rate: 1.3, mag: 5, reserve: 25,
-    damage: 100, headMul: 2.0, legMul: 0.75, falloff: [300, 400, 1], pellets: 1, range: 260,
+    damage: 100, headMul: 2.0, legMul: 0.75, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'rifle', velocity: 650,
     spread: { hip: 0.085, ads: 0.0, move: 0.05, air: 0.12, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.06, h: 0.01, drift: 0, recover: 5 },
     reload: 2.6, reloadEmpty: 3.0, draw: 0.7, speed: 0.9, adsZoom: 0.26, adsTime: 0.24, scope: true,
@@ -61,7 +69,7 @@ export const WEAPONS = {
   },
   ak47: {
     id: 'ak47', slot: 0, name: 'AK-47', cls: 'Assault rifle', auto: true, rate: 0.1, mag: 30, reserve: 150,
-    damage: 33, headMul: 2.0, legMul: 0.8, falloff: [28, 70, 0.72], pellets: 1, range: 160,
+    damage: 33, headMul: 2.0, legMul: 0.8, falloff: [35, 150, 0.6], pellets: 1, range: 150, pen: 'rifle',
     spread: { hip: 0.034, ads: 0.005, move: 0.025, air: 0.06, bloom: 0.006, bloomMax: 0.034, recover: 0.08 },
     recoil: { v: 0.016, h: 0.006, drift: 0.0016, recover: 6 },
     reload: 2.2, reloadEmpty: 2.7, draw: 0.6, speed: 0.95, adsZoom: 0.78, adsTime: 0.18,
@@ -71,7 +79,7 @@ export const WEAPONS = {
   },
   m249: {
     id: 'm249', slot: 0, name: 'M249', cls: 'Light machine gun', auto: true, rate: 0.075, mag: 100, reserve: 200,
-    damage: 26, headMul: 1.9, legMul: 0.8, falloff: [30, 80, 0.7], pellets: 1, range: 160,
+    damage: 26, headMul: 1.9, legMul: 0.8, falloff: [40, 150, 0.6], pellets: 1, range: 150, pen: 'rifle',
     spread: { hip: 0.045, ads: 0.012, move: 0.035, air: 0.07, bloom: 0.004, bloomMax: 0.03, recover: 0.08 },
     recoil: { v: 0.009, h: 0.006, drift: 0.0008, recover: 6 },
     reload: 5.0, reloadEmpty: 5.5, draw: 0.9, speed: 0.85, adsZoom: 0.8, adsTime: 0.28,
@@ -81,7 +89,7 @@ export const WEAPONS = {
   },
   spas12: {
     id: 'spas12', slot: 0, name: 'SPAS-12', cls: 'Shotgun', auto: false, shells: true, rate: 0.3, mag: 8, reserve: 32,
-    damage: 13, pellets: 8, headMul: 1.5, legMul: 0.9, falloff: [6, 22, 0.2], range: 40,
+    damage: 13, pellets: 8, headMul: 1.5, legMul: 0.9, falloff: [8, 30, 0.15], range: 30, pen: 'none',
     spread: { hip: 0.08, ads: 0.06, move: 0.012, air: 0.03, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.04, h: 0.012, drift: 0, recover: 7 },
     reloadStart: 0.3, shellReload: 0.42, draw: 0.6, speed: 0.95, adsZoom: 0.88, adsTime: 0.18,
@@ -91,7 +99,7 @@ export const WEAPONS = {
   },
   barrett: {
     id: 'barrett', slot: 0, name: 'BARRETT .50', cls: 'Anti-materiel rifle', auto: false, rate: 0.55, mag: 10, reserve: 30,
-    damage: 110, headMul: 2.0, legMul: 0.8, falloff: [400, 500, 1], pellets: 1, range: 300,
+    damage: 110, headMul: 2.0, legMul: 0.8, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'heavy', velocity: 760,
     spread: { hip: 0.1, ads: 0.0, move: 0.06, air: 0.14, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.08, h: 0.02, drift: 0, recover: 4 },
     reload: 3.4, reloadEmpty: 3.9, draw: 0.9, speed: 0.85, adsZoom: 0.2, adsTime: 0.3, scope: true, heavy: true,
@@ -111,7 +119,7 @@ export const WEAPONS = {
   },
   deagle: {
     id: 'deagle', slot: 1, name: 'DESERT EAGLE', cls: 'Pistol', auto: false, rate: 0.32, mag: 7, reserve: 35,
-    damage: 58, headMul: 2.0, legMul: 0.85, falloff: [25, 60, 0.7], pellets: 1, range: 120,
+    damage: 58, headMul: 2.0, legMul: 0.85, falloff: [30, 60, 0.6], pellets: 1, range: 60, pen: 'light',
     spread: { hip: 0.022, ads: 0.003, move: 0.02, air: 0.06, bloom: 0.012, bloomMax: 0.04, recover: 0.2 },
     recoil: { v: 0.05, h: 0.012, drift: 0, recover: 7 },
     reload: 1.7, reloadEmpty: 2.0, draw: 0.4, speed: 1.0, adsZoom: 0.85, adsTime: 0.12,
@@ -120,7 +128,7 @@ export const WEAPONS = {
   },
   usp: {
     id: 'usp', slot: 1, name: 'USP .45', cls: 'Pistol', auto: false, rate: 0.15, mag: 15, reserve: 75,
-    damage: 34, headMul: 2.25, legMul: 0.85, falloff: [20, 50, 0.65], pellets: 1, range: 110,
+    damage: 34, headMul: 2.25, legMul: 0.85, falloff: [30, 60, 0.55], pellets: 1, range: 60, pen: 'light',
     spread: { hip: 0.016, ads: 0.004, move: 0.012, air: 0.05, bloom: 0.007, bloomMax: 0.03, recover: 0.12 },
     recoil: { v: 0.02, h: 0.006, drift: 0, recover: 9 },
     reload: 1.35, reloadEmpty: 1.6, draw: 0.3, speed: 1.05, adsZoom: 0.86, adsTime: 0.1,
