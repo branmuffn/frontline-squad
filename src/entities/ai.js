@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
-import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand } from '../world/physics.js';
+import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
 import { makeUnit, damage, isEnemy, noise } from './units.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
@@ -393,7 +393,7 @@ export function updateBots(dt) {
     // bot footsteps you can hear (helps locate flankers)
     if (u.grounded && u.moveSpeed > 3.2 && !u.crouch) {
       u.stepAcc = (u.stepAcc || 0) + u.moveSpeed * dt;
-      if (u.stepAcc > 2.3) { u.stepAcc = 0; play('step', { x: u.x, y: u.y, z: u.z }, { gain: 0.9, range: 26, ref: 4, occlude: true }); noise(u.x, u.y, u.z, 9, u); }
+      if (u.stepAcc > 2.3) { u.stepAcc = 0; play(stepSound(surfaceAt(u.x, u.z, u.y)), { x: u.x, y: u.y, z: u.z }, { gain: 1.1, range: 28, ref: 4, occlude: true }); noise(u.x, u.y, u.z, 9, u); }
     }
   }
 }

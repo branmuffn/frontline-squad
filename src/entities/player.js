@@ -3,7 +3,7 @@ import { G } from '../core/state.js';
 import { PHYS, WEAPONS, GRENADE } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
-import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight } from '../world/physics.js';
+import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound } from '../world/physics.js';
 import { makeUnit, damage, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
@@ -164,6 +164,7 @@ function fireOnce() {
     } else if (wh) {
       ex = wh.x; ey = wh.y; ez = wh.z;
       impact(ex, ey, ez, wh.nx, wh.ny, wh.nz, wh.mat);
+      if (wh.mat === 'metal' && k === 0 && Math.random() < 0.25) play('ricochet', { x: ex, y: ey, z: ez }, { gain: 0.8 });
       if (k < 3) play(wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });
     } else { ex = o.x + dir.x * w.range; ey = o.y + dir.y * w.range; ez = o.z + dir.z * w.range; }
     if (Math.random() < w.tracer) tracer(mx, my, mz, ex, ey, ez, 0xffe0a0, w.scope ? 600 : 360);
@@ -182,6 +183,7 @@ function fireOnce() {
   if (Math.random() < 0.3) muzzleSmoke(mx, my, mz);
   G.shake = Math.min(0.03, (G.shake || 0) + (big ? 0.012 : 0.0025));
   play(w.sound, null, { important: true, send: 0.25 });
+  if (!w.projectile && !w.pump && Math.random() < 0.5) play('casing', null, { delay: 0.35 + Math.random() * 0.2, gain: 0.8 });
   noise(P.x, P.y + 1.5, P.z, w.noise, P);
   if (w.pump) P.pumpStart = G.now + 0.14;
   if (w.bolt) { P.boltStart = G.now + 0.3; P.adsBlockUntil = G.now + 1.05; }
@@ -300,7 +302,7 @@ export function updatePlayer(dt) {
   }
   const impactV = updateVertical(P, dt);
   if (impactV > 4.5) {
-    vmLand(Math.min(1, impactV / 11)); play('land', null, { gain: Math.min(1, impactV / 10) });
+    vmLand(Math.min(1, impactV / 11)); play('land', null, { gain: Math.min(1, impactV / 10) }); play(stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: 0.8 });
     G.shake = Math.min(0.04, (G.shake || 0) + impactV * 0.0015);
     if (impactV > 16) damage(P, (impactV - 16) * 6, null, { weapon: 'fall' });
   }
@@ -312,8 +314,8 @@ export function updatePlayer(dt) {
     if (P.stepDist > stride) {
       P.stepDist = 0;
       if (!P.crouch) {
-        const onMetal = P.y > 0.1 && supportHeight(P.x, P.z, 0.2, P.y + 0.05) > 0.1 && G.world.id === 'yard';
-        play(onMetal ? 'stepMetal' : 'step', null, { gain: P.sprinting ? 0.75 : 0.5 });
+        play(stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: P.sprinting ? 0.85 : 0.6 });
+        if (P.sprinting && Math.random() < 0.35) play('cloth', null, { gain: 0.8 });
         noise(P.x, P.y, P.z, P.sprinting ? 16 : 8, P);
       }
     }

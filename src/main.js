@@ -4,7 +4,7 @@ import { $ } from './core/util.js';
 import { initInput, input, matches, requestLock, exitLock, isLocked, clearInput } from './core/input.js';
 import { initRenderer, render, resize } from './engine/render.js';
 import { initFx, updateFx } from './engine/fx.js';
-import { initAudio, setVolume, play } from './engine/audio.js';
+import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
@@ -165,6 +165,7 @@ function loop(t) {
       updatePickups(dt);
       updateStreaks(dt);
       updateHud(dt);
+      ambienceTick(dt, G.world.def.ambience);
     }
   } else if (G.state === 'menu') {
     menuT += dt;
@@ -173,6 +174,7 @@ function loop(t) {
     G.camera.rotation.set(-0.36, a, 0);
     if (Math.abs(G.camera.fov - 62) > 0.1) { G.camera.fov = 62; G.camera.updateProjectionMatrix(); }
   }
+  if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
   updateFx(dt);
   render(isLive() && G.player && G.player.alive || (G.state === 'paused' && G.player && G.player.alive));
 }

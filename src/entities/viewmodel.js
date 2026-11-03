@@ -9,7 +9,8 @@ let root, models = {}, flash, shells = [], shellI = 0, grenadeHand;
 const vm = { swayX: 0, swayY: 0, kick: 0, kickRot: 0, land: 0, flashUntil: 0 };
 
 function mats() {
-  M.black = new THREE.MeshStandardMaterial({ color: 0x1d2124, roughness: 0.55, metalness: 0.35 });
+  M.black = new THREE.MeshStandardMaterial({ color: 0x24282b, roughness: 0.42, metalness: 0.6 });
+  M.poly = new THREE.MeshStandardMaterial({ color: 0x1e2123, roughness: 0.78, metalness: 0.05 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x2c3236, roughness: 0.6, metalness: 0.3 });
   M.glove = new THREE.MeshStandardMaterial({ color: 0x2e2c27, roughness: 0.95 });
   M.sleeve = new THREE.MeshStandardMaterial({ color: 0x3b4430, roughness: 0.95 });
@@ -19,7 +20,8 @@ function mats() {
   M.olive = new THREE.MeshStandardMaterial({ color: 0x4e5a36, roughness: 0.8 });
   M.dot = new THREE.MeshBasicMaterial({ color: 0xff3a2a });
   M.lens = new THREE.MeshBasicMaterial({ color: 0x0c1418 });
-  M.camo = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.25 });
+  M.camo = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.35 });
+  M.port = new THREE.MeshStandardMaterial({ color: 0x0b0c0d, roughness: 0.9 });
   for (const k in M) M[k].color.convertSRGBToLinear();
 }
 
@@ -44,7 +46,7 @@ export function setCamo(id) {
   if (M.camo.map) M.camo.map.dispose();
   M.camo.map = c.spots.length ? camoTexture(c) : null;
   M.camo.color.set(c.spots.length ? 0xffffff : c.base).convertSRGBToLinear();
-  M.camo.metalness = c.metal ? 0.75 : 0.25; M.camo.roughness = c.metal ? 0.3 : 0.6;
+  M.camo.metalness = c.metal ? 0.85 : 0.35; M.camo.roughness = c.metal ? 0.25 : 0.55;
   M.camo.needsUpdate = true;
 }
 
@@ -58,6 +60,8 @@ function cyl(g, mat, r, len, x, y, z, open = false) {
 function hands(g, grip, fore, twoHandGrip = false) {
   // right hand on the grip, forearm toward bottom-right of screen
   b(g, M.glove, 0.055, 0.085, 0.07, grip[0] + 0.012, grip[1] - 0.01, grip[2] + 0.005);
+  for (let i = 0; i < 3; i++) b(g, M.glove, 0.05, 0.018, 0.03, grip[0] - 0.012, grip[1] - 0.03 - i * 0.022, grip[2] - 0.03, 0, 0, -0.2);
+  b(g, M.glove, 0.022, 0.06, 0.022, grip[0] - 0.022, grip[1] + 0.02, grip[2] - 0.01, 0, 0, 0.5);
   b(g, M.sleeve, 0.075, 0.075, 0.34, grip[0] + 0.07, grip[1] - 0.08, grip[2] + 0.2, -0.35, 0.32, 0);
   if (twoHandGrip) {
     b(g, M.glove, 0.05, 0.075, 0.075, grip[0] - 0.032, grip[1] - 0.005, grip[2] - 0.01, 0, 0, 0.2);
@@ -86,6 +90,10 @@ function build() {
   mag = b(g, M.black, 0.045, 0.16, 0.07, 0, -0.12, -0.17, 0.15);
   b(g, M.black, 0.03, 0.014, 0.4, 0, 0.052, -0.2);
   b(g, M.black, 0.012, 0.035, 0.012, 0, 0.065, -0.52);
+  for (let i = 0; i < 16; i++) b(g, M.black, 0.034, 0.008, 0.012, 0, 0.062, -0.37 + i * 0.022);
+  b(g, M.port, 0.004, 0.025, 0.07, 0.031, 0.012, -0.08); b(g, M.black, 0.012, 0.012, 0.03, 0.032, 0.028, -0.02);
+  b(g, M.black, 0.03, 0.012, 0.06, 0, 0.052, 0.03); b(g, M.black, 0.006, 0.03, 0.06, 0, -0.065, -0.04);
+  for (let i = 0; i < 4; i++) b(g, M.port, 0.004, 0.01, 0.035, 0.035, -0.004, -0.33 - i * 0.05);
   let sight = dotSight(g, -0.13);
   hands(g, [0, -0.09, 0.0], [-0.0, -0.03, -0.42]);
   models.m4 = { g, mag, sight, muzzle: new THREE.Vector3(0, -0.004, -0.8), port: new THREE.Vector3(0.035, 0.015, -0.07), hip: new THREE.Vector3(0.19, -0.215, -0.4), adsDist: 0.44 };
@@ -159,6 +167,9 @@ function build() {
   b(g, M.wood, 0.05, 0.09, 0.26, 0, -0.03, 0.18, -0.1);
   b(g, M.wood, 0.04, 0.1, 0.05, 0, -0.09, 0.0, 0.3);
   mag = b(g, M.black, 0.045, 0.18, 0.075, 0, -0.13, -0.2, 0.35);
+  b(mag, M.black, 0.98, 0.5, 1, 0, -0.62, -0.25, 0.35);
+  for (let i = 0; i < 5; i++) b(g, M.black, 0.06, 0.006, 0.01, 0, 0.044, -0.25 + i * 0.05);
+  b(g, M.port, 0.004, 0.022, 0.08, 0.03, 0.015, -0.1); b(g, M.black, 0.03, 0.035, 0.03, 0, 0.045, -0.62);
   hands(g, [0, -0.09, 0.0], [0, -0.04, -0.42]);
   models.ak47 = { g, mag, sight: V(0, 0.085, -0.62), muzzle: V(0, 0.01, -0.8), port: V(0.035, 0.015, -0.08), hip: V(0.19, -0.215, -0.4), adsDist: 0.66 };
 

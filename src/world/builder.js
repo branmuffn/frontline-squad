@@ -171,6 +171,7 @@ export function material(key) {
   if (d.basic) m = new THREE.MeshBasicMaterial({ color: d.color });
   else m = new THREE.MeshStandardMaterial({ color: d.color, roughness: d.roughness ?? 0.9, metalness: d.metalness ?? 0, side: d.side ?? THREE.FrontSide });
   m.color.convertSRGBToLinear(); // r128 treats hex colours as linear; convert so they match the design values
+  m.vertexColors = true; m.envMapIntensity = d.metalness ? 0.6 : 0.22;
   if (d.transparent) { m.transparent = true; m.opacity = d.opacity; m.depthWrite = false; }
   if (d.map) m.map = tex(d.map);
   m.userData.uvs = d.uvs || 3;
@@ -195,7 +196,7 @@ export class MapBuilder {
   }
   batch(key) {
     let b = this.batches.get(key);
-    if (!b) { b = { pos: [], nor: [], uv: [], idx: [], mat: material(key) }; this.batches.set(key, b); }
+    if (!b) { b = { pos: [], nor: [], uv: [], col: [], idx: [], mat: material(key) }; this.batches.set(key, b); }
     return b;
   }
   _box(x, y0, z, w, h, d, matKey, rot = 0) {
@@ -212,6 +213,7 @@ export class MapBuilder {
         const ly = n[1] * en + u[1] * eu * su + v[1] * ev * sv;
         const lz = n[2] * en + u[2] * eu * su + v[2] * ev * sv;
         b.pos.push(x + lx * cs + lz * sn, cy + ly, z - lx * sn + lz * cs);
+        { const rel = ly + hy, k = n[1] < 0 ? 0.62 : 0.6 + 0.4 * Math.min(1, rel / 1.3) ** 0.7; b.col.push(k, k, k); }
         b.nor.push(n[0] * cs + n[2] * sn, n[1], -n[0] * sn + n[2] * cs);
         const wx = lx + x, wy = ly + cy, wz = lz + z; // unrotated world-ish coords for continuous texturing
         b.uv.push((wx * u[0] + wy * u[1] + wz * u[2]) / uvs, (wx * v[0] + wy * v[1] + wz * v[2]) / uvs);
@@ -240,7 +242,7 @@ export class MapBuilder {
     const p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
     const v = new THREE.Vector3();
     for (let i = 0; i < p.count; i++) {
-      v.fromBufferAttribute(p, i).applyMatrix4(m); b.pos.push(v.x, v.y, v.z);
+      v.fromBufferAttribute(p, i).applyMatrix4(m); b.pos.push(v.x, v.y, v.z); b.col.push(1, 1, 1);
       v.fromBufferAttribute(n, i).applyMatrix3(nm).normalize(); b.nor.push(v.x, v.y, v.z);
       b.uv.push(uv ? uv.getX(i) : 0, uv ? uv.getY(i) : 0);
     }
@@ -260,7 +262,7 @@ export class MapBuilder {
     }
     const ax = Math.abs(nx), ay = Math.abs(ny), az = Math.abs(nz);
     for (const p of pts) {
-      b.pos.push(p[0], p[1], p[2]); b.nor.push(nx, ny, nz);
+      b.pos.push(p[0], p[1], p[2]); b.nor.push(nx, ny, nz); b.col.push(1, 1, 1);
       if (ay >= ax && ay >= az) b.uv.push(p[0] / uvs, p[2] / uvs); else if (ax >= az) b.uv.push(p[2] / uvs, p[1] / uvs); else b.uv.push(p[0] / uvs, p[1] / uvs);
     }
     b.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
@@ -301,6 +303,7 @@ export class MapBuilder {
       g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(b.col, 3));
       g.setIndex(b.idx);
       g.computeBoundingSphere();
       const mesh = new THREE.Mesh(g, b.mat);
@@ -328,6 +331,21 @@ export function impactMat(matKey) {
   return 'concrete';
 }
 
+// Soft drifting cloud layer (one transparent plane)
+export function makeClouds(tint = '#ffffff') {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  let s = 5; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    const cx = r() * 256, cy = r() * 256, rad = 18 + r() * 46, g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, 'rgba(255,255,255,' + (0.22 + r() * 0.25) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) { x.save(); x.translate(ox, oy); x.fillRect(cx - rad, cy - rad, rad * 2, rad * 2); x.restore(); }
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshBasicMaterial({ map: t, color: tint, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
+  m.rotation.x = Math.PI / 2; m.position.y = 95; m.renderOrder = -9; m.name = 'clouds';
+  return m;
+}
+
 export function makeSky(top, horizon, bottom) {
   const g = new THREE.SphereGeometry(190, 24, 14);
   const col = [], p = g.attributes.position, c = new THREE.Color(), ct = new THREE.Color(top), ch = new THREE.Color(horizon), cb = new THREE.Color(bottom);
@@ -348,6 +366,7 @@ export function makeGround(size, matKey) {
   const uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * size / uvs, uv.getY(i) * size / uvs);
   const mesh = new THREE.Mesh(g, m);
+  g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(uv.count * 3).fill(1), 3));
   mesh.rotation.x = -Math.PI / 2; mesh.receiveShadow = true;
   return mesh;
 }

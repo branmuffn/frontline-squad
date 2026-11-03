@@ -144,6 +144,19 @@ export function updateVertical(u, dt) {
   return 0;
 }
 
+export function surfaceAt(x, z, y) {
+  const w = G.world;
+  for (const c of query(x - 0.25, x + 0.25, z - 0.25, z + 0.25)) {
+    if (Math.abs(c.maxY - y) < 0.07 && x >= c.minX - 0.25 && x <= c.maxX + 0.25 && z >= c.minZ - 0.25 && z <= c.maxZ + 0.25) return c.mat;
+  }
+  for (const rp of w.ramps) if (x >= rp.minX && x <= rp.maxX && z >= rp.minZ && z <= rp.maxZ && Math.abs(rampHeight(rp, x, z) - y) < 0.12) return rp.mat;
+  if (w.water) for (const a of w.water) if (y < a.top + 0.3 && x > a.minX && x < a.maxX && z > a.minZ && z < a.maxZ) return 'water';
+  if (w.surfaces) for (const a of w.surfaces) if (y < 0.1 && x > a.minX && x < a.maxX && z > a.minZ && z < a.maxZ) return a.mat;
+  return w.groundMat;
+}
+const STEP_SOUND = { metal: 'stepMetal', wood: 'stepWood', sand: 'stepSand', adobe: 'stepConcrete', concrete: 'stepConcrete', water: 'stepWater', grass: 'stepGrass' };
+export const stepSound = (mat) => STEP_SOUND[mat] || 'stepConcrete';
+
 export function canStand(u) {
   return ceiling(u.x, u.z, u.r * 0.9, u.y + PHYS.crouchH) > u.y + PHYS.standH;
 }

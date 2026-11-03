@@ -35,10 +35,16 @@ function gunModel(parent, id0, mat) {
 }
 
 // opts: { uniform, accent, helmet, skin, weapon, heavy, noHelmet }
+const CYL = (rt, rb, h, seg = 8) => new THREE.CylinderGeometry(rt, rb, h, seg);
+const G_THIGH = CYL(0.105, 0.088, 0.45), G_SHIN = CYL(0.085, 0.068, 0.42), G_UARM = CYL(0.072, 0.064, 0.3), G_FARM = CYL(0.063, 0.054, 0.28);
+const G_HEAD = new THREE.SphereGeometry(0.125, 12, 10), G_BALL = new THREE.SphereGeometry(1, 8, 6), G_BRIM = CYL(0.18, 0.185, 0.035, 14), G_ANT = CYL(0.006, 0.006, 0.55, 4);
+function mesh(parent, geo, mat, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); m.castShadow = true; parent.add(m); return m;
+}
 export function makeSoldier(opts) {
   const mats = {
-    uni: std(opts.uniform), acc: std(opts.accent), skin: std(opts.skin ?? 0xb08c70), helm: std(opts.helmet ?? 0x34403d),
-    gear: std(0x23292b), gun: std(0x1a1d20, { r: 0.6, m: 0.3 }), boot: std(0x2a2520),
+    uni: std(opts.uniform), acc: std(opts.accent), skin: std(opts.skin ?? 0xb08c70), helm: std(opts.helmet ?? 0x34403d, { r: 0.7 }),
+    gear: std(0x23292b), gun: std(0x1a1d20, { r: 0.45, m: 0.5 }), boot: std(0x2a2520, { r: 0.8 }),
   };
   const root = new THREE.Group();
   const pose = new THREE.Group(); root.add(pose);
@@ -46,32 +52,44 @@ export function makeSoldier(opts) {
   const legs = [];
   for (const s of [-1, 1]) {
     const thigh = new THREE.Group(); thigh.position.set(s * 0.12, 0, 0); hips.add(thigh);
-    part(thigh, mats.uni, 0.19, 0.45, 0.23, 0, -0.21, 0);
+    mesh(thigh, G_THIGH, mats.uni, 0, -0.21, 0);
+    part(thigh, mats.gear, 0.07, 0.14, 0.12, s * 0.1, -0.2, 0.0); // thigh pouch
     const knee = new THREE.Group(); knee.position.y = -0.43; thigh.add(knee);
-    part(knee, mats.uni, 0.17, 0.42, 0.2, 0, -0.2, 0);
-    part(knee, mats.boot, 0.19, 0.12, 0.3, 0, -0.39, -0.05);
-    part(knee, mats.gear, 0.19, 0.12, 0.08, 0, -0.06, -0.11); // knee pad
+    mesh(knee, G_SHIN, mats.uni, 0, -0.2, 0);
+    part(knee, mats.boot, 0.17, 0.13, 0.3, 0, -0.39, -0.05);
+    part(knee, mats.boot, 0.15, 0.1, 0.16, 0, -0.32, 0.0);
+    part(knee, mats.gear, 0.16, 0.12, 0.07, 0, -0.06, -0.1);
     legs.push({ thigh, knee });
   }
   const torso = new THREE.Group(); hips.add(torso);
-  part(torso, mats.uni, 0.48, 0.52, 0.28, 0, 0.27, 0);
-  part(torso, mats.acc, 0.52, 0.34, 0.33, 0, 0.32, 0); // plate carrier (team / identity color)
-  part(torso, mats.gear, 0.5, 0.08, 0.31, 0, 0.03, 0);
-  part(torso, mats.gear, 0.12, 0.12, 0.08, -0.12, 0.27, -0.18); part(torso, mats.gear, 0.12, 0.12, 0.08, 0.12, 0.27, -0.18); // pouches
-  part(torso, mats.gear, 0.32, 0.3, 0.14, 0, 0.3, 0.2); // pack
+  part(torso, mats.uni, 0.44, 0.5, 0.26, 0, 0.27, 0);
+  mesh(torso, G_BALL, mats.uni, -0.24, 0.48, 0, 0.1, 0.09, 0.1); mesh(torso, G_BALL, mats.uni, 0.24, 0.48, 0, 0.1, 0.09, 0.1);
+  part(torso, mats.acc, 0.5, 0.36, 0.32, 0, 0.32, 0); // plate carrier (team / identity colour)
+  part(torso, mats.acc, 0.3, 0.06, 0.32, 0, 0.53, 0);
+  part(torso, mats.gear, 0.48, 0.08, 0.29, 0, 0.03, 0); // belt
+  for (const x of [-0.14, 0, 0.14]) part(torso, mats.gear, 0.11, 0.13, 0.07, x, 0.24, -0.19); // mag pouches
+  part(torso, mats.gear, 0.12, 0.1, 0.1, 0.2, 0.05, -0.08); part(torso, mats.gear, 0.12, 0.1, 0.1, -0.2, 0.05, -0.08);
+  part(torso, mats.gear, 0.32, 0.32, 0.14, 0, 0.3, 0.2); // pack
+  part(torso, mats.gear, 0.1, 0.16, 0.07, 0.11, 0.42, 0.29); // radio
+  mesh(torso, G_ANT, mats.gear, 0.13, 0.75, 0.29, 1, 1, 1, 0.12, 0, 0.05);
   const head = new THREE.Group(); head.position.y = 0.56; torso.add(head);
-  part(head, mats.skin, 0.22, 0.25, 0.24, 0, 0.13, 0);
-  part(head, mats.gear, 0.2, 0.06, 0.04, 0, 0.17, -0.12);
+  mesh(head, CYL(0.06, 0.07, 0.1, 8), mats.skin, 0, 0.02, 0);
+  mesh(head, G_HEAD, mats.skin, 0, 0.14, 0, 1, 1.08, 1.04);
+  part(head, mats.gear, 0.2, 0.05, 0.05, 0, 0.17, -0.11); // goggles
+  part(head, mats.gear, 0.19, 0.08, 0.06, 0, 0.07, -0.1); // face wrap
   if (!opts.noHelmet) {
-    const helm = new THREE.Mesh(HELMET, mats.helm); helm.scale.set(0.165, 0.15, 0.175); helm.position.y = 0.2; helm.castShadow = true; head.add(helm);
+    const helm = new THREE.Mesh(HELMET, mats.helm); helm.scale.set(0.16, 0.15, 0.17); helm.position.y = 0.19; helm.castShadow = true; head.add(helm);
+    mesh(head, G_BRIM, mats.helm, 0, 0.2, 0, 0.96, 1, 1.02);
+    part(head, mats.gear, 0.05, 0.05, 0.05, 0, 0.3, -0.15); // NVG mount
+    part(head, mats.gear, 0.03, 0.09, 0.07, -0.15, 0.13, 0); part(head, mats.gear, 0.03, 0.09, 0.07, 0.15, 0.13, 0); // ear pro
   } else part(head, mats.helm, 0.24, 0.07, 0.26, 0, 0.27, 0.01);
   const arms = [];
   for (const s of [-1, 1]) {
     const sh = new THREE.Group(); sh.position.set(s * 0.29, 0.5, 0); torso.add(sh);
-    part(sh, mats.uni, 0.13, 0.3, 0.14, 0, -0.14, 0);
+    mesh(sh, G_UARM, mats.uni, 0, -0.14, 0);
     const el = new THREE.Group(); el.position.y = -0.28; sh.add(el);
-    part(el, mats.uni, 0.12, 0.28, 0.12, 0, -0.13, 0);
-    part(el, mats.gear, 0.1, 0.1, 0.11, 0, -0.29, 0);
+    mesh(el, G_FARM, mats.uni, 0, -0.13, 0);
+    mesh(el, G_BALL, mats.gear, 0, -0.29, 0, 0.06, 0.07, 0.065); // glove
     arms.push({ sh, el });
   }
   // rifle-ready arm pose

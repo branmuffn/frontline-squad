@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../../core/state.js';
-import { MapBuilder, makeSky, makeGround } from '../builder.js';
+import { MapBuilder, makeSky, makeGround, makeClouds } from '../builder.js';
 import { buildHash } from '../physics.js';
 import yard from './steelyard.js';
 import outpost from './dustoutpost.js';
@@ -25,7 +25,19 @@ export function loadMap(id) {
   const shadows = G.profile.settings.shadows;
   const group = b.finalize(shadows);
   group.add(makeGround(420, def.ground));
-  group.add(makeSky(...def.sky));
+  const sky = makeSky(...def.sky);
+  group.add(sky);
+  group.add(makeClouds(def.cloudTint || '#ffffff'));
+  // image-based lighting from the sky so metal and paint pick up reflections
+  try {
+    if (G.envRT) G.envRT.dispose();
+    const pm = new THREE.PMREMGenerator(G.renderer), envScene = new THREE.Scene();
+    envScene.add(sky.clone());
+    const groundCol = new THREE.Color(def.hemi.ground).convertSRGBToLinear();
+    const gp = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshBasicMaterial({ color: groundCol, side: THREE.DoubleSide })); gp.rotation.x = -Math.PI / 2; gp.position.y = -2; envScene.add(gp);
+    G.envRT = pm.fromScene(envScene, 0.04); pm.dispose();
+    G.scene.environment = G.envRT.texture; G.vmScene.environment = G.envRT.texture;
+  } catch (e) { /* IBL is optional */ }
   group.add(new THREE.HemisphereLight(def.hemi.sky, def.hemi.ground, def.hemi.intensity));
   const sun = new THREE.DirectionalLight(def.sun.color, def.sun.intensity);
   sun.position.set(...def.sun.pos);
