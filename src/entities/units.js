@@ -1,6 +1,6 @@
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, SOURCE_NAMES } from '../core/config.js';
-import { moveBody } from '../world/physics.js';
+import { moveBody, inWater } from '../world/physics.js';
 import { startDeath, setFlash } from './soldier.js';
 import { play } from '../engine/audio.js';
 import * as hud from '../ui/hud.js';
@@ -115,4 +115,12 @@ export function separateUnits() {
 export function noise(x, y, z, radius, src) {
   G.noise.push({ x, y, z, r: radius, t: G.now, src });
   if (G.noise.length > 40) G.noise.shift();
+}
+
+// Fall damage by drop height (peak of the arc to the landing surface), shared by the player and bots.
+export function applyFall(u) {
+  const h = u.fallH || 0;
+  if (h <= PHYS.fallSafe || !u.alive || inWater(u)) return 0;
+  const dmg = h >= PHYS.fallLethal ? 999 : (h - PHYS.fallSafe) / (PHYS.fallLethal - PHYS.fallSafe) * u.maxHealth;
+  return damage(u, dmg, null, { weapon: 'fall' });
 }

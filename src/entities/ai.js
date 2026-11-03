@@ -4,7 +4,7 @@ import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
 import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
-import { makeUnit, damage, isEnemy, noise } from './units.js';
+import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
@@ -360,6 +360,7 @@ export function updateBots(dt) {
     const hit = moveBody(u, b.vx * dt, b.vz * dt);
     if (hit && b.state === 'engage') b.strafeDir *= -1;
     updateVertical(u, dt);
+    if (u.fallH) applyFall(u);
     u.moveSpeed = Math.hypot(u.x - ox, u.z - oz) / Math.max(dt, 1e-4);
     // ---- facing / aiming ----
     let wantYaw = u.yaw, turn = 7;

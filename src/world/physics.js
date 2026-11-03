@@ -122,12 +122,15 @@ export function moveBody(u, dx, dz) {
 
 // Gravity, jumping arcs, ceilings and landing (including ledge mantling within step height). Returns landing speed.
 export function updateVertical(u, dt) {
+  u.fallH = 0;
   if (u.grounded && u.vy <= 0) {
     const s = supportHeight(u.x, u.z, SUPPORT_R, u.y + 0.05);
+    u.airPeak = u.y;
     if (s >= u.y - 0.02) { u.y = Math.max(u.y, s); u.vy = 0; return 0; }
     if (u.y - s <= 0.55) { u.y = s; u.vy = 0; return 0; }
     u.grounded = false;
   }
+  if (u.airPeak === undefined || u.grounded) u.airPeak = u.y;
   u.vy = Math.max(-40, u.vy - PHYS.gravity * (G.gravMul || 1) * dt);
   let ny = u.y + u.vy * dt;
   if (u.vy > 0) {
@@ -137,10 +140,12 @@ export function updateVertical(u, dt) {
   const s = supportHeight(u.x, u.z, SUPPORT_R, u.y + PHYS.step);
   if (ny <= s) {
     const impact = -u.vy;
+    u.fallH = u.airPeak - s; u.airPeak = s;
     u.y = s; u.vy = 0; u.grounded = true;
     return impact;
   }
   u.y = ny; u.grounded = false;
+  if (ny > u.airPeak) u.airPeak = ny;
   return 0;
 }
 

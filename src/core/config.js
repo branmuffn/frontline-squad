@@ -1,6 +1,8 @@
 // Central tuning data. Gameplay feel lives here, so balance changes rarely need code changes.
 
 export const PHYS = {
+  fallSafe: 4,         // drops up to this height (m) are free
+  fallLethal: 12,      // drops from this height kill
   gravity: 17,
   step: 0.45,          // max height a unit can step up without jumping
   jump: 6.25,          // initial jump velocity (apex ~1.15 m)

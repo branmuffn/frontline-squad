@@ -4,7 +4,7 @@ import { PHYS, WEAPONS, GRENADE } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
-import { makeUnit, damage, isEnemy, noise, kill } from './units.js';
+import { makeUnit, damage, applyFall, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
 import { fireRocket } from './projectiles.js';
@@ -317,6 +317,7 @@ export function updatePlayer(dt) {
     if (along > -0.1 && along < 0.8 && lat < 0.5 && P.y > L.minY - 0.15 && P.y < L.maxY - 0.02) { ladder = L; break; }
   }
   if (ladder && !frozen) {
+    P.airPeak = P.y;
     const facing = -Math.sin(P.yaw) * -ladder.nx + -Math.cos(P.yaw) * -ladder.nz;
     const up = f > 0 && facing > 0.2, dn = f < 0 || (f > 0 && facing < -0.2);
     if (up || dn || !P.grounded) {
@@ -350,10 +351,10 @@ export function updatePlayer(dt) {
     play('step', null, { gain: 0.5 });
   }
   const impactV = updateVertical(P, dt);
+  if (P.fallH) applyFall(P);
   if (impactV > 4.5) {
     vmLand(Math.min(1, impactV / 11)); play('land', null, { gain: Math.min(1, impactV / 10) }); play(stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: 0.8 });
     G.shake = Math.min(0.04, (G.shake || 0) + impactV * 0.0015);
-    if (impactV > 16) damage(P, (impactV - 16) * 6, null, { weapon: 'fall' });
   }
   P.moveSpeed = Math.hypot(P.x - ox, P.z - oz) / Math.max(dt, 1e-4);
   // footsteps
