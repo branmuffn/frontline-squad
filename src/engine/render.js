@@ -5,7 +5,7 @@ export function initRenderer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.autoClear = false;
   renderer.shadowMap.enabled = G.profile.settings.shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; // PCF honours shadow.radius -> softer, blurred edges
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
@@ -21,9 +21,11 @@ export function initRenderer(container) {
   G.vmScene = new THREE.Scene();
   G.vmCamera = new THREE.PerspectiveCamera(54, 1, 0.01, 10);
   G.vmScene.add(G.vmCamera);
-  G.vmScene.add(new THREE.HemisphereLight(0xd8e0e8, 0x4a4840, 1.25));
+  G.vmHemi = new THREE.HemisphereLight(0xd8e0e8, 0x4a4840, 1.25); G.vmScene.add(G.vmHemi);
   const key = new THREE.DirectionalLight(0xfff0dc, 1.35); key.position.set(0.6, 1, 0.4); G.vmScene.add(key);
   G.vmLight = key;
+  // cool rim light from behind/above so the gun's silhouette and bevels read against any background
+  const rim = new THREE.DirectionalLight(0xbcd4ff, 0.9); rim.position.set(-0.5, 0.6, -1); G.vmScene.add(rim);
   // muzzle light lives in the world scene; intensity toggled (constant light count = no shader recompiles)
   G.muzzleLight = new THREE.PointLight(0xffc070, 0, 9, 2);
   G.scene.add(G.muzzleLight);

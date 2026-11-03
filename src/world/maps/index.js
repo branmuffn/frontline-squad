@@ -51,7 +51,10 @@ export function loadMap(id) {
   sun.shadow.mapSize.set(2048, 2048);
   const s = def.sun.shadow;
   Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 190 });
-  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 2.2;
+  // viewmodel lighting follows the map: sky/ground tint and a key light from the sun's side
+  if (G.vmHemi) { G.vmHemi.color.setHex(def.hemi.sky); G.vmHemi.groundColor.setHex(def.hemi.ground); G.vmHemi.intensity = def.hemi.intensity * 1.05; }
+  if (G.vmLight) { G.vmLight.color.setHex(def.sun.color); G.vmLight.intensity = def.sun.intensity * 0.62; }
   group.add(sun); group.add(sun.target);
   G.scene.fog = new THREE.FogExp2(def.fog.color, def.fog.density);
   G.scene.fog.color.convertSRGBToLinear();

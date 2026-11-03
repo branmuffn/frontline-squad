@@ -9,7 +9,7 @@ let root, models = {}, flash, shells = [], shellI = 0, grenadeHand;
 const vm = { swayX: 0, swayY: 0, kick: 0, kickRot: 0, land: 0, flashUntil: 0 };
 
 function mats() {
-  M.black = new THREE.MeshStandardMaterial({ color: 0x24282b, roughness: 0.42, metalness: 0.6 });
+  M.black = new THREE.MeshStandardMaterial({ color: 0x2c3135, roughness: 0.36, metalness: 0.45 });
   M.poly = new THREE.MeshStandardMaterial({ color: 0x1e2123, roughness: 0.78, metalness: 0.05 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x2c3236, roughness: 0.6, metalness: 0.3 });
   M.glove = new THREE.MeshStandardMaterial({ color: 0x2e2c27, roughness: 0.95 });
@@ -50,13 +50,35 @@ export function setCamo(id) {
   M.camo.needsUpdate = true;
 }
 
+// Bevelled box (B6): rounded edges catch the light; tiny parts stay plain boxes. Cached per size.
+const RB = new Map();
+function rboxGeo(w, h, d) {
+  const k = `${w.toFixed(4)}|${h.toFixed(4)}|${d.toFixed(4)}`;
+  let g = RB.get(k);
+  if (!g) {
+    const r = Math.min(0.006, Math.min(w, h, d) * 0.22), x = -w / 2 + r, y = -h / 2 + r, W = w - 2 * r, H = h - 2 * r, s = new THREE.Shape();
+    s.moveTo(x, y); s.lineTo(x + W, y); s.lineTo(x + W, y + H); s.lineTo(x, y + H); s.lineTo(x, y);
+    g = new THREE.ExtrudeGeometry(s, { depth: d - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: 2, curveSegments: 1 });
+    g.translate(0, 0, -(d - 2 * r) / 2); g.computeVertexNormals();
+    // planar UVs from position so camo textures tile evenly
+    const p = g.attributes.position, uv = g.attributes.uv;
+    for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getZ(i) + p.getX(i)) * 6, p.getY(i) * 6);
+    RB.set(k, g);
+  }
+  return g;
+}
 function b(g, mat, w, h, d, x, y, z, rx = 0, ry = 0, rz = 0) {
+  if (Math.min(w, h, d) >= 0.014) { const m = new THREE.Mesh(rboxGeo(w, h, d), mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m; }
   const m = new THREE.Mesh(BOX, mat); m.scale.set(w, h, d); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m;
 }
 function cyl(g, mat, r, len, x, y, z, open = false) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12, 1, open), mat); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m;
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 18, 1, open), mat); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m;
 }
 
+function trigger(g, z, y = -0.05) {
+  b(g, M.black, 0.006, 0.006, 0.075, 0, y - 0.03, z); b(g, M.black, 0.006, 0.03, 0.006, 0, y - 0.015, z - 0.035); // guard
+  b(g, M.steel, 0.005, 0.022, 0.006, 0, y - 0.012, z + 0.005, 0.25); // trigger
+}
 function hands(g, grip, fore, twoHandGrip = false) {
   // right hand on the grip, forearm toward bottom-right of screen
   b(g, M.glove, 0.055, 0.085, 0.07, grip[0] + 0.012, grip[1] - 0.01, grip[2] + 0.005);
@@ -95,6 +117,7 @@ function build() {
   b(g, M.black, 0.03, 0.012, 0.06, 0, 0.052, 0.03); b(g, M.black, 0.006, 0.03, 0.06, 0, -0.065, -0.04);
   for (let i = 0; i < 4; i++) b(g, M.port, 0.004, 0.01, 0.035, 0.035, -0.004, -0.33 - i * 0.05);
   let sight = dotSight(g, -0.13);
+  trigger(g, -0.035);
   hands(g, [0, -0.09, 0.0], [-0.0, -0.03, -0.42]);
   models.m4 = { g, mag, sight, muzzle: new THREE.Vector3(0, -0.004, -0.8), port: new THREE.Vector3(0.035, 0.015, -0.07), hip: new THREE.Vector3(0.19, -0.215, -0.4), adsDist: 0.44 };
 
@@ -107,6 +130,7 @@ function build() {
   b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, -0.02, 0.3);
   mag = b(g, M.black, 0.035, 0.16, 0.06, 0, -0.12, -0.2, 0.32);
   sight = dotSight(g, -0.13);
+  trigger(g, -0.055, -0.050);
   hands(g, [0, -0.09, -0.02], [0, -0.03, -0.37]);
   models.mp5 = { g, mag, sight, muzzle: new THREE.Vector3(0, 0, -0.53), port: new THREE.Vector3(0.033, 0.02, -0.1), hip: new THREE.Vector3(0.18, -0.205, -0.38), adsDist: 0.42 };
 
@@ -118,6 +142,7 @@ function build() {
   b(g, M.wood, 0.05, 0.1, 0.3, 0, -0.03, 0.22, -0.12); b(g, M.black, 0.04, 0.09, 0.05, 0, -0.08, 0.06, 0.4);
   const bead = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), M.brass); bead.position.set(0, 0.03, -0.71); g.add(bead);
   b(g, M.black, 0.006, 0.012, 0.03, 0, 0.048, -0.02);
+  trigger(g, 0.015, -0.040);
   hands(g, [0, -0.08, 0.05], [0, -0.03, -0.36]);
   models.m870 = { g, mag: null, pump, pumpAction: true, sight: new THREE.Vector3(0, 0.032, -0.71), muzzle: new THREE.Vector3(0, 0.012, -0.73), port: new THREE.Vector3(0.033, 0.01, -0.04), hip: new THREE.Vector3(0.17, -0.2, -0.36), adsDist: 0.42 };
 
@@ -130,6 +155,7 @@ function build() {
   const lens = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), M.lens); lens.position.set(0, 0.09, 0.111); g.add(lens);
   const bolt = b(g, M.steel, 0.06, 0.016, 0.016, 0.04, 0.02, 0.06);
   mag = b(g, M.black, 0.04, 0.07, 0.08, 0, -0.07, -0.1);
+  trigger(g, 0.025, -0.040);
   hands(g, [0, -0.08, 0.06], [0, -0.04, -0.34]);
   models.l96 = { g, mag, bolt, sight: new THREE.Vector3(0, 0.09, -0.08), muzzle: new THREE.Vector3(0, 0.005, -0.9), port: new THREE.Vector3(0.035, 0.02, 0.0), hip: new THREE.Vector3(0.17, -0.21, -0.36), adsDist: 0.25, scope: true };
 
@@ -170,6 +196,7 @@ function build() {
   b(mag, M.black, 0.98, 0.5, 1, 0, -0.62, -0.25, 0.35);
   for (let i = 0; i < 5; i++) b(g, M.black, 0.06, 0.006, 0.01, 0, 0.044, -0.25 + i * 0.05);
   b(g, M.port, 0.004, 0.022, 0.08, 0.03, 0.015, -0.1); b(g, M.black, 0.03, 0.035, 0.03, 0, 0.045, -0.62);
+  trigger(g, -0.035, -0.050);
   hands(g, [0, -0.09, 0.0], [0, -0.04, -0.42]);
   models.ak47 = { g, mag, sight: V(0, 0.085, -0.62), muzzle: V(0, 0.01, -0.8), port: V(0.035, 0.015, -0.08), hip: V(0.19, -0.215, -0.4), adsDist: 0.66 };
 
@@ -183,6 +210,7 @@ function build() {
   mag = b(g, M.olive, 0.09, 0.11, 0.13, -0.078, -0.07, -0.14);
   b(g, M.black, 0.012, 0.012, 0.26, 0.022, -0.05, -0.56); b(g, M.black, 0.012, 0.012, 0.26, -0.022, -0.05, -0.56);
   sight = dotSight(g, -0.18);
+  trigger(g, -0.015, -0.060);
   hands(g, [0, -0.1, 0.02], [0, -0.05, -0.42]);
   models.m249 = { g, mag, sight, muzzle: V(0, 0, -0.9), port: V(0.04, 0.02, -0.08), hip: V(0.2, -0.235, -0.42), adsDist: 0.46 };
 
@@ -205,6 +233,7 @@ function build() {
   b(g, M.black, 0.014, 0.05, 0.3, 0, 0.035, 0.2); b(g, M.black, 0.014, 0.1, 0.02, 0, -0.005, 0.34);
   b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, 0.05, 0.35);
   const sbead = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), M.brass); sbead.position.set(0, 0.035, -0.69); g.add(sbead);
+  trigger(g, 0.025, -0.050);
   hands(g, [0, -0.09, 0.06], [0, -0.035, -0.36]);
   models.spas12 = { g, mag: null, sight: V(0, 0.038, -0.69), muzzle: V(0, 0.015, -0.71), port: V(0.035, 0.02, -0.05), hip: V(0.18, -0.21, -0.38), adsDist: 0.44 };
 
@@ -221,6 +250,7 @@ function build() {
   cyl(g, M.black, 0.019, 0.22, 0, 0.09, -0.07); cyl(g, M.black, 0.025, 0.05, 0, 0.09, -0.2); cyl(g, M.black, 0.022, 0.04, 0, 0.09, 0.05);
   b(g, M.black, 0.02, 0.03, 0.02, 0, 0.07, -0.12); b(g, M.black, 0.02, 0.03, 0.02, 0, 0.07, 0.0);
   const lens2 = new THREE.Mesh(new THREE.CircleGeometry(0.017, 12), M.lens); lens2.position.set(0, 0.09, 0.071); g.add(lens2);
+  trigger(g, 0.025, -0.050);
   hands(g, [0, -0.09, 0.06], [0, -0.04, -0.34]);
   models.mk14 = { g, mag, sight: V(0, 0.09, -0.07), muzzle: V(0, 0.005, -0.74), port: V(0.035, 0.02, -0.04), hip: V(0.17, -0.21, -0.37), adsDist: 0.25, scope: true };
 
@@ -233,6 +263,7 @@ function build() {
   mag = b(g, M.black, 0.05, 0.1, 0.11, 0, -0.1, -0.12);
   cyl(g, M.black, 0.024, 0.34, 0, 0.11, -0.06); cyl(g, M.black, 0.032, 0.08, 0, 0.11, -0.27); cyl(g, M.black, 0.028, 0.06, 0, 0.11, 0.12);
   b(g, M.black, 0.012, 0.012, 0.3, 0.03, -0.07, -0.55, 0.3); b(g, M.black, 0.012, 0.012, 0.3, -0.03, -0.07, -0.55, 0.3);
+  trigger(g, 0.045, -0.060);
   hands(g, [0, -0.1, 0.08], [0, -0.05, -0.32]);
   models.barrett = { g, mag, sight: V(0, 0.11, -0.06), muzzle: V(0, 0.01, -0.98), port: V(0.04, 0.02, -0.02), hip: V(0.2, -0.235, -0.4), adsDist: 0.25, scope: true };
 

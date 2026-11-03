@@ -245,6 +245,19 @@ function computeArms(s) {
   s.ik = out;
 }
 
+// soft contact shadow under each soldier (grounds them even with shadows off)
+let blobGeo = null, blobMat = null;
+function contactBlob() {
+  if (!blobGeo) {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+    const gr = x.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    blobGeo = new THREE.PlaneGeometry(0.95, 0.95); blobGeo.rotateX(-Math.PI / 2);
+    blobMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  }
+  const m = new THREE.Mesh(blobGeo, blobMat); m.position.y = 0.015; m.renderOrder = 1; return m;
+}
+
 // ---------- public API ----------
 function bodyMaterial() { return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.04, skinning: true }); }
 
@@ -259,8 +272,9 @@ export function makeSoldier(opts) {
   root.updateMatrixWorld(true);
   hi.bind(new THREE.Skeleton(bones));
   hi.castShadow = true;
+  const blob = contactBlob(); root.add(blob);
   const s = {
-    root, mesh: hi, geo, far: false, opts, style: opts.style, mats: { body: mat },
+    root, mesh: hi, blob, geo, far: false, opts, style: opts.style, mats: { body: mat },
     pose: bones[B.pose], hips: bones[B.hips], torso: bones[B.torso], head: bones[B.head],
     legs: [{ thigh: bones[B.thighL], knee: bones[B.kneeL] }, { thigh: bones[B.thighR], knee: bones[B.kneeR] }],
     arms: [{ sh: bones[B.shL], el: bones[B.elL] }, { sh: bones[B.shR], el: bones[B.elR] }],
@@ -328,6 +342,7 @@ export function poseSoldier(s, u, dt) {
   s.torso.rotation.set(hunch - crouch * 0.22 - run * 0.16 + (zombie ? 0 : (u.aimPitch || 0) * 0.75) + s.flinch * 0.35, -Math.sin(ph) * 0.1 * speed + (zombie ? Math.sin(s.t * 1.3) * 0.08 : 0), zombie ? Math.sin(s.t * 0.9) * 0.06 : 0);
   s.head.rotation.set((zombie ? 0.35 : (u.aimPitch || 0) * 0.25) - hunch * 0.5, zombie ? Math.sin(s.t * 0.7) * 0.25 : 0, zombie ? 0.18 : 0);
   s.pose.rotation.set(0, 0, 0); s.pose.position.set(0, 0, 0);
+  s.blob.visible = true; s.blob.scale.setScalar(1 - crouch * 0.1 + speed * 0.08);
   arms(s, speed);
 }
 
@@ -391,6 +406,7 @@ function deathPose(s, u, dt) {
     s.arms[0].sh.rotation.set(-e * 0.8 * dir, 0, -0.3 - e * 1.0); s.arms[1].sh.rotation.set(-e * 0.6 * dir, 0, 0.3 + e * 1.0);
     s.arms[0].el.rotation.x = 0.2 + kick * 0.5; s.arms[1].el.rotation.x = 0.3;
   }
+  s.blob.visible = T < 2.4;
   if (T > 2.4) r.position.y = u.y - Math.min(1.2, (T - 2.4) * 0.9);
 }
 
