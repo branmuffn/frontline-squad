@@ -139,7 +139,7 @@ export function enemyFlash(x, y, z) {
 }
 
 const IMPACT = {
-  concrete: [0.62, 0.62, 0.6], adobe: [0.78, 0.66, 0.5], sand: [0.8, 0.7, 0.52], wood: [0.45, 0.33, 0.2], metal: [0.5, 0.52, 0.55], ground: [0.55, 0.55, 0.52],
+  water: [0.78, 0.86, 0.9], concrete: [0.62, 0.62, 0.6], adobe: [0.78, 0.66, 0.5], sand: [0.8, 0.7, 0.52], wood: [0.45, 0.33, 0.2], metal: [0.5, 0.52, 0.55], ground: [0.55, 0.55, 0.52],
 };
 export function impact(x, y, z, nx, ny, nz, mat) {
   const c = IMPACT[mat] || IMPACT.concrete;

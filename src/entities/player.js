@@ -3,7 +3,7 @@ import { G } from '../core/state.js';
 import { PHYS, WEAPONS, GRENADE } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
-import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound } from '../world/physics.js';
+import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { makeUnit, damage, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
@@ -150,13 +150,22 @@ function fireOnce() {
   }
   for (let k = 0; k < (w.projectile ? 0 : w.pellets); k++) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
-    const wh = rayWorld(o.x, o.y, o.z, dir.x, dir.y, dir.z, w.range);
-    const uh = rayUnits(o.x, o.y, o.z, dir.x, dir.y, dir.z, wh ? wh.t : w.range, (u) => !isEnemy(P, u));
+    let sx = o.x, sy = o.y, sz = o.z, mul = 1, range = w.range, travelled = 0, wh, uh;
+    for (let pen = 0; pen < 2; pen++) { // bullets punch through thin wood (fences, siding, boxcars)
+      wh = rayWorld(sx, sy, sz, dir.x, dir.y, dir.z, range);
+      uh = rayUnits(sx, sy, sz, dir.x, dir.y, dir.z, wh ? wh.t : range, (u) => !isEnemy(P, u));
+      if (uh || !wh || pen === 1 || !PENETRABLE.has(wh.mat) || w.pellets > 1) break;
+      const px = wh.x + dir.x * 0.45, py = wh.y + dir.y * 0.45, pz = wh.z + dir.z * 0.45;
+      if (rayWorld(px, py, pz, dir.x, dir.y, dir.z, 0.02)) break;
+      impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat); play('impactWood', { x: wh.x, y: wh.y, z: wh.z }, { gain: 0.5 });
+      travelled += wh.t + 0.45; range -= wh.t + 0.45; sx = px; sy = py; sz = pz; mul = 0.55;
+    }
+    if (wh && G.world.water && wh.ny > 0.9 && wh.y < 0.4) { for (const a of G.world.water) if (wh.x > a.minX && wh.x < a.maxX && wh.z > a.minZ && wh.z < a.maxZ) { wh.mat = 'water'; wh.y = a.top; } }
     let ex, ey, ez;
     if (uh) {
-      const v = uh.unit, t = uh.t; ex = o.x + dir.x * t; ey = o.y + dir.y * t; ez = o.z + dir.z * t;
+      const v = uh.unit, t = uh.t; ex = sx + dir.x * t; ey = sy + dir.y * t; ez = sz + dir.z * t;
       const head = uh.zone === 'head';
-      const dmg = w.damage * falloff(w, t) * (head ? w.headMul : uh.zone === 'legs' ? w.legMul : 1);
+      const dmg = mul * w.damage * falloff(w, t + travelled) * (head ? w.headMul : uh.zone === 'legs' ? w.legMul : 1);
       anyHit = true; hitHead = hitHead || head;
       damage(v, dmg, P, { weapon: id, zone: uh.zone, headshot: head, sx: P.x, sz: P.z, dist: t });
       blood(ex, ey, ez, dir.x, dir.z, head);
@@ -165,8 +174,8 @@ function fireOnce() {
       ex = wh.x; ey = wh.y; ez = wh.z;
       impact(ex, ey, ez, wh.nx, wh.ny, wh.nz, wh.mat);
       if (wh.mat === 'metal' && k === 0 && Math.random() < 0.25) play('ricochet', { x: ex, y: ey, z: ez }, { gain: 0.8 });
-      if (k < 3) play(wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });
-    } else { ex = o.x + dir.x * w.range; ey = o.y + dir.y * w.range; ez = o.z + dir.z * w.range; }
+      if (k < 3) play(wh.mat === 'water' ? 'splash' : wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' || wh.mat === 'grass' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });
+    } else { ex = sx + dir.x * range; ey = sy + dir.y * range; ez = sz + dir.z * range; }
     if (Math.random() < w.tracer) tracer(mx, my, mz, ex, ey, ez, 0xffe0a0, w.scope ? 600 : 360);
   }
   if (anyHit) G.match.stats.hits++;
@@ -289,6 +298,35 @@ export function updatePlayer(dt) {
   P.sprintT = damp(P.sprintT, P.sprinting ? 1 : 0, 10, dt);
   let speed = PHYS.walk * (w.speed || 1);
   if (P.sprinting) speed *= PHYS.sprintMul; else if (P.crouch) speed *= PHYS.crouchMul; else if (P.adsT > 0.5) speed *= PHYS.adsMul;
+  if (inWater(P)) speed *= 0.62;
+  // ladders: walk into one and hold forward to climb, back to descend, jump to let go
+  let ladder = null;
+  for (const L of G.world.ladders) {
+    const dx = P.x - L.x, dz = P.z - L.z, along = dx * L.nx + dz * L.nz, lat = Math.abs(dx * -L.nz + dz * L.nx);
+    if (along > -0.1 && along < 0.8 && lat < 0.5 && P.y > L.minY - 0.15 && P.y < L.maxY - 0.02) { ladder = L; break; }
+  }
+  if (ladder && !frozen) {
+    const facing = -Math.sin(P.yaw) * -ladder.nx + -Math.cos(P.yaw) * -ladder.nz;
+    const up = f > 0 && facing > 0.2, dn = f < 0 || (f > 0 && facing < -0.2);
+    if (up || dn || !P.grounded) {
+      if (G.now - P.jumpRequest < 0.15) { P.vy = 3; P.x += ladder.nx * 0.5; P.z += ladder.nz * 0.5; P.jumpRequest = -10; }
+      else {
+        P.vx = 0; P.vz = 0; P.vy = 0; P.grounded = false; P.onLadder = true;
+        P.y += (up ? 3.4 : dn ? -3.4 : 0) * dt;
+        P.x += (ladder.x + ladder.nx * 0.55 - P.x) * Math.min(1, dt * 8); P.z += (ladder.z + ladder.nz * 0.55 - P.z) * Math.min(1, dt * 8);
+        if (P.y >= ladder.maxY - 0.03) { P.y = ladder.maxY; P.x -= ladder.nx * 1.05; P.z -= ladder.nz * 1.05; P.grounded = true; P.onLadder = false; }
+        else if (P.y <= ladder.minY) { P.y = ladder.minY; P.grounded = true; P.onLadder = false; }
+        P.stepDist += dt * 3; if (P.stepDist > 1.1) { P.stepDist = 0; play('stepMetal', null, { gain: 0.6 }); }
+        P.moveSpeed = 0;
+        G.camera.position.set(P.x, P.y + P.eye, P.z);
+        G.camera.rotation.set(P.pitch, P.yaw, 0);
+        setListener(P.x, P.y + P.eye, P.z, P.yaw);
+        updateViewmodel(dt, { weapon: id, visible: true, adsT: 0, sprintT: 1, bob: P.bob, bobAmp: 0, mdx, mdy, reload: -1, switchT: 1, melee: -1, throwT: -1, cooking: false, crouchT: 0, pump: -1, bolt: -1, loaded: true });
+        return;
+      }
+    }
+  }
+  P.onLadder = false;
   const len = Math.hypot(f, st) || 1;
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tvx = (fx * f + rx * st) / len * speed, tvz = (fz * f + rz * st) / len * speed;
@@ -314,7 +352,7 @@ export function updatePlayer(dt) {
     if (P.stepDist > stride) {
       P.stepDist = 0;
       if (!P.crouch) {
-        play(stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: P.sprinting ? 0.85 : 0.6 });
+        play(inWater(P) ? 'stepWater' : stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: P.sprinting ? 0.85 : 0.6 });
         if (P.sprinting && Math.random() < 0.35) play('cloth', null, { gain: 0.8 });
         noise(P.x, P.y, P.z, P.sprinting ? 16 : 8, P);
       }

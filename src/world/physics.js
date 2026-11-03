@@ -157,6 +157,14 @@ export function surfaceAt(x, z, y) {
 const STEP_SOUND = { metal: 'stepMetal', wood: 'stepWood', sand: 'stepSand', adobe: 'stepConcrete', concrete: 'stepConcrete', water: 'stepWater', grass: 'stepGrass' };
 export const stepSound = (mat) => STEP_SOUND[mat] || 'stepConcrete';
 
+export function inWater(u) {
+  const w = G.world.water; if (!w || u.y > 0.35) return false;
+  for (const a of w) if (u.x > a.minX && u.x < a.maxX && u.z > a.minZ && u.z < a.maxZ) return true;
+  return false;
+}
+// materials thin enough for bullets to punch through
+export const PENETRABLE = new Set(['wood']);
+
 export function canStand(u) {
   return ceiling(u.x, u.z, u.r * 0.9, u.y + PHYS.crouchH) > u.y + PHYS.standH;
 }

@@ -8,7 +8,7 @@ Resume note: upload the project zip and this file in a new chat; pick up at the 
 ## In progress (this round)
 - [x] Phase 1 — Sandbox mode (everything unlocked, no XP, rule toggles, B = weapon menu) + 6 weapons (AK-47, M249, Desert Eagle, SPAS-12, Barrett .50, RPG-7)
 - [x] Phase 2 — Atomic Acres (small 1950s test-town map, two 2-storey houses across a cul-de-sac)
-- [ ] Phase 3 — Cascade Gorge (Kill Creek-inspired canyon: plateau bases, railway bridge + freight train, stairs, lower canyon, creek) + ladders + bullets through thin wood + wading
+- [x] Phase 3 — Cascade Gorge (Kill Creek-inspired canyon: plateau bases, railway bridge + freight train, stairs, lower canyon, creek) + ladders + bullets through thin wood + wading
 - [ ] Phase 4 — Explosive barrels on all maps + weapon drops (E to pick up)
 
 ## Later

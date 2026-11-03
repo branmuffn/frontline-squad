@@ -57,6 +57,28 @@ export function buildNav() {
       }
     }
   }
+  // extra hand-placed nodes, linked to anything walkable within reach
+  const extra = (w.def.navExtra || []).map(([x, z, y]) => {
+    const s = supportHeight(x, z, 0.2, y + 0.05);
+    if (Math.abs(s - y) > 0.06 || blocked(x, z, 0.36, s, 1.75)) return null;
+    const i = Math.max(0, Math.min(ni - 1, Math.round((x - x0) / S))), j = Math.max(0, Math.min(nj - 1, Math.round((z - z0) / S)));
+    const n = { id: nodes.length, x, y: s, z, i, j, edges: [], cost: [], cover: 0, main: false };
+    nodes.push(n); grid[j * ni + i].push(n);
+    return n;
+  }).filter(Boolean);
+  for (const e of extra) {
+    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
+      const ii = e.i + di, jj = e.j + dj;
+      if (ii < 0 || jj < 0 || ii >= ni || jj >= nj) continue;
+      for (const m of grid[jj * ni + ii]) {
+        if (m === e) continue;
+        const d = Math.hypot(m.x - e.x, m.z - e.z);
+        if (d > 2.9) continue;
+        if (!e.edges.includes(m.id) && canWalk(e.x, e.y, e.z, m.x, m.y, m.z)) { e.edges.push(m.id); e.cost.push(d + Math.max(0, m.y - e.y) * 0.8); }
+        if (!m.edges.includes(e.id) && canWalk(m.x, m.y, m.z, e.x, e.y, e.z)) { m.edges.push(e.id); m.cost.push(d + Math.max(0, e.y - m.y) * 0.8); }
+      }
+    }
+  }
   // cover: a solid at least crouch-height tall right next to the node
   for (const n of nodes) {
     let mask = 0;

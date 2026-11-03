@@ -5,9 +5,10 @@ import { buildHash } from '../physics.js';
 import yard from './steelyard.js';
 import outpost from './dustoutpost.js';
 import atomic from './atomicacres.js';
+import gorge from './cascadegorge.js';
 
-export const MAPS = { yard, outpost, atomic };
-export const MAP_LIST = [yard, outpost, atomic];
+export const MAPS = { yard, outpost, atomic, gorge };
+export const MAP_LIST = [yard, outpost, atomic, gorge];
 
 function disposeGroup(g) {
   g.traverse((o) => {
@@ -55,6 +56,7 @@ export function loadMap(id) {
   G.world = {
     id: def.id, def, colliders: b.colliders, ramps: b.ramps, bounds: def.bounds, groundMat: def.groundMat,
     nav: null, sun, spawns: def.spawns, pickups: def.pickups,
+    water: def.water || null, surfaces: def.surfaces || null, ladders: def.ladders || [],
   };
   buildHash(G.world);
   return G.world;

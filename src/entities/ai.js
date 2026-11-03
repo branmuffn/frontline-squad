@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
-import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound } from '../world/physics.js';
+import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
 import { makeUnit, damage, isEnemy, noise } from './units.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
@@ -267,13 +267,23 @@ function fire(u, cfg) {
   for (let k = 0; k < w.pellets; k++) {
     coneDir(dx, dy, dz, err + (w.pellets > 1 ? w.spread.hip * 0.9 : 0), dir);
     const range = w.range;
-    const wh = rayWorld(mx, my, mz, dir.x, dir.y, dir.z, range);
-    const uh = rayUnits(mx, my, mz, dir.x, dir.y, dir.z, wh ? wh.t : range, (q) => q === u || !isEnemy(u, q));
+    let wh = rayWorld(mx, my, mz, dir.x, dir.y, dir.z, range);
+    let uh = rayUnits(mx, my, mz, dir.x, dir.y, dir.z, wh ? wh.t : range, (q) => q === u || !isEnemy(u, q));
+    let pmul = 1, off = 0;
+    if (!uh && wh && PENETRABLE.has(wh.mat) && w.pellets === 1) {
+      const px = wh.x + dir.x * 0.45, py = wh.y + dir.y * 0.45, pz = wh.z + dir.z * 0.45;
+      if (!rayWorld(px, py, pz, dir.x, dir.y, dir.z, 0.02)) {
+        impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat); off = wh.t + 0.45;
+        wh = rayWorld(px, py, pz, dir.x, dir.y, dir.z, range - off); if (wh) wh.t += off;
+        uh = rayUnits(px, py, pz, dir.x, dir.y, dir.z, wh ? wh.t - off : range - off, (q) => q === u || !isEnemy(u, q)); if (uh) uh.t += off;
+        pmul = 0.55;
+      }
+    }
     let end = range;
     if (uh) {
       end = uh.t;
       const zone = uh.zone, mul = zone === 'head' ? w.headMul : zone === 'legs' ? w.legMul : 1;
-      damage(uh.unit, w.damage * falloff(w, uh.t) * mul * cfg.dmgMul * b.T.dmg, u, { weapon: b.weapon, zone, headshot: zone === 'head', sx: u.x, sz: u.z, dist: uh.t });
+      damage(uh.unit, w.damage * falloff(w, uh.t) * mul * pmul * cfg.dmgMul * b.T.dmg, u, { weapon: b.weapon, zone, headshot: zone === 'head', sx: u.x, sz: u.z, dist: uh.t });
       if (!uh.unit.isPlayer) blood(mx + dir.x * end, my + dir.y * end, mz + dir.z * end, dir.x, dir.z, zone === 'head');
     } else if (wh) {
       end = wh.t;
@@ -342,6 +352,7 @@ export function updateBots(dt) {
     u.h = u.crouch ? PHYS.crouchH : PHYS.standH;
     u.crouchT = damp(u.crouchT, u.crouch ? 1 : 0, 10, dt);
     if (u.crouch) speed *= 0.45;
+    if (inWater(u)) speed *= 0.62;
     b.vx = damp(b.vx, mvx * speed, 10, dt); b.vz = damp(b.vz, mvz * speed, 10, dt);
     const ox = u.x, oz = u.z;
     const hit = moveBody(u, b.vx * dt, b.vz * dt);

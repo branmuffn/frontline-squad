@@ -81,8 +81,8 @@ export function pickSpawn(u, opts = {}) {
   if (m.teams) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
   if (m.mode === 'survival' && !u.isPlayer) list = sp.ffa.concat(sp.teams[0], sp.teams[1]);
   let best = null, bs = -1e9;
-  for (const [x, z] of list) {
-    const y = supportHeight(x, z, 0.2, 0.5);
+  for (const [x, z, sy] of list) {
+    const y = supportHeight(x, z, 0.2, (sy || 0) + 0.5);
     if (blocked(x, z, 0.4, y, 1.8)) continue;
     let minD = 60, seen = 0, friends = 0;
     for (const o of G.units) {
@@ -97,7 +97,7 @@ export function pickSpawn(u, opts = {}) {
     if (minD < 6) s -= 60;
     if (s > bs) { bs = s; best = { x, y, z }; }
   }
-  if (!best) best = { x: list[0][0], y: 0, z: list[0][1] };
+  if (!best) best = { x: list[0][0], y: list[0][2] || 0, z: list[0][1] };
   best.yaw = Math.atan2(best.x, best.z);
   return best;
 }
