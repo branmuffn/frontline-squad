@@ -8,6 +8,9 @@ export const PHYS = {
   jump: 6.25,          // initial jump velocity (apex ~1.15 m)
   standH: 1.8,
   crouchH: 1.2,
+  proneH: 0.65,
+  eyeProne: 0.42,
+  proneMul: 0.22,
   radius: 0.36,
   eyeStand: 1.62,
   eyeCrouch: 1.04,

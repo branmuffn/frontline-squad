@@ -5,7 +5,7 @@ import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
 import { playerVehicle, exitVehicle } from './vehicles.js';
-import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
+import { moveBody, updateVertical, canStand, canCrouch, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
@@ -48,7 +48,7 @@ export function spawnPlayer(x, y, z, yaw) {
   if (P && P.vehicle) exitVehicle(P);
   if (P) { P.vehicle = null; P.seat = -1; }
   Object.assign(P, {
-    x, y, z, vx: 0, vz: 0, vy: 0, yaw, pitch: 0, alive: true, health: 100, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH,
+    x, y, z, vx: 0, vz: 0, vy: 0, yaw, pitch: 0, alive: true, health: 100, grounded: true, crouch: false, crouchT: 0, prone: false, proneT: 0, h: PHYS.standH,
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
     pumpStart: -1, boltStart: -1, grenades: GRENADE.perLife, protectUntil: G.now + 2.2, streak: 0, eye: PHYS.eyeStand, semiReady: true,
   });
@@ -186,7 +186,7 @@ function fireOnce() {
   const moving = Math.min(1, P.moveSpeed / 6);
   const adsF = w.scope ? (P.adsT > 0.95 ? 1 : 0) : P.adsT;
   let spread = lerp(w.spread.hip, w.spread.ads, adsF) + moving * w.spread.move * (1 - adsF * 0.5) + (P.grounded ? 0 : w.spread.air) + P.bloom;
-  if (P.crouch) spread *= 0.75;
+  if (P.prone) spread *= 0.55; else if (P.crouch) spread *= 0.75;
   aimDir(_d);
   const o = cam(), [mx, my, mz] = muzzleWorld();
   let anyHit = false, hitHead = false;
@@ -206,7 +206,7 @@ function fireOnce() {
   if (anyHit) G.match.stats.hits++;
   if (hitHead) G.match.stats.headHits++;
   // recoil: part permanent (you pull it down), part recovering
-  const r = w.recoil, rm = (P.adsT > 0.5 ? 0.75 : 1) * (P.crouch ? 0.85 : 1);
+  const r = w.recoil, rm = (P.adsT > 0.5 ? 0.75 : 1) * (P.prone ? 0.7 : P.crouch ? 0.85 : 1);
   P.pitch = clamp(P.pitch + r.v * 0.35 * rm, -1.5, 1.5);
   P.recoilP += r.v * 0.65 * rm;
   P.recoilY += (Math.random() * 2 - 1) * r.h * rm + r.drift;
@@ -269,6 +269,17 @@ export function onMouseDown(btn) {
   if (btn === 0) { const w = W(); if (w.melee) meleeStart(false); }
   if (btn === 2 && W().melee) meleeStart(true);
 }
+// X: go prone / get up. Getting up needs headroom (to a crouch at least).
+export function toggleProne() {
+  if (!P || !P.alive || P.vehicle || P.onLadder) return;
+  if (P.prone) { standUp(); return; }
+  if (!P.grounded) return;
+  P.prone = true; P.crouch = false; play('cloth', null, { gain: 0.9 });
+}
+function standUp() {
+  if (!canCrouch(P)) return; // no room: stay down
+  P.prone = false; P.crouch = !canStand(P); play('cloth', null, { gain: 0.7 });
+}
 export function onJumpPressed() { if (P) P.jumpRequest = G.now; }
 export function grenadePress() {
   if (!P.alive || G.state !== 'playing') return;
@@ -316,14 +327,17 @@ export function updatePlayer(dt) {
   const f = frozen ? 0 : (down('forward') ? 1 : 0) - (down('back') ? 1 : 0);
   const st = frozen ? 0 : (down('right') ? 1 : 0) - (down('left') ? 1 : 0);
   const wantCrouch = !frozen && (down('crouch') || down('crouchAlt'));
-  if (wantCrouch) P.crouch = true; else if (P.crouch && canStand(P)) P.crouch = false;
-  P.h = P.crouch ? PHYS.crouchH : PHYS.standH;
-  P.crouchT = damp(P.crouchT, P.crouch ? 1 : 0, 12, dt);
+  if (P.prone && (!P.grounded || P.onLadder)) P.prone = false;
+  if (P.prone) P.crouch = false;
+  else if (wantCrouch) P.crouch = true; else if (P.crouch && canStand(P)) P.crouch = false;
+  P.h = P.prone ? PHYS.proneH : P.crouch ? PHYS.crouchH : PHYS.standH;
+  P.crouchT = damp(P.crouchT, P.crouch || P.prone ? 1 : 0, 12, dt);
+  P.proneT = damp(P.proneT || 0, P.prone ? 1 : 0, 7, dt);
   const firingRecently = G.now - P.lastShotAt < 0.25;
-  P.sprinting = !frozen && down('sprint') && f > 0 && !P.crouch && P.adsT < 0.35 && P.cookStart < 0 && !firingRecently && G.now > P.noSprintUntil && P.meleeStart < 0;
+  P.sprinting = !frozen && down('sprint') && f > 0 && !P.crouch && !P.prone && P.adsT < 0.35 && P.cookStart < 0 && !firingRecently && G.now > P.noSprintUntil && P.meleeStart < 0;
   P.sprintT = damp(P.sprintT, P.sprinting ? 1 : 0, 10, dt);
   let speed = PHYS.walk * (w.speed || 1) * (P.speedMul || 1);
-  if (P.sprinting) speed *= PHYS.sprintMul; else if (P.crouch) speed *= PHYS.crouchMul; else if (P.adsT > 0.5) speed *= PHYS.adsMul;
+  if (P.sprinting) speed *= PHYS.sprintMul; else if (P.prone) speed *= PHYS.proneMul; else if (P.crouch) speed *= PHYS.crouchMul; else if (P.adsT > 0.5) speed *= PHYS.adsMul;
   if (inWater(P)) speed *= 0.62;
   // ladders: walk into one and hold forward to climb, back to descend, jump to let go
   let ladder = null;
@@ -361,6 +375,7 @@ export function updatePlayer(dt) {
   P.vx = damp(P.vx, (f || st) ? tvx : 0, acc, dt); P.vz = damp(P.vz, (f || st) ? tvz : 0, acc, dt);
   const ox = P.x, oz = P.z;
   moveBody(P, P.vx * dt, P.vz * dt);
+  if (P.prone && G.now - P.jumpRequest < 0.15) { P.jumpRequest = -10; standUp(); }
   if (P.grounded && G.now - P.jumpRequest < 0.15 && !frozen) {
     P.vy = PHYS.jump; P.grounded = false; P.jumpRequest = -10;
     play('step', null, { gain: 0.5 });
@@ -373,12 +388,13 @@ export function updatePlayer(dt) {
   }
   P.moveSpeed = Math.hypot(P.x - ox, P.z - oz) / Math.max(dt, 1e-4);
   // footsteps
-  if (P.grounded && P.moveSpeed > 1.6) {
+  if (P.grounded && P.moveSpeed > (P.prone ? 0.5 : 1.6)) {
     P.stepDist += P.moveSpeed * dt;
-    const stride = P.sprinting ? 2.7 : P.crouch ? 1.6 : 2.15;
+    const stride = P.sprinting ? 2.7 : P.prone ? 0.9 : P.crouch ? 1.6 : 2.15;
     if (P.stepDist > stride) {
       P.stepDist = 0;
-      if (!P.crouch) {
+      if (P.prone) { play('cloth', null, { gain: 0.5 }); }
+      else if (!P.crouch) {
         play(inWater(P) ? 'stepWater' : stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: P.sprinting ? 0.85 : 0.6 });
         if (P.sprinting && Math.random() < 0.35) play('cloth', null, { gain: 0.8 });
         noise(P.x, P.y, P.z, P.sprinting ? 16 : 8, P);
@@ -424,7 +440,7 @@ export function updatePlayer(dt) {
   if (P.boltStart >= 0 && G.now - P.boltStart > 0.55) { P.boltStart = -1; const md = vmModel('l96'); if (md && cur() === 'l96') ejectShell(md); }
 
   // camera
-  P.eye = damp(P.eye, P.crouch ? PHYS.eyeCrouch : PHYS.eyeStand, 12, dt);
+  P.eye = damp(P.eye, P.prone ? PHYS.eyeProne : P.crouch ? PHYS.eyeCrouch : PHYS.eyeStand, P.prone || P.eye < PHYS.eyeCrouch - 0.05 ? 7 : 12, dt);
   const amp = Math.min(1.3, P.moveSpeed / 6) * (1 - P.adsT * 0.8) * (P.grounded ? 1 : 0);
   G.shake = damp(G.shake || 0, 0, 6, dt);
   const sh = G.shake;

@@ -176,6 +176,10 @@ export const PENETRABLE = new Set(['wood']);
 export function canStand(u) {
   return ceiling(u.x, u.z, u.r * 0.9, u.y + PHYS.crouchH) > u.y + PHYS.standH;
 }
+// room to get up from prone into a crouch?
+export function canCrouch(u) {
+  return ceiling(u.x, u.z, u.r * 0.9, u.y + PHYS.proneH) > u.y + PHYS.crouchH;
+}
 
 // ---------- Ray casting ----------
 const hitOut = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, mat: 'ground' };

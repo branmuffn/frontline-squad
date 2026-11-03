@@ -135,7 +135,7 @@ export function nearestVehicle(u, range = 3.4) {
 export function enterVehicle(u, v, seat) {
   if (seat === undefined) seat = v.seats.findIndex((s) => !s);
   if (seat < 0 || v.seats[seat]) return false;
-  v.seats[seat] = u; u.vehicle = v; u.seat = seat; u.vx = u.vz = u.vy = 0;
+  v.seats[seat] = u; u.vehicle = v; u.seat = seat; u.vx = u.vz = u.vy = 0; u.prone = false;
   if (u.isPlayer) { u.adsT = 0; play('doorOpen', { x: v.x, y: v.y + 1, z: v.z }, { gain: 0.7 }); }
   placeOccupant(v, u);
   return true;

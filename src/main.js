@@ -8,7 +8,7 @@ import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom } from './entities/player.js';
+import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
 import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
@@ -172,6 +172,7 @@ function onKeyDown(code, e) {
     return;
   }
   if (matches('zoom', code)) scopeZoom(0);
+  if (matches('prone', code)) toggleProne();
   if (matches('reload', code)) startReload();
   else if (matches('primary', code)) selectSlot(0);
   else if (matches('secondary', code)) selectSlot(1);

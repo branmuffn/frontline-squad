@@ -39,7 +39,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 5c Zombies (endless rounds, points for hits/kills, wall-buy weapons, mystery box, power-ups: Max Ammo, Insta-Kill, Double Points)
 
 ## Extra requests (added mid-Phase 6)
-- [ ] X1 Prone / crawl (Z toggles prone? -> key: Z is scope zoom, so prone = X; hold-crouch then crouch again also fine)
+- [x] X1 Prone / crawl: X toggles (rebindable), height 0.65 m, eye 0.42 m, crawl 22% speed, no sprint, spread x0.55, recoil x0.7, jump or X gets up if there is headroom, ladders/vehicles cancel. tests/prone.mjs.
 - [x] X2 Train cars: root cause was float error on steps exactly PHYS.step high (fixed globally in physics.blocked with +1 cm); boxcar floor lowered to one normal step, full-width floor, no boarding steps on the narrow walkway; sliding doors (E, bots open them, block movement + bullets). tests/doorways.mjs.
 
 ## Then: Phase 6 — vehicles (match setting "Vehicles: On/Off", default OFF)
