@@ -5,6 +5,7 @@ import { query, losClear, supportHeight } from '../world/physics.js';
 import { damage, noise, isEnemy } from './units.js';
 import { play } from '../engine/audio.js';
 import { explosion } from '../engine/fx.js';
+import { nearbyBarrels, damageBarrel } from './worldprops.js';
 
 export const grenades = [];
 const GEO = new THREE.SphereGeometry(0.075, 10, 8);
@@ -74,6 +75,7 @@ export function explode(x, y, z, owner, kind = 'frag') {
     const dmg = maxD * Math.pow(1 - d / R, 1.15) + 8;
     damage(u, dmg, owner, { weapon: kind, explosive: true, sx: x, sz: z, noStreak: kind === 'mortar' });
   }
+  nearbyBarrels(x, y, z, R, (c, d) => damageBarrel(c, maxD * (1 - d / R) + 10, owner));
   const p = G.player;
   if (p) { const d = Math.hypot(p.x - x, p.y + 1.6 - y, p.z - z); if (d < 30) G.shake = Math.min(0.09, (G.shake || 0) + 0.08 * (1 - d / 30)); }
 }

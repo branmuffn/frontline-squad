@@ -8,6 +8,7 @@ import { makeUnit, damage, isEnemy, noise } from './units.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
+import { damageBarrel } from './worldprops.js';
 import { play } from '../engine/audio.js';
 import { tracer, enemyFlash, impact, blood } from '../engine/fx.js';
 
@@ -287,6 +288,7 @@ function fire(u, cfg) {
       if (!uh.unit.isPlayer) blood(mx + dir.x * end, my + dir.y * end, mz + dir.z * end, dir.x, dir.z, zone === 'head');
     } else if (wh) {
       end = wh.t;
+      if (wh.col && wh.col.barrel) damageBarrel(wh.col, w.damage * cfg.dmgMul, u);
       if (k < 2) impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat);
     }
     // near miss on the player

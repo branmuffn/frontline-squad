@@ -213,7 +213,7 @@ export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
     if (t > 0 && t < best) { if (any) return true; best = t; bn = 4; bmat = w.groundMat || 'ground'; bc = null; }
   }
   if (bn < 0) return any ? false : null;
-  const h = { t: best, x: ox + dx * best, y: oy + dy * best, z: oz + dz * best, nx: 0, ny: 0, nz: 0, mat: bmat };
+  const h = { t: best, x: ox + dx * best, y: oy + dy * best, z: oz + dz * best, nx: 0, ny: 0, nz: 0, mat: bmat, col: bc };
   if (bn === 0) h.nx = dx > 0 ? -1 : 1;
   else if (bn === 1) h.ny = dy > 0 ? -1 : 1;
   else if (bn === 2) h.nz = dz > 0 ? -1 : 1;

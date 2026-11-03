@@ -230,6 +230,8 @@ tr.dead td { opacity: 0.5; }
 .nadewarn span { display: block; text-align: center; font-size: 12px; color: var(--red); }
 @keyframes pulse { to { transform: scale(1.15); } }
 #aimName { position: absolute; left: 50%; top: calc(50% + 34px); transform: translateX(-50%); font-size: 16px; }
+#prompt { position: absolute; left: 50%; top: calc(50% + 62px); transform: translateX(-50%); font-size: 18px; color: var(--ink); white-space: nowrap; }
+#prompt kbd { font-size: 14px; margin-right: 4px; }
 #cook { position: absolute; left: calc(50% + 22px); top: calc(50% - 30px); font-size: 20px; font-weight: 800; color: var(--brass); }
 #xpfeed { position: absolute; left: calc(50% + 70px); top: calc(50% + 26px); display: flex; flex-direction: column; gap: 1px; }
 .xp { font-size: 18px; animation: xpIn 2.1s ease-out forwards; white-space: nowrap; }

@@ -9,6 +9,7 @@ import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
+import { updateWorldProps, tryPickup } from './entities/worldprops.js';
 import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
 import { updateGrenades } from './entities/grenades.js';
@@ -139,6 +140,7 @@ function onKeyDown(code, e) {
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
+  else if (matches('interact', code)) tryPickup();
   else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
 function onKeyUp(code) {
@@ -162,6 +164,7 @@ function loop(t) {
       separateUnits();
       updateGrenades(dt);
       updateRockets(dt);
+      updateWorldProps(dt);
       updatePickups(dt);
       updateStreaks(dt);
       updateHud(dt);

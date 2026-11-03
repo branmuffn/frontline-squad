@@ -8,6 +8,7 @@ import { makeUnit, damage, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
 import { fireRocket } from './projectiles.js';
+import { damageBarrel } from './worldprops.js';
 import { play, setListener } from '../engine/audio.js';
 import { tracer, impact, blood, muzzleSmoke } from '../engine/fx.js';
 import * as hud from '../ui/hud.js';
@@ -64,6 +65,15 @@ function switchTo(slot) {
   hud.setWeapon(P);
 }
 export function selectSlot(slot) { switchTo(slot); }
+// Swap in a weapon picked up off the ground (keeps its remaining ammo)
+export function takeWeapon(id, ammo) {
+  const w = WEAPONS[id], slot = w.slot === 1 ? 1 : 0;
+  P.weapons[slot] = id; P.ammo[id] = { mag: ammo.mag, res: ammo.res };
+  if (G.match.loadout) G.match.loadout[slot ? 'secondary' : 'primary'] = id;
+  P.lastSlot = P.slot; P.slot = slot; P.reloadStart = -1; P.meleeStart = -1; P.bloom = 0;
+  P.switchStart = G.now; P.switchDur = w.draw;
+  hud.setWeapon(P); hud.notice(`Picked up ${w.name}`);
+}
 // Sandbox weapon menu: put any weapon in its slot and draw it
 export function equipWeapon(id) {
   const w = WEAPONS[id], slot = w.slot === 1 ? 1 : 0;
@@ -172,6 +182,7 @@ function fireOnce() {
       play('bodyHit', { x: ex, y: ey, z: ez }, { gain: 0.6 });
     } else if (wh) {
       ex = wh.x; ey = wh.y; ez = wh.z;
+      if (wh.col && wh.col.barrel) damageBarrel(wh.col, mul * w.damage * falloff(w, wh.t + travelled), P);
       impact(ex, ey, ez, wh.nx, wh.ny, wh.nz, wh.mat);
       if (wh.mat === 'metal' && k === 0 && Math.random() < 0.25) play('ricochet', { x: ex, y: ey, z: ez }, { gain: 0.8 });
       if (k < 3) play(wh.mat === 'water' ? 'splash' : wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' || wh.mat === 'grass' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });

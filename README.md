@@ -15,9 +15,10 @@ npm run build:standalone  # one self-contained HTML file in dist-standalone/
 
 ## What's in the game
 
-- **Modes:** Free for All (first to 20, 8 min, 3–9 bots), Team Deathmatch (3v3 to 6v6, 10 min), Survival (escalating waves, three lives).
-- **Maps:** Steel Yard (warehouse with mezzanine, catwalk, climbable container stack) and Dust Outpost (rooftop access, two watchtowers, houses, market street).
-- **Weapons:** M4A1, MP5, M870 (shell-by-shell reload), L96A1 (scoped), USP .45, knife (backstab instakill), cookable frag grenades.
+- **Modes:** Free for All (first to 20, 8 min, 3–9 bots), Team Deathmatch (3v3 to 6v6, 10 min), Survival (escalating waves, three lives), Sandbox (everything unlocked, no XP, rule toggles, B opens the weapon menu).
+- **Maps:** Steel Yard, Dust Outpost, Atomic Acres (1950s test town), Cascade Gorge (canyon, railway bridge with freight train, ladders, creek).
+- **Weapons:** M4A1, AK-47, MP5, M870, SPAS-12, M249, L96A1, Barrett .50, RPG-7 (Sandbox), USP .45, Desert Eagle, knife (backstab instakill), cookable frags.
+- **World:** explosive barrels with chain reactions, weapon drops (E to swap), bullets punch through thin wood, wading slows you down.
 - **Killstreaks:** 3 kills earns a Recon UAV, 5 a mortar strike, 7 a sentry gun.
 - **Progression:** XP for kills and medals, 20 ranks with insignia, weapon camos unlocked by rank, career stats. Everything is saved in localStorage.
 - **Bots:** they patrol, investigate gunfire, hunt your last known position, flank, take cover and peek, grab health, dodge and throw grenades. Sniper bots show a laser while aiming.

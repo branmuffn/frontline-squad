@@ -9,6 +9,7 @@ import { createPlayer, spawnPlayer, onPlayerDeath, refillAmmo } from '../entitie
 import { createBot, disposeBot, resetBotForSpawn } from '../entities/ai.js';
 import { clearGrenades } from '../entities/grenades.js';
 import { clearRockets } from '../entities/projectiles.js';
+import { resetWorldProps, clearDrops } from '../entities/worldprops.js';
 import { resetPickups } from '../entities/pickups.js';
 import { resetStreaks } from '../entities/streaks.js';
 import { clearFx } from '../engine/fx.js';
@@ -53,7 +54,7 @@ export function startMatch(cfg) {
     for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
-  resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx();
+  resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw);
   for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); }
   G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix();
@@ -71,7 +72,7 @@ function addBot(o) {
 export function cleanupMatch() {
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];
-  clearGrenades(); clearRockets();
+  clearGrenades(); clearRockets(); clearDrops();
 }
 
 // Choose the safest spawn: far from enemies, out of their sight, near friends in team modes.

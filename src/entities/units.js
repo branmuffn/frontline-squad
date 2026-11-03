@@ -7,6 +7,7 @@ import * as hud from '../ui/hud.js';
 import { onKill as matchOnKill } from '../game/match.js';
 import { awardKill, award } from '../game/progression.js';
 import { checkStreak } from './streaks.js';
+import { dropWeapon } from './worldprops.js';
 
 let nextId = 1;
 export function makeUnit(o) {
@@ -83,6 +84,7 @@ export function kill(victim, attacker, info = {}) {
     if (u.isPlayer) award('assist', 'Assist');
   }
   victim.damagers.clear();
+  if (victim.brain && !(G.match.rules && G.match.rules.knife)) dropWeapon(victim.brain.weapon, victim.x, victim.y + 0.02, victim.z);
   hud.killfeed(credited ? credited : victim, victim, info.weapon, !!info.headshot, !credited);
   if (credited && credited.isPlayer) {
     awardKill(victim, info, victimStreak);

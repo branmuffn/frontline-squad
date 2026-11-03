@@ -65,6 +65,7 @@ export default {
   sun: { color: 0xfff2dc, intensity: 2.2, pos: [-40, 72, 34], shadow: 64 },
   hemi: { sky: 0xcfe0ea, ground: 0x4f5a3a, intensity: 1.15 },
   ambience: 'forest',
+  barrels: [[-14, -9, 0], [14, 9, 0], [-35, -6, H], [35, 6, H]],
   water: [{ minX: 3, maxX: 8.5, minZ: -29.5, maxZ: 29.5, top: 0.3 }],
   surfaces: [{ minX: -9, maxX: -4, minZ: -29.5, maxZ: 29.5, mat: 'sand' }],
   // hand-placed waypoints for spots too narrow for the 2 m nav grid (bridge walkways, boxcar interiors)

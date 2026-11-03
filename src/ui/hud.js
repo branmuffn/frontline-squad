@@ -302,4 +302,5 @@ function drawRadar() {
   }
 }
 
+export function prompt(html) { set('prompt', 'html', html); }
 export function setFps(n) { set('fps', 'text', n + ' FPS'); }

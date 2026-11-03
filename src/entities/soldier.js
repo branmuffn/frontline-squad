@@ -12,7 +12,7 @@ function part(parent, mat, w, h, d, x, y, z, rx = 0, ry = 0, rz = 0, hit = true)
   return m;
 }
 
-function gunModel(parent, id0, mat) {
+export function gunModel(parent, id0, mat) {
   const g = new THREE.Group(); parent.add(g);
   const id = { barrett: 'l96', spas12: 'm870' }[id0] || id0;
   if (id === 'knife') { part(g, mat, 0.03, 0.03, 0.12, 0, -0.1, 0.1); part(g, mat, 0.01, 0.04, 0.2, 0, -0.1, -0.06); return g; }

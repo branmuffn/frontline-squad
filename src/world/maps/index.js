@@ -23,6 +23,11 @@ export function loadMap(id) {
   if (G.mapGroup) { G.scene.remove(G.mapGroup); disposeGroup(G.mapGroup); }
   const b = new MapBuilder();
   def.build(b);
+  // explosive barrels: real colliders that can be switched off when they blow
+  const barrelCols = (def.barrels || []).map(([x, z, y = 0]) => {
+    const c = { minX: x - 0.33, maxX: x + 0.33, minY: y, maxY: y + 1.0, minZ: z - 0.33, maxZ: z + 0.33, mat: 'metal', barrel: true, home: y };
+    b.colliders.push(c); return c;
+  });
   const shadows = G.profile.settings.shadows;
   const group = b.finalize(shadows);
   group.add(makeGround(420, def.ground));
@@ -56,7 +61,7 @@ export function loadMap(id) {
   G.world = {
     id: def.id, def, colliders: b.colliders, ramps: b.ramps, bounds: def.bounds, groundMat: def.groundMat,
     nav: null, sun, spawns: def.spawns, pickups: def.pickups,
-    water: def.water || null, surfaces: def.surfaces || null, ladders: def.ladders || [],
+    barrelCols, water: def.water || null, surfaces: def.surfaces || null, ladders: def.ladders || [],
   };
   buildHash(G.world);
   return G.world;
