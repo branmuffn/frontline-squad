@@ -14,6 +14,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `profile.mjs` — Export/Import profile round trip (download, file import, bad input).
 - `fit.mjs [shots]` — every screen at 1024×640/1280×720/1366×768/1920×1080: no page scroll, main button on screen, only `.scroll-list` may scroll (panel body too at 1024).
 - `killcam.mjs [shots]` — AFK player dies in FFA: replay shows, killer hidden, key skips, free-look drift, respawn still 3 s.
+- `scope.mjs [shots]` — L96 4×/8× via wheel and Z (true optical FOV), Mk 14 fixed 2×, scope label.
 - `p5.mjs <mode> <map> [secs]` — quick run of a Phase 5 mode.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

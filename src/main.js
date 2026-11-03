@@ -8,7 +8,7 @@ import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
+import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
 import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
@@ -42,7 +42,7 @@ function boot() {
   applySetting('crosshair'); applySetting('showFps'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => isLive() || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing') cycleWeapon(d); },
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
   initMenus({
@@ -162,6 +162,7 @@ function onKeyDown(code, e) {
   if (e.repeat) return;
   if (matches('jump', code)) onJumpPressed();
   if (G.state !== 'playing') return;
+  if (matches('zoom', code)) scopeZoom(0);
   if (matches('reload', code)) startReload();
   else if (matches('primary', code)) selectSlot(0);
   else if (matches('secondary', code)) selectSlot(1);

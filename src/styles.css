@@ -423,3 +423,4 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #hud.kc-on > :not(#killcam):not(#death):not(#killfeed) { visibility: hidden; }
 #hud.kc-on #death { bottom: calc(7vh + 10px); padding: 8px; }
 #hud.kc-on #death small { display: none; }
+#scope .scope-mag { position: absolute; left: 50%; top: calc(50% + 34vmin + 10px); transform: translateX(-50%); font-weight: 700; font-size: 17px; color: var(--ink-dim); letter-spacing: 0.04em; white-space: nowrap; }

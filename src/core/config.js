@@ -62,10 +62,20 @@ export const WEAPONS = {
     damage: 100, headMul: 2.0, legMul: 0.75, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'rifle', velocity: 650,
     spread: { hip: 0.085, ads: 0.0, move: 0.05, air: 0.12, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.06, h: 0.01, drift: 0, recover: 5 },
-    reload: 2.6, reloadEmpty: 3.0, draw: 0.7, speed: 0.9, adsZoom: 0.26, adsTime: 0.24, scope: true,
+    reload: 2.6, reloadEmpty: 3.0, draw: 0.7, speed: 0.9, adsZoom: 0.26, adsTime: 0.24, scope: true, mags: [4, 8],
     sound: 'sniper', noise: 55, tracer: 1,
     desc: 'Bolt-action. A body shot drops a full-health target. Useless from the hip.',
     stats: { damage: 1, rate: 0.08, accuracy: 0.95, range: 1, mobility: 0.4 },
+  },
+  mk14: {
+    id: 'mk14', slot: 0, name: 'Mk 14 EBR', cls: 'Marksman rifle', auto: false, rate: 0.17, mag: 20, reserve: 100,
+    damage: 45, headMul: 2.0, legMul: 0.8, falloff: [50, 200, 0.75], pellets: 1, range: 200, pen: 'rifle',
+    spread: { hip: 0.05, ads: 0.0008, move: 0.035, air: 0.08, bloom: 0.006, bloomMax: 0.02, recover: 0.12 },
+    recoil: { v: 0.026, h: 0.006, drift: 0.0005, recover: 6 },
+    reload: 2.3, reloadEmpty: 2.8, draw: 0.6, speed: 0.93, adsZoom: 0.5, adsTime: 0.2, scope: true, mags: [2],
+    sound: 'rifle', noise: 44, tracer: 1,
+    desc: 'Semi-auto with a fixed 2× scope. Three body shots, or a headshot and a body shot.',
+    stats: { damage: 0.72, rate: 0.36, accuracy: 0.88, range: 0.86, mobility: 0.5 },
   },
   ak47: {
     id: 'ak47', slot: 0, name: 'AK-47', cls: 'Assault rifle', auto: true, rate: 0.1, mag: 30, reserve: 150,
@@ -102,7 +112,7 @@ export const WEAPONS = {
     damage: 110, headMul: 2.0, legMul: 0.8, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'heavy', velocity: 760,
     spread: { hip: 0.1, ads: 0.0, move: 0.06, air: 0.14, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.08, h: 0.02, drift: 0, recover: 4 },
-    reload: 3.4, reloadEmpty: 3.9, draw: 0.9, speed: 0.85, adsZoom: 0.2, adsTime: 0.3, scope: true, heavy: true,
+    reload: 3.4, reloadEmpty: 3.9, draw: 0.9, speed: 0.85, adsZoom: 0.2, adsTime: 0.3, scope: true, mags: [4, 8], heavy: true,
     sound: 'barrett', noise: 70, tracer: 1,
     desc: 'Semi-auto .50 cal. One body shot kills, and the noise gives you away.',
     stats: { damage: 1, rate: 0.18, accuracy: 0.9, range: 1, mobility: 0.25 },
@@ -148,7 +158,7 @@ export function weaponPower(w) {
   const shot = w.damage * (w.pellets || 1);
   return { v: Math.min(1, shot / 110), text: w.pellets > 1 ? `${w.damage}×${w.pellets}` : String(w.damage) };
 }
-export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'l96', 'barrett'];
+export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'mk14', 'l96', 'barrett'];
 export const SECONDARIES = ['usp', 'deagle'];
 export const ALL_PRIMARIES = [...PRIMARIES, 'rpg'];
 export const ALL_GUNS = [...PRIMARIES, ...SECONDARIES];
@@ -171,11 +181,14 @@ export function loadoutGuns(preset, mode) {
 }
 
 // Killfeed tags for non-gun damage sources
+// Scope magnification -> fraction of the base field of view (true optical zoom for a given FOV)
+export const magZoom = (fov, mag) => (2 * Math.atan(Math.tan(fov * Math.PI / 360) / mag)) / (fov * Math.PI / 180);
+
 // Weapon names (A7): real names by default, original fictional names when the setting says so.
 // WEAPONS[id].name and .desc are getters, so every menu, HUD line and killfeed entry follows the setting.
 const FICTIONAL = {
   m4: 'AR-4 CARBINE', ak47: 'KR-47', mp5: 'SP-5', m870: 'FIELD PUMP 12', spas12: 'RIOT-12', m249: 'RHINO LMG',
-  l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
+  mk14: 'WARDEN DMR', l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
 };
 let nameStyle = 'real';
 export function setNameStyle(v) { nameStyle = v === 'fictional' ? 'fictional' : 'real'; }

@@ -208,6 +208,22 @@ function build() {
   hands(g, [0, -0.09, 0.06], [0, -0.035, -0.36]);
   models.spas12 = { g, mag: null, sight: V(0, 0.038, -0.69), muzzle: V(0, 0.015, -0.71), port: V(0.035, 0.02, -0.05), hip: V(0.18, -0.21, -0.38), adsDist: 0.44 };
 
+  // ---- Mk 14 EBR (marksman, fixed 2x scope) ----
+  g = new THREE.Group();
+  b(g, M.camo, 0.066, 0.095, 0.44, 0, 0, -0.08);             // receiver + chassis
+  b(g, M.black, 0.07, 0.02, 0.36, 0, 0.055, -0.1);            // top rail
+  cyl(g, M.black, 0.013, 0.36, 0, 0.005, -0.48); cyl(g, M.black, 0.019, 0.08, 0, 0.005, -0.69); // barrel + brake
+  b(g, M.dark, 0.072, 0.07, 0.22, 0, -0.005, -0.36);          // handguard
+  for (let i = 0; i < 4; i++) b(g, M.black, 0.075, 0.008, 0.012, 0, 0.03, -0.28 - i * 0.05);
+  b(g, M.camo, 0.05, 0.12, 0.28, 0, -0.025, 0.26); b(g, M.black, 0.054, 0.05, 0.06, 0, 0.04, 0.33); // stock + cheek riser
+  b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, 0.06, 0.35);       // grip
+  mag = b(g, M.black, 0.045, 0.12, 0.075, 0, -0.1, -0.1, -0.12);
+  cyl(g, M.black, 0.019, 0.22, 0, 0.09, -0.07); cyl(g, M.black, 0.025, 0.05, 0, 0.09, -0.2); cyl(g, M.black, 0.022, 0.04, 0, 0.09, 0.05);
+  b(g, M.black, 0.02, 0.03, 0.02, 0, 0.07, -0.12); b(g, M.black, 0.02, 0.03, 0.02, 0, 0.07, 0.0);
+  const lens2 = new THREE.Mesh(new THREE.CircleGeometry(0.017, 12), M.lens); lens2.position.set(0, 0.09, 0.071); g.add(lens2);
+  hands(g, [0, -0.09, 0.06], [0, -0.04, -0.34]);
+  models.mk14 = { g, mag, sight: V(0, 0.09, -0.07), muzzle: V(0, 0.005, -0.74), port: V(0.035, 0.02, -0.04), hip: V(0.17, -0.21, -0.37), adsDist: 0.25, scope: true };
+
   // ---- Barrett .50 ----
   g = new THREE.Group();
   b(g, M.camo, 0.075, 0.11, 0.5, 0, 0, -0.05);

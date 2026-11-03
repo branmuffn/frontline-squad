@@ -28,7 +28,7 @@ let deployBeep = 0;
 function pickWeapon() {
   if (G.match.rules && G.match.rules.knife) return 'knife';
   const r = Math.random();
-  return r < 0.28 ? 'm4' : r < 0.46 ? 'ak47' : r < 0.62 ? 'mp5' : r < 0.71 ? 'm870' : r < 0.77 ? 'spas12' : r < 0.84 ? 'm249' : r < 0.94 ? 'l96' : 'barrett';
+  return r < 0.28 ? 'm4' : r < 0.46 ? 'ak47' : r < 0.62 ? 'mp5' : r < 0.71 ? 'm870' : r < 0.77 ? 'spas12' : r < 0.84 ? 'm249' : r < 0.9 ? 'mk14' : r < 0.96 ? 'l96' : 'barrett';
 }
 
 export function startMatch(cfg) {
@@ -181,7 +181,7 @@ function startWave(n) {
 }
 function spawnSurvivor() {
   const m = G.match, type = WAVE_TYPES(m.wave);
-  const weapon = type === 'rusher' ? 'mp5' : type === 'heavy' ? 'm870' : type === 'marksman' ? 'l96' : chance(0.3) ? 'mp5' : 'm4';
+  const weapon = type === 'rusher' ? 'mp5' : type === 'heavy' ? 'm870' : type === 'marksman' ? (chance(0.5) ? 'mk14' : 'l96') : chance(0.3) ? 'mp5' : 'm4';
   const b = addBot({
     name: type === 'heavy' ? 'HEAVY' : type === 'marksman' ? 'MARKSMAN' : type === 'rusher' ? 'RUSHER' : 'HOSTILE', team: 1, weapon, type,
     uniform: type === 'heavy' ? 0x2c2f31 : type === 'marksman' ? 0x4d5a3a : pick([0x3a3f44, 0x46423c, 0x5a4f43]), accent: type === 'heavy' ? 0x1f2224 : 0x8a3a30,

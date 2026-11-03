@@ -53,6 +53,7 @@ export function startMatch() {
   setStreaks(0, []);
   scoreChanged();
 }
+let hudMagText = '';
 export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); $('board').classList.add('hidden'); boardOpen = false; }
 
 export function scoreChanged() {
@@ -174,6 +175,7 @@ export function updatePlayerHud(P, o) {
   setAmmo(P);
   const scoped = !!(w.scope && P.adsT > 0.9);
   $('scope').classList.toggle('on', scoped);
+  if (scoped && w.mags) { const m = w.mags[Math.min(P.zoomIdx || 0, w.mags.length - 1)], t = m + '×' + (w.mags.length > 1 ? '   (wheel or ' + keyName('zoom') + ' to change)' : ''); if (hudMagText !== t) { hudMagText = t; $('scopeMag').textContent = t; } }
   const hideCh = (P.adsT > 0.55 && !w.melee && !(w.pellets > 1)) || (w.scope && P.adsT < 0.9) || P.sprintT > 0.6;
   const fovRad = THREE.MathUtils.degToRad(G.camera.fov);
   const gap = clamp(o.spread * (window.innerHeight / 2) / Math.tan(fovRad / 2), 3, 120);

@@ -17,7 +17,7 @@ import { tracer, enemyFlash, impact, blood } from '../engine/fx.js';
 
 const STYLE = {
   m4: { min: 8, max: 28, burst: [3, 6] }, mp5: { min: 3, max: 15, burst: [4, 8] }, m870: { min: 1.5, max: 7, burst: [1, 1] },
-  l96: { min: 20, max: 70, burst: [1, 1] }, usp: { min: 4, max: 16, burst: [1, 3] },
+  l96: { min: 20, max: 70, burst: [1, 1] }, mk14: { min: 12, max: 50, burst: [1, 2] }, usp: { min: 4, max: 16, burst: [1, 3] },
   ak47: { min: 8, max: 26, burst: [3, 5] }, m249: { min: 6, max: 30, burst: [6, 12] }, spas12: { min: 1.5, max: 8, burst: [2, 3] },
   barrett: { min: 25, max: 80, burst: [1, 1] }, deagle: { min: 4, max: 18, burst: [1, 2] }, knife: { min: 0, max: 1.4, burst: [1, 1] },
 };
@@ -77,7 +77,7 @@ function climbLadder(u, b, dt) {
 }
 
 // ---------- weapon pickups ----------
-const TIER = { usp: 1, deagle: 1.6, mp5: 2, m870: 2.2, spas12: 2.3, m4: 3, ak47: 3, m249: 3, l96: 3, barrett: 4 };
+const TIER = { usp: 1, deagle: 1.6, mp5: 2, m870: 2.2, spas12: 2.3, m4: 3, ak47: 3, m249: 3, mk14: 3, l96: 3, barrett: 4 };
 function lootSlot(u, id) {
   const b = u.brain, have = b.guns.indexOf(id);
   if (have >= 0) return -1;

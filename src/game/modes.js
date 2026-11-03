@@ -18,7 +18,7 @@ function std(c, o = {}) { const m = new THREE.MeshStandardMaterial({ color: c, r
 
 // =========================== GUN GAME ===========================
 // One weapon per tier; a kill moves you up, a knife kill knocks the victim down one. Final tier: knife kill wins.
-export const GG_LADDER = ['m4', 'ak47', 'm249', 'mp5', 'spas12', 'm870', 'l96', 'barrett', 'deagle', 'usp', 'knife'];
+export const GG_LADDER = ['m4', 'ak47', 'm249', 'mp5', 'spas12', 'm870', 'mk14', 'l96', 'barrett', 'deagle', 'usp', 'knife'];
 function ggArm(u) {
   const id = GG_LADDER[Math.min(u.gg, GG_LADDER.length - 1)];
   if (u.isPlayer) { delete u.ammo[id]; giveWeapons(id === 'knife' ? ['knife'] : [id, 'knife']); }
@@ -176,8 +176,8 @@ export const ctfFlags = () => flags;
 // =========================== ZOMBIES ===========================
 // Endless rounds of melee undead. Points for hits and kills buy wall weapons and mystery box rolls; power-ups drop.
 const Z = { hit: 10, kill: 60, head: 100, knife: 130, box: 950, maxAlive: 12 };
-const WALL = ['mp5', 'm870', 'm4', 'ak47', 'spas12', 'm249', 'l96', 'deagle'];
-const COST = { usp: 300, deagle: 600, mp5: 1000, m870: 1200, m4: 1400, ak47: 1500, spas12: 1500, m249: 2200, l96: 1800 };
+const WALL = ['mp5', 'm870', 'm4', 'ak47', 'spas12', 'm249', 'mk14', 'l96', 'deagle'];
+const COST = { usp: 300, deagle: 600, mp5: 1000, m870: 1200, m4: 1400, ak47: 1500, spas12: 1500, m249: 2200, mk14: 1700, l96: 1800 };
 const POWERUPS = [['maxammo', 'MAX AMMO', 0x66d0ff], ['insta', 'INSTA-KILL', 0xff5a4a], ['double', 'DOUBLE POINTS', 0xffd34d]];
 let stations = [], powerups = [], boxRoll = null;
 const zHealth = (r) => r < 10 ? 100 + (r - 1) * 60 : Math.round(640 * Math.pow(1.1, r - 9));

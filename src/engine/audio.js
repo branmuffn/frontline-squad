@@ -113,6 +113,7 @@ function gun(d, t, kind) {
 const click = (d, t, f = 600, g = 0.14) => { tone(d, t, 0.03, { type: 'square', f0: f, gain: g * 0.6 }); noise(d, t, 0.05, { type: 'highpass', f0: 3000, gain: g }); };
 
 const RECIPES = {
+  zoomClick: (d, t) => { click(d, t, 900, 0.1); click(d, t + 0.05, 1300, 0.07); },
   ak: (d, t) => gun(d, t, 'ak'), lmg: (d, t) => gun(d, t, 'lmg'), deagle: (d, t) => gun(d, t, 'deagle'), barrett: (d, t) => gun(d, t, 'barrett'),
   rpg: (d, t) => { noise(d, t, 0.6, { type: 'bandpass', f0: 400, f1: 1800, q: 0.7, gain: 0.9, attack: 0.02 }); tone(d, t, 0.3, { f0: 90, f1: 40, gain: 0.6 }); noise(d, t + 0.05, 0.9, { type: 'highpass', f0: 2500, gain: 0.15, attack: 0.1 }); },
   rifle: (d, t) => gun(d, t, 'rifle'), smg: (d, t) => gun(d, t, 'smg'), pistol: (d, t) => gun(d, t, 'pistol'),

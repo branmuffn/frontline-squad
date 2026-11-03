@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { PHYS, WEAPONS, GRENADE, loadoutGuns } from '../core/config.js';
+import { PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
@@ -112,6 +112,17 @@ export function equipWeapon(id) {
   play('switch'); hud.setWeapon(P);
 }
 export function swapLast() { switchTo(P.lastSlot); }
+// mouse wheel / Z while scoped flips the magnification (returns true if it did)
+export function scopeZoom(dir) {
+  if (!P || !P.alive) return false;
+  const w = W();
+  if (!w.mags || w.mags.length < 2 || P.adsT < 0.9) return false;
+  const n = w.mags.length, i = P.zoomIdx || 0;
+  P.zoomIdx = dir === 0 ? (i + 1) % n : clamp(i + (dir < 0 ? 1 : -1), 0, n - 1);
+  if (P.zoomIdx !== i) play('zoomClick', null, { gain: 0.5 });
+  return true;
+}
+export const scopeMag = () => { const w = P && W(); return w && w.mags ? w.mags[Math.min(P.zoomIdx || 0, w.mags.length - 1)] : 0; };
 export function cycleWeapon(dir) { const n = P.weapons.length; switchTo((P.slot + (dir > 0 ? 1 : n - 1)) % n); }
 
 export function startReload() {
@@ -415,7 +426,9 @@ export function updatePlayer(dt) {
   const sh = G.shake;
   G.camera.position.set(P.x + Math.cos(P.bob) * 0.02 * amp * rx, P.y + P.eye + Math.sin(P.bob * 2) * 0.032 * amp, P.z + Math.cos(P.bob) * 0.02 * amp * rz);
   G.camera.rotation.set(P.pitch + P.recoilP + rand(-sh, sh), P.yaw + P.recoilY + rand(-sh, sh), -st * 0.012 + rand(-sh, sh) * 0.5);
-  const zoom = lerp(1, w.adsZoom || 1, P.adsT * P.adsT);
+  // scopes: magnification levels (4x/8x for the bolt rifles, fixed 2x on the marksman rifle)
+  if (w.mags) { P.zoomIdx = Math.min(P.zoomIdx || 0, w.mags.length - 1); P.zoomCur = damp(P.zoomCur || magZoom(s.fov, w.mags[0]), magZoom(s.fov, w.mags[P.zoomIdx]), 14, dt); }
+  const zoom = lerp(1, w.mags ? P.zoomCur : (w.adsZoom || 1), P.adsT * P.adsT);
   const targetFov = s.fov * zoom * (1 + P.sprintT * 0.05);
   G.camera.fov = damp(G.camera.fov, targetFov, 18, dt);
   G.camera.updateProjectionMatrix();
