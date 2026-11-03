@@ -140,6 +140,25 @@ const MAT_DEFS = {
   leaf: { color: 0x5d7a39, side: THREE.DoubleSide, roughness: 0.9 },
   groundSand: { color: 0xcdb287, map: 'sand', uvs: 8 },
   rubber: { color: 0x202020, roughness: 0.95 },
+  busYellow: { color: 0xd9a21e, roughness: 0.6 },
+  paintWhite: { color: 0xe6e1d6, map: 'wood', uvs: 1.2 },
+  sidingBlue: { color: 0x9dbccf, map: 'wood', uvs: 0.62 },
+  sidingGreen: { color: 0xb3c896, map: 'wood', uvs: 0.62 },
+  roofRed: { color: 0x8c4636, map: 'wood', uvs: 0.9 },
+  carRed: { color: 0xa83b2e, roughness: 0.45, metalness: 0.2 },
+  carTeal: { color: 0x3f8a86, roughness: 0.45, metalness: 0.2 },
+  lawn: { color: 0x84a04c, map: 'sand', uvs: 5 },
+  road: { color: 0x55585a, map: 'asphalt', uvs: 6 },
+  mannequin: { color: 0xdcc9ad, roughness: 0.6 },
+  rock: { color: 0x8a867c, map: 'concrete', uvs: 6 },
+  rockDark: { color: 0x66635d, map: 'concrete', uvs: 6 },
+  grass: { color: 0x6f8442, map: 'sand', uvs: 6 },
+  gravel: { color: 0x8b867b, map: 'asphalt', uvs: 4 },
+  boxcar: { color: 0x7a4f34, map: 'wood', uvs: 1.3 },
+  steelRust: { color: 0x4f4640, map: 'metal', uvs: 2 },
+  pine: { color: 0x2f4a2c, roughness: 0.95 },
+  bark: { color: 0x4d3c2c, map: 'wood', uvs: 0.7 },
+  water: { color: 0x3f6466, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.78, noShadow: true },
   skyline: { color: 0x56636c, noShadow: true },
   skylineDesert: { color: 0xb49a78, noShadow: true },
 };
@@ -152,6 +171,7 @@ export function material(key) {
   if (d.basic) m = new THREE.MeshBasicMaterial({ color: d.color });
   else m = new THREE.MeshStandardMaterial({ color: d.color, roughness: d.roughness ?? 0.9, metalness: d.metalness ?? 0, side: d.side ?? THREE.FrontSide });
   m.color.convertSRGBToLinear(); // r128 treats hex colours as linear; convert so they match the design values
+  if (d.transparent) { m.transparent = true; m.opacity = d.opacity; m.depthWrite = false; }
   if (d.map) m.map = tex(d.map);
   m.userData.uvs = d.uvs || 3;
   m.userData.noShadow = !!d.noShadow;
@@ -300,9 +320,10 @@ export class MapBuilder {
 }
 
 export function impactMat(matKey) {
-  if (/^cont|metal|steel|black|hazard/.test(matKey)) return 'metal';
-  if (/wood|teal|trunk/.test(matKey)) return 'wood';
-  if (/sand$|^sand/.test(matKey)) return 'sand';
+  if (/^cont|metal|steel|black|hazard|bus|car/.test(matKey)) return 'metal';
+  if (/wood|teal|trunk|siding|paint|boxcar|bark|roof/.test(matKey)) return 'wood';
+  if (/sand$|^sand|lawn|grass|gravel/.test(matKey)) return 'sand';
+  if (matKey === 'water') return 'water';
   if (/adobe|plaster/.test(matKey)) return 'adobe';
   return 'concrete';
 }

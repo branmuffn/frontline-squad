@@ -4,9 +4,10 @@ import { MapBuilder, makeSky, makeGround } from '../builder.js';
 import { buildHash } from '../physics.js';
 import yard from './steelyard.js';
 import outpost from './dustoutpost.js';
+import atomic from './atomicacres.js';
 
-export const MAPS = { yard, outpost };
-export const MAP_LIST = [yard, outpost];
+export const MAPS = { yard, outpost, atomic };
+export const MAP_LIST = [yard, outpost, atomic];
 
 function disposeGroup(g) {
   g.traverse((o) => {
