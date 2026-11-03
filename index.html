@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frontline: Solo Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/styles.css">
+</head>
+<body class="in-menu">
+<div id="game"></div>
+
+<div id="loader">
+  <div class="load-title">FRONTLINE</div>
+  <div class="load-bar"><i></i></div>
+  <div class="load-msg">Building the compound…</div>
+</div>
+
+<section id="menu" class="screen hidden">
+  <div class="menu-col">
+    <header class="brand">
+      <h1 class="logo">FRONTLINE</h1>
+      <p class="sub">Solo Ops</p>
+    </header>
+    <div id="rankPlate" class="rank-plate"></div>
+    <div class="field"><span class="flabel">Mode</span><div id="modeSel" class="modes"></div></div>
+    <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps"></div></div>
+    <div class="row2">
+      <div class="field"><span class="flabel">Difficulty</span><div id="diffSel" class="seg"></div></div>
+      <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
+    </div>
+    <button id="deploy" class="btn-primary deploy" type="button">Deploy</button>
+    <p id="bestLine" class="best"></p>
+    <nav class="menu-nav">
+      <button id="openLoadout" type="button">Loadout</button>
+      <button id="openSettings" type="button">Settings</button>
+      <button id="openCareer" type="button">Career</button>
+      <button id="openControls" type="button">Controls</button>
+    </nav>
+  </div>
+</section>
+
+<section id="loadout" class="screen hidden">
+  <div class="panel wide">
+    <h2>Loadout</h2>
+    <p class="lede">Pick your primary. You always carry a USP .45, a knife and two frag grenades.</p>
+    <div id="weaponList" class="weapons"></div>
+    <h3>Weapon camo</h3>
+    <p class="lede small">New finishes unlock as you rank up.</p>
+    <div id="camoList" class="camos"></div>
+    <div class="btn-row"><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="settings" class="screen hidden">
+  <div class="panel wide">
+    <h2>Settings</h2>
+    <div class="cols">
+      <div>
+        <div id="sliders"></div>
+        <div class="field"><span class="flabel">Render resolution</span><div id="scaleSel" class="seg"></div></div>
+        <div id="toggles" class="toggles"></div>
+        <div class="field"><span class="flabel">Crosshair colour</span><div id="crossSel" class="swatches"></div></div>
+      </div>
+      <div>
+        <h3>Key bindings</h3>
+        <p class="lede small">Click a key to change it. Press Esc to cancel.</p>
+        <div id="binds" class="binds"></div>
+        <p id="ctrlWarn" class="warn hidden">Ctrl+W closes the browser tab in most browsers. The game asks before leaving mid-match, but C is the safer crouch key.</p>
+      </div>
+    </div>
+    <div class="btn-row"><button id="resetSettings" class="btn-ghost" type="button">Reset to defaults</button><button id="settingsDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="career" class="screen hidden">
+  <div class="panel wide">
+    <h2>Career</h2>
+    <div class="cols c-career"><div id="careerStats" class="tiles"></div><div id="rankLadder" class="ladder"></div></div>
+    <div class="btn-row"><button id="careerDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="controls" class="screen hidden">
+  <div class="panel">
+    <h2>Controls</h2>
+    <div class="keys">
+      <div><kbd>W A S D</kbd><span>Move</span></div>
+      <div><kbd>Mouse</kbd><span>Look</span></div>
+      <div><kbd>Left click</kbd><span>Fire · knife slash</span></div>
+      <div><kbd>Right click</kbd><span>Aim down sights · knife stab</span></div>
+      <div><kbd>Shift</kbd><span>Sprint</span></div>
+      <div><kbd>C</kbd> <kbd>Ctrl</kbd><span>Crouch</span></div>
+      <div><kbd>Space</kbd><span>Jump (vault crates and sandbags)</span></div>
+      <div><kbd>R</kbd><span>Reload</span></div>
+      <div><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd><span>Primary · pistol · knife</span></div>
+      <div><kbd>Wheel</kbd> <kbd>Q</kbd><span>Cycle weapons · last weapon</span></div>
+      <div><kbd>G</kbd><span>Frag grenade, hold to cook</span></div>
+      <div><kbd>F</kbd><span>Deploy killstreak</span></div>
+      <div><kbd>Tab</kbd><span>Scoreboard</span></div>
+      <div><kbd>Esc</kbd><span>Pause</span></div>
+    </div>
+    <p class="lede small">These are the defaults. Change any key in Settings. Arrow keys also turn the camera.</p>
+    <p class="lede small">Killstreaks: 3 kills earns a Recon UAV, 5 a mortar strike, 7 a sentry gun. Knife an enemy from behind for an instant kill.</p>
+    <div class="btn-row"><button id="controlsDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="pause" class="screen hidden">
+  <div class="panel narrow">
+    <h2>Paused</h2>
+    <p id="lockMsg" class="warn hidden">The browser didn’t let the game capture your mouse. Click Resume to try again, or play without mouse lock and the camera will follow your cursor while it’s over the game.</p>
+    <button id="resume" class="btn-primary" type="button">Resume</button>
+    <button id="freeLook" class="btn-ghost" type="button">Play without mouse lock</button>
+    <button id="pauseSettings" class="btn-ghost" type="button">Settings</button>
+    <button id="pauseControls" class="btn-ghost" type="button">Controls</button>
+    <button id="restart" class="btn-ghost" type="button">Restart match</button>
+    <button id="quit" class="btn-ghost" type="button">Quit to main menu</button>
+  </div>
+</section>
+
+<section id="end" class="screen hidden">
+  <div class="panel wide">
+    <h2 id="endTitle" class="end-title"></h2>
+    <p id="endDetail" class="lede"></p>
+    <p id="newBest" class="flag hidden">New personal best</p>
+    <div id="endStats" class="tiles six"></div>
+    <div class="cols">
+      <div id="endBoard" class="endboard"></div>
+      <div><div id="endRank" class="rank-plate"></div><div id="xpLines" class="xplines"></div></div>
+    </div>
+    <div class="btn-row"><button id="endMenu" class="btn-ghost" type="button">Main menu</button><button id="again" class="btn-primary" type="button">Play again</button></div>
+  </div>
+</section>
+
+<div id="hud">
+  <div id="vignette"></div>
+  <div id="dmgflash"></div>
+  <div id="scope"><div class="reticle"></div></div>
+  <div class="hud-tl"><canvas id="radar" width="180" height="180"></canvas><div id="mapLabel"></div></div>
+  <div id="score" class="score"></div>
+  <div id="killfeed"></div>
+  <div id="crosshair"><i class="l"></i><i class="r"></i><i class="t"></i><i class="b"></i><b></b></div>
+  <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+  <div id="arcs"></div>
+  <div id="aimName"></div>
+  <div id="cook"></div>
+  <div id="xpfeed"></div>
+  <div id="notice"></div>
+  <div id="banner"><b id="bannerTitle"></b><span id="bannerSub"></span></div>
+  <div id="center"></div>
+  <div class="hud-health">
+    <div class="hp-row"><b id="hpNum">100</b><span>Health</span></div>
+    <div class="hp-bar"><i id="hpFill"></i></div>
+    <div id="protect">Spawn protection</div>
+  </div>
+  <div class="hud-ammo">
+    <div class="w-row"><span id="wName"></span><small id="wCls"></small></div>
+    <div class="a-row"><b id="wMag"></b><span id="wRes"></span></div>
+    <div id="nades" class="nades"></div>
+    <div id="reloadBar"><i id="reloadFill"></i></div>
+  </div>
+  <div class="hud-streak">
+    <div class="pips"><i id="pip0" title="Recon UAV">3</i><i id="pip1" title="Mortar strike">5</i><i id="pip2" title="Sentry gun">7</i></div>
+    <span id="streakCount"></span>
+    <div id="streakReady"></div>
+  </div>
+  <div id="tags"></div>
+  <div id="death" class="hidden"><div id="deathTitle"></div><div id="deathSub"></div><div id="deathTimer"></div><small>Hold Tab for the scoreboard</small></div>
+  <div id="board" class="hidden"></div>
+  <div id="fps" class="hidden"></div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
