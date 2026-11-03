@@ -18,15 +18,15 @@ function capsule(r1, r2, len, rs = 10, cs = 3) { // along Y, centred, r1 at bott
   return new THREE.LatheGeometry(pts, rs);
 }
 function lathe(profile, rs = 12) { return new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(Math.max(0.0001, r), y)), rs); }
-function rbox(w, h, d, r = 0.015, segs = 2) { // rounded box: extruded rounded rect (w x h), depth d along Z, centred
+export function rbox(w, h, d, r = 0.015, segs = 2) { // rounded box: extruded rounded rect (w x h), depth d along Z, centred
   const s = new THREE.Shape(), x = -w / 2 + r, y = -h / 2 + r, W = w - 2 * r, H = h - 2 * r;
   s.moveTo(x, y); s.lineTo(x + W, y); s.lineTo(x + W, y + H); s.lineTo(x, y + H); s.lineTo(x, y);
   const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: segs, curveSegments: 1 });
   g.translate(0, 0, -(d - 2 * r) / 2);
   return g;
 }
-const sphere = (r, ws = 10, hs = 8) => new THREE.SphereGeometry(r, ws, hs);
-const cyl = (r1, r2, h, s = 10) => new THREE.CylinderGeometry(r1, r2, h, s);
+export const sphere = (r, ws = 10, hs = 8) => new THREE.SphereGeometry(r, ws, hs);
+export const cyl = (r1, r2, h, s = 10) => new THREE.CylinderGeometry(r1, r2, h, s);
 
 // ---------- skeleton layout ----------
 const B = { pose: 0, hips: 1, thighL: 2, kneeL: 3, thighR: 4, kneeR: 5, torso: 6, head: 7, shL: 8, elL: 9, shR: 10, elR: 11 };
@@ -40,7 +40,7 @@ const restWorld = (() => { // bone -> mesh-space rest translation
 })();
 
 // ---------- geometry assembly ----------
-class Builder {
+export class Builder {
   constructor() { this.pos = []; this.nor = []; this.col = []; this.si = []; this.sw = []; this.idx = []; }
   // geo in bone-local space via (x,y,z, rx,ry,rz, sx,sy,sz); colour hex; shade = top/bottom contrast
   add(bone, geo, hex, t = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1], o = {}) {

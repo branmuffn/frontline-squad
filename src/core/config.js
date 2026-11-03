@@ -97,6 +97,14 @@ export const WEAPONS = {
     desc: 'A hundred-round belt. Suppress a lane, but the reload takes forever.',
     stats: { damage: 0.52, rate: 0.82, accuracy: 0.45, range: 0.72, mobility: 0.3 },
   },
+  // vehicle-mounted gun (not in any loadout list)
+  m2: {
+    id: 'm2', slot: 0, name: 'M2HB', cls: 'Mounted machine gun', auto: true, rate: 0.11, mag: 999, reserve: 0,
+    damage: 40, headMul: 1.6, legMul: 0.85, falloff: [60, 220, 0.7], pellets: 1, range: 220, pen: 'heavy',
+    spread: { hip: 0.01, ads: 0.01, move: 0, air: 0, bloom: 0, bloomMax: 0, recover: 1 }, recoil: { v: 0, h: 0, drift: 0, recover: 1 },
+    reload: 1, reloadEmpty: 1, draw: 0, speed: 1, adsZoom: 1, adsTime: 0.1, sound: 'lmg', noise: 55, tracer: 1, mounted: true,
+    desc: 'Heavy mounted gun.', stats: { damage: 0.7, rate: 0.7, accuracy: 0.8, range: 0.9, mobility: 0 },
+  },
   spas12: {
     id: 'spas12', slot: 0, name: 'SPAS-12', cls: 'Shotgun', auto: false, shells: true, rate: 0.3, mag: 8, reserve: 32,
     damage: 13, pellets: 8, headMul: 1.5, legMul: 0.9, falloff: [8, 30, 0.15], range: 30, pen: 'none',
@@ -188,7 +196,7 @@ export const magZoom = (fov, mag) => (2 * Math.atan(Math.tan(fov * Math.PI / 360
 // WEAPONS[id].name and .desc are getters, so every menu, HUD line and killfeed entry follows the setting.
 const FICTIONAL = {
   m4: 'AR-4 CARBINE', ak47: 'KR-47', mp5: 'SP-5', m870: 'FIELD PUMP 12', spas12: 'RIOT-12', m249: 'RHINO LMG',
-  mk14: 'WARDEN DMR', l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
+  m2: 'MOUNTED .50', mk14: 'WARDEN DMR', l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
 };
 let nameStyle = 'real';
 export function setNameStyle(v) { nameStyle = v === 'fictional' ? 'fictional' : 'real'; }
@@ -201,7 +209,7 @@ for (const [id, w] of Object.entries(WEAPONS)) {
   Object.defineProperty(w, 'desc', { get() { return desc.replace(/\{(\w+)\}/g, (_, k) => WEAPONS[k].name); }, enumerable: true });
 }
 
-export const SOURCE_NAMES = { claws: 'CLAWS', frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };
+export const SOURCE_NAMES = { claws: 'CLAWS', frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL', roadkill: 'JEEP', vehicle: 'WRECK' };
 
 // explosion types: radius, max damage, visual size
 export const EXPLOSIONS = { frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 170, big: 1.25 }, rpg: { R: 5.5, D: 150, big: 1 }, barrel: { R: 6.5, D: 140, big: 1.1 } };

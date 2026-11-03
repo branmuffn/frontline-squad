@@ -10,6 +10,7 @@ import { damageBarrel } from './worldprops.js';
 import { impact, blood, tracer } from '../engine/fx.js';
 import { play } from '../engine/audio.js';
 import { recordShot } from '../game/killcam.js';
+import { damageVehicle } from './vehicles.js';
 
 export function falloff(w, d) {
   const [f0, f1, mn] = w.falloff;
@@ -77,6 +78,7 @@ export function traceSegment(s, dx, dy, dz, len) {
     const fxOn = isP ? s.k < 3 : s.k < 2;
     if (fxOn) impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat);
     if (isP && s.k < 3) play(SFX(wh.mat), { x: wh.x, y: wh.y, z: wh.z }, { gain: 0.5 });
+    if (wh.col && wh.col.vehicle) { damageVehicle(wh.col.vehicle, w.damage * falloff(w, s.travelled + wh.t) * s.mul * s.mulPen * (w.pen === 'heavy' ? 1 : 0.35), s.shooter); return stop(s, wh, isP); }
     if (wh.col && wh.col.barrel) { damageBarrel(wh.col, w.damage * falloff(w, s.travelled + wh.t) * s.mul * s.mulPen, s.shooter); return stop(s, wh); }
     // penetration?
     const c = wh.col, m = wh.mat;

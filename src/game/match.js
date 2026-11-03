@@ -21,6 +21,8 @@ import { resetMatchXp, award, finishMatch } from './progression.js';
 import * as hud from '../ui/hud.js';
 import { showEnd } from '../ui/menus.js';
 import { onDeathCam, resetKillcam } from './killcam.js';
+import { resetVehicles, vehicles } from '../entities/vehicles.js';
+function resetVehiclesHard() { const keep = G.profile.lobby.vehicles; G.profile.lobby.vehicles = false; resetVehicles(); G.profile.lobby.vehicles = keep; }
 import { HOOKS } from './modes.js';
 
 let deployBeep = 0;
@@ -71,6 +73,7 @@ export function startMatch(cfg) {
   G.state = 'deploy'; G.deployUntil = 3; deployBeep = 0;
   hud.startMatch();
   startAmbience(G.world.def.ambience);
+  resetVehicles();
 }
 
 // Overkill needs Sergeant outside Sandbox; anything else falls back to Classic
@@ -104,6 +107,7 @@ G.removeBot = (b) => { disposeBot(b); G.bots.splice(G.bots.indexOf(b), 1); G.uni
 
 export function cleanupMatch() {
   resetKillcam();
+  resetVehiclesHard();
   for (const h of Object.values(HOOKS)) if (h.cleanup) h.cleanup();
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];

@@ -1,3 +1,4 @@
+import { obbCircle, obbRay } from '../entities/vehicles.js';
 import { G } from '../core/state.js';
 import { PHYS } from '../core/config.js';
 
@@ -67,6 +68,7 @@ export function blocked(x, z, r, y, h) {
     if ((px - x) ** 2 + (pz - z) ** 2 > r * r) continue;
     if (rampHeight(rp, px, pz) > feet && rp.base < top) return true;
   }
+  if (w.dynamic) for (const d of w.dynamic) { if (d !== G.ignoreDyn && d.y1 > feet && d.y0 < top && obbCircle(d, x, z, r)) return true; }
   return false;
 }
 
@@ -220,6 +222,12 @@ export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
     if (any) return true;
     best = t; bn = 3; bmat = rp.mat; bc = rp;
   }
+  // dynamic oriented boxes (vehicles)
+  if (w.dynamic) for (const d of w.dynamic) {
+    if (d === G.ignoreDyn) continue;
+    const r = obbRay(d, ox, oy, oz, dx, dy, dz, best);
+    if (r && r[0] < best) { if (any) return true; best = r[0]; bn = 6; bmat = 'metal'; bc = d; hullN = [r[1], r[2], r[3]]; }
+  }
   // ground plane
   if (dy < 0) {
     const t = -oy / dy;
@@ -234,7 +242,7 @@ export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
     const span = bc.axis === 'z' ? bc.maxZ - bc.minZ : bc.maxX - bc.minX, k = (bc.to - bc.from) / span;
     const l = Math.hypot(k, 1);
     if (bc.axis === 'z') { h.ny = 1 / l; h.nz = -k / l; } else { h.ny = 1 / l; h.nx = -k / l; }
-  } else if (bn === 5) { if (hullN) { h.nx = hullN[0]; h.ny = hullN[1]; h.nz = hullN[2]; } else h.ny = 1; }
+  } else if (bn === 5 || bn === 6) { if (hullN) { h.nx = hullN[0]; h.ny = hullN[1]; h.nz = hullN[2]; } else h.ny = 1; }
   else h.ny = 1;
   return h;
 }
@@ -309,7 +317,7 @@ export function rayUnits(ox, oy, oz, dx, dy, dz, tmax, skip) {
 // move it out along the shortest escape: a small lift onto a surface, or the nearest clear spot in rings around it.
 const RING_DIRS = Array.from({ length: 16 }, (_, k) => [Math.cos(k / 16 * Math.PI * 2), Math.sin(k / 16 * Math.PI * 2)]);
 export function depenetrate(u) {
-  if (u.onLadder) return false;
+  if (u.onLadder || u.vehicle) return false;
   if (!blocked(u.x, u.z, u.r, u.y, u.h)) { u._safeX = u.x; u._safeY = u.y; u._safeZ = u.z; return false; }
   let best = null, bestCost = Infinity;
   const lift = supportHeight(u.x, u.z, SUPPORT_R, u.y + 2.2);

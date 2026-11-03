@@ -1,3 +1,4 @@
+import { explodeNearVehicles } from './vehicles.js';
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { GRENADE, EXPLOSIONS } from '../core/config.js';
@@ -76,6 +77,7 @@ export function explode(x, y, z, owner, kind = 'frag') {
     damage(u, dmg, owner, { weapon: kind, explosive: true, sx: x, sz: z, noStreak: kind === 'mortar' });
   }
   nearbyBarrels(x, y, z, R, (c, d) => damageBarrel(c, maxD * (1 - d / R) + 10, owner));
+  explodeNearVehicles(x, y, z, R, maxD, owner);
   const p = G.player;
   if (p) { const d = Math.hypot(p.x - x, p.y + 1.6 - y, p.z - z); if (d < 30) G.shake = Math.min(0.09, (G.shake || 0) + 0.08 * (1 - d / 30)); }
 }

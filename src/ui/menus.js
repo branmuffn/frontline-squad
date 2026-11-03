@@ -1,3 +1,4 @@
+import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
 import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
@@ -53,7 +54,7 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); $('modeDesc').textContent = MODES[v].desc; });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
   $('modeDesc').textContent = MODES[L.mode].desc;
   seg($('diffSel'), Object.entries(DIFFICULTY).map(([k, d]) => ({ v: k, html: d.label })), L.difficulty, (v) => { L.difficulty = v; saveProfile(); refreshBest(); });
   const mapSel = $('mapSel');
@@ -62,11 +63,18 @@ function refreshMenu() {
     mapSel.innerHTML = MAP_LIST.map((d) => `<button type="button" data-v="${d.id}"><canvas width="96" height="96"></canvas><span><b>${d.name}</b><small>${esc(d.blurb)}</small></span></button>`).join('');
     mapSel.querySelectorAll('button').forEach((bt, i) => {
       drawPreview(bt.querySelector('canvas'), MAP_LIST[i]);
-      bt.addEventListener('click', () => { L.map = bt.dataset.v; saveProfile(); mapSel.querySelectorAll('button').forEach((q) => q.classList.toggle('sel', q === bt)); cb.onMapPreview(L.map); });
+      bt.addEventListener('click', () => { L.map = bt.dataset.v; saveProfile(); refreshVehicles(); mapSel.querySelectorAll('button').forEach((q) => q.classList.toggle('sel', q === bt)); cb.onMapPreview(L.map); });
     });
   }
   mapSel.querySelectorAll('button').forEach((q) => q.classList.toggle('sel', q.dataset.v === L.map));
-  refreshCounts(); refreshBest(); refreshSandbox();
+  refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles();
+}
+// Vehicles: On/Off (default Off), only for maps with vehicle spots and modes that use them
+function refreshVehicles() {
+  const L = G.profile.lobby, def = MAP_LIST.find((m) => m.id === L.map), show = !!(def && def.vehicles) && VEHICLE_MODES.includes(L.mode);
+  $('vehRow').classList.toggle('hidden', !show);
+  document.querySelector('#menu .row2').classList.toggle('three', show);
+  if (show) seg($('vehSel'), [{ v: 'off', html: 'Off' }, { v: 'on', html: 'On' }], L.vehicles ? 'on' : 'off', (v) => { L.vehicles = v === 'on'; saveProfile(); });
 }
 function refreshSandbox() {
   const L = G.profile.lobby;

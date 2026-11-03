@@ -4,6 +4,7 @@ import { PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js'
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
+import { playerVehicle, exitVehicle } from './vehicles.js';
 import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, kill } from './units.js';
@@ -44,6 +45,8 @@ export function refillAmmo() {
 
 export function spawnPlayer(x, y, z, yaw) {
   endDeathCam();
+  if (P && P.vehicle) exitVehicle(P);
+  if (P) { P.vehicle = null; P.seat = -1; }
   Object.assign(P, {
     x, y, z, vx: 0, vz: 0, vy: 0, yaw, pitch: 0, alive: true, health: 100, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH,
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
@@ -307,6 +310,7 @@ export function updatePlayer(dt) {
   if (input.keys.ArrowLeft) P.yaw += kl; if (input.keys.ArrowRight) P.yaw -= kl;
   if (input.keys.ArrowUp) P.pitch += kl * 0.7; if (input.keys.ArrowDown) P.pitch -= kl * 0.7;
   P.pitch = clamp(P.pitch, -1.5, 1.5);
+  if (P.vehicle) { playerVehicle(P, dt); updateViewmodel(dt, { visible: false }); hud.updatePlayerHud(P, { spread: 0.01, reloadP: -1, cook: -1 }); return; }
 
   // movement
   const f = frozen ? 0 : (down('forward') ? 1 : 0) - (down('back') ? 1 : 0);

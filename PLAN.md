@@ -39,7 +39,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 5c Zombies (endless rounds, points for hits/kills, wall-buy weapons, mystery box, power-ups: Max Ammo, Insta-Kill, Double Points)
 
 ## Then: Phase 6 — vehicles (match setting "Vehicles: On/Off", default OFF)
-- [ ] 6a Drivable jeep with gunner turret (E enter/exit)
+- [x] 6a Drivable jeep with gunner turret (E enter/exit). DONE: Vehicles On/Off in the lobby (default Off; Gorge, FFA/TDM/Sandbox/CTF), dynamic OBB collider, chase cam, M2 gunner with overheat, roadkill, explosions, respawn 20 s.
 - [ ] 6b Flyable helicopter
 - [ ] 6c Bots drive, gun and fly
 - [ ] 6d Vehicle placements on Cascade Gorge (+ a larger vehicle-friendly map if needed); keep performance acceptable

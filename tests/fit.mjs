@@ -5,6 +5,7 @@ const SHOTS = process.argv[2] === 'shots';
 const SIZES = [[1024, 640], [1280, 720], [1366, 768], [1920, 1080]];
 const SCREENS = {
   menu: [() => window.__frontline.ui.showScreen('menu'), '#deploy'],
+  menuGorge: [() => { const L = window.__frontline.G.profile.lobby; L.map = 'gorge'; L.mode = 'ffa'; window.__frontline.ui.showScreen('menu'); document.querySelector('#mapSel [data-v=gorge]').click(); }, '#deploy'],
   loadout: [() => window.__frontline.ui.showLoadout(true), '#loadoutDone'],
   settings: [() => document.getElementById('openSettings').click(), null],
   streaks: [() => document.getElementById('openStreaks').click(), '#streaksDone'],
@@ -22,7 +23,7 @@ for (const [w, h] of SIZES) {
     await page.evaluate(() => window.__frontline.ui.showScreen('menu'));
     await page.evaluate(fn); await page.waitForTimeout(60);
     const r = await page.evaluate(([name, btn]) => {
-      const sec = document.getElementById(name); if (!sec || sec.classList.contains('hidden')) return { skip: true };
+      const sec = document.getElementById(name === 'menuGorge' ? 'menu' : name); if (!sec || sec.classList.contains('hidden')) return { skip: true };
       const out = { scrollers: [] };
       for (const el of sec.querySelectorAll('*')) {
         const cs = getComputedStyle(el);

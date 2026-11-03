@@ -160,6 +160,7 @@ const RECIPES = {
   bounce: (d, t) => { tone(d, t, 0.04, { type: 'triangle', f0: 1100 + Math.random() * 300, gain: 0.14 }); noise(d, t, 0.03, { type: 'highpass', f0: 4000, gain: 0.1 }); },
   pin: (d, t) => { tone(d, t, 0.02, { type: 'square', f0: 1500, gain: 0.1 }); tone(d, t + 0.08, 0.03, { type: 'square', f0: 1100, gain: 0.08 }); },
   throw: (d, t) => noise(d, t, 0.2, { type: 'bandpass', f0: 500, f1: 1600, gain: 0.25, attack: 0.05 }),
+  doorOpen: (d, t) => { click(d, t, 260, 0.25); noise(d, t + 0.02, 0.12, { type: 'bandpass', f0: 900, gain: 0.12 }); click(d, t + 0.14, 380, 0.2); },
   pickup: (d, t) => { tone(d, t, 0.08, { type: 'triangle', f0: 600, gain: 0.15 }); tone(d, t + 0.09, 0.12, { type: 'triangle', f0: 900, gain: 0.13 }); },
   radio: (d, t) => { for (let i = 0; i < 3; i++) tone(d, t + i * 0.09, 0.05, { type: 'square', f0: 1200, gain: 0.05 }); noise(d, t, 0.3, { type: 'bandpass', f0: 1800, q: 2, gain: 0.05 }); },
   streak: (d, t) => { [520, 780, 1040].forEach((f, i) => tone(d, t + i * 0.09, 0.12, { f0: f, gain: 0.13 })); },

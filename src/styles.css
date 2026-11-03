@@ -424,3 +424,17 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #hud.kc-on #death { bottom: calc(7vh + 10px); padding: 8px; }
 #hud.kc-on #death small { display: none; }
 #scope .scope-mag { position: absolute; left: 50%; top: calc(50% + 34vmin + 10px); transform: translateX(-50%); font-weight: 700; font-size: 17px; color: var(--ink-dim); letter-spacing: 0.04em; white-space: nowrap; }
+
+/* vehicle panel */
+#vehHud { position: absolute; right: 22px; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); width: 240px; padding: 10px 12px; background: rgba(14, 19, 21, 0.78); border-left: 3px solid var(--brass); }
+#vehHud .vh-row { display: flex; justify-content: space-between; align-items: baseline; }
+#vehHud .vh-row b { font-size: 18px; font-weight: 800; } #vehHud .vh-row span { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+#vehHud .vh-bar { height: 6px; background: rgba(255, 255, 255, 0.1); margin: 6px 0; }
+#vehHud .vh-bar i { display: block; height: 100%; width: 100%; background: #8fc27a; transition: width 0.15s; }
+#vehHud .vh-bar i.low { background: #e07a5f; }
+#vehHud .vh-heat span { font-size: 13px; color: var(--ink-dim); } #vehHud .vh-bar.heat i { background: #e0b04f; } #vehHud .vh-bar.heat i.over { background: #e05a3f; }
+#vehHud small { display: block; color: var(--ink-dim); font-size: 13px; line-height: 1.6; }
+#hud.in-vehicle .hud-ammo, #hud.in-vehicle #nades { visibility: hidden; }
+#hud.in-vehicle:not(.gunner) #crosshair { visibility: hidden; }
+.row2.three { grid-template-columns: 1fr 1.25fr 0.8fr !important; }
+#vehHud small { display: flex; flex-wrap: wrap; gap: 2px 12px; }

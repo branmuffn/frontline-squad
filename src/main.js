@@ -27,6 +27,7 @@ import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
 import { recordFrame, killcamActive, skipKillcam } from './game/killcam.js';
+import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
 import { damage, kill } from './entities/units.js';
 
 let wantResume = false, lastCfg = null;
@@ -59,7 +60,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -162,6 +163,13 @@ function onKeyDown(code, e) {
   if (e.repeat) return;
   if (matches('jump', code)) onJumpPressed();
   if (G.state !== 'playing') return;
+  if (G.player && G.player.vehicle) { // in a vehicle: E gets out, 1/2 change seat, F still calls streaks
+    if (matches('interact', code)) vehicleInteract(G.player);
+    else if (matches('primary', code)) switchSeat(G.player, 0);
+    else if (matches('secondary', code)) switchSeat(G.player, 1);
+    else if (matches('streak', code)) useStreak();
+    return;
+  }
   if (matches('zoom', code)) scopeZoom(0);
   if (matches('reload', code)) startReload();
   else if (matches('primary', code)) selectSlot(0);
@@ -171,7 +179,7 @@ function onKeyDown(code, e) {
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
-  else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact())) tryPickup(); }
+  else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !vehicleInteract(G.player)) tryPickup(); }
   else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
 function onKeyUp(code) {
@@ -204,6 +212,7 @@ function loop(t) {
       updateRockets(dt);
       updateBullets(dt);
       updateWorldProps(dt);
+      updateVehicles(dt);
       updatePickups(dt);
       updateStreaks(dt);
       updateHud(dt);

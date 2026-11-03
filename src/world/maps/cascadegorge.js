@@ -60,6 +60,8 @@ export default {
   name: 'CASCADE GORGE',
   blurb: 'Forested plateau bases across a deep canyon. Cross the train bridge, or flank through the creek below.',
   bounds: { minX: -58.5, maxX: 58.5, minZ: -29.5, maxZ: 29.5 },
+  // jeep spots (Vehicles: On): one on each plateau base, one on the canyon road
+  vehicles: [{ x: -47, z: 4, y: H, yaw: -Math.PI / 2 }, { x: 47, z: -4, y: H, yaw: Math.PI / 2 }, { x: -6.5, z: 19, y: 0, yaw: 0 }],
   ground: 'grass', groundMat: 'grass',
   sky: [0x6c95bd, 0xd3dde0, 0x7d8a7a],
   fog: { color: 0xb9c6c9, density: 0.0068 },
