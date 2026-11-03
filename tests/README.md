@@ -19,6 +19,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `vm.mjs [ids]` — first-person gun screenshots (/tmp/vm_<id>.png).
 - `vehicles.mjs [shots]` — jeep: Off by default, spawns clear, enter/drive/turn/no wall clipping, seats, gunner fire, exit, bullets stop on hull, destroy + respawn.
 - `heli.mjs [shots]` — helicopter: enter, climb, fly, turn to view, no clipping, door-gun arc, bail-out autorotation landing.
+- `doorways.mjs` — walks along the Gorge bridge walkway and in/out of every boxcar door with real input (stalls, height jitter); sliding doors: close/open, block, bullets, bots open them.
 - `p5.mjs <mode> <map> [secs]` — quick run of a Phase 5 mode.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

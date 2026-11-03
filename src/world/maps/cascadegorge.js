@@ -21,9 +21,10 @@ function pine(b, x, z, h = 9, y0 = 0) {
 }
 
 function boxcar(b, cx, open, hatch) {
-  const y = H + 0.9, L = 8, W = 3.0, Ht = 3.0;
-  b.solid(cx, H, 0, 7.4, 0.9, 2.4, 'steelRust'); // undercarriage + floor
-  for (const dx of [-2.6, 2.6]) for (const dz of [-1.0, 1.0]) b.geom(new THREE.CylinderGeometry(0.42, 0.42, 0.18, 12), 'black', cx + dx, H + 0.42, dz * 1.15, Math.PI / 2, 0, 0);
+  const y = H + 0.45, L = 8, W = 3.0, Ht = 3.0; // floor one normal step above the deck: walk straight in, no boarding steps
+  b.solid(cx, H, 0, 7.4, 0.33, 2.4, 'steelRust'); // undercarriage
+  b.solid(cx, H + 0.33, 0, L, 0.12, W, open ? 'wood' : 'steelRust'); // floor, full width so doorways have no gap
+  for (const dx of [-3.0, -2.2, 2.2, 3.0]) for (const dz of [-1.0, 1.0]) b.geom(new THREE.CylinderGeometry(0.21, 0.21, 0.14, 12), 'black', cx + dx, H + 0.21, dz * 0.78, 0, 0, Math.PI / 2);
   if (!open) {
     b.solid(cx, y, 0, L, Ht, W, 'boxcar');
   } else {
@@ -32,8 +33,7 @@ function boxcar(b, cx, open, hatch) {
       b.solid(cx - 2.45, y, sz * (W / 2 - t / 2), 3.1, Ht, t, 'boxcar');
       b.solid(cx + 2.45, y, sz * (W / 2 - t / 2), 3.1, Ht, t, 'boxcar');
       b.solid(cx, y + 2.25, sz * (W / 2 - t / 2), 1.8, Ht - 2.25, t, 'boxcar');
-      b.deco(cx + 1.6, y, sz * (W / 2 + 0.03), 1.8, 2.2, 0.05, 'boxcar'); // slid-open door panel
-      b.solid(cx, H, sz * 1.8, 1.8, 0.45, 0.6, 'steelRust'); // boarding step from the walkway
+      b.doors.push({ x: cx, y, z: sz * (W / 2 + 0.075), w: 1.95, h: 2.3, t: 0.07, slide: 1.75, open: true, mat: 'boxcar' }); // sliding door (E)
     }
     b.solid(cx - L / 2 + t / 2, y, 0, t, Ht, W, 'boxcar'); b.solid(cx + L / 2 - t / 2, y, 0, t, Ht, W, 'boxcar');
     if (hatch) { // roof hatch: grenades can drop in
@@ -76,7 +76,7 @@ export default {
   navExtra: (() => {
     const p = [];
     for (let x = -19.5; x <= 19.5; x += 1.5) { p.push([x, 2.0, H]); p.push([x, -2.0, H]); }
-    for (const cx of [-4.5, 4.5]) for (let x = cx - 3; x <= cx + 3; x += 1.5) p.push([x, 0, H + 0.9]);
+    for (const cx of [-4.5, 4.5]) for (let x = cx - 3; x <= cx + 3; x += 1.5) p.push([x, 0, H + 0.45]);
     for (const cx of [-4.5, 4.5]) { p.push([cx, 1.8, H + 0.45]); p.push([cx, -1.8, H + 0.45]); }
     for (let x = -16; x <= 16; x += 1.5) p.push([x, 0, 5.0]); // catwalk under the bridge (ladder access)
     p.push([6.6, 1.3, 5.0]);
@@ -97,7 +97,7 @@ export default {
   },
   pickups: [
     { type: 'health', x: -44, y: H, z: -6 }, { type: 'health', x: 44, y: H, z: 6 }, { type: 'health', x: -12, y: 0, z: 2 }, { type: 'health', x: 12, y: 0, z: -2 },
-    { type: 'ammo', x: 0, y: 5.0, z: 0 }, { type: 'ammo', x: -4.5, y: H + 0.9, z: 0 }, { type: 'ammo', x: 4.5, y: H + 0.9, z: 0 },
+    { type: 'ammo', x: 0, y: 5.0, z: 0 }, { type: 'ammo', x: -4.5, y: H + 0.45, z: 0 }, { type: 'ammo', x: 4.5, y: H + 0.45, z: 0 },
     { type: 'ammo', x: -30, y: H, z: -20 }, { type: 'ammo', x: 30, y: H, z: 20 },
   ],
   build(b) {

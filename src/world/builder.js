@@ -235,6 +235,7 @@ export class MapBuilder {
     this.batches = new Map();
     this.colliders = [];
     this.ramps = [];
+    this.doors = []; // sliding doors (world/doors.js)
     this.lights = [];
     this.group = new THREE.Group();
   }

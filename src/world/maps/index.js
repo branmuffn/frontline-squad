@@ -1,3 +1,4 @@
+import { setupDoors } from '../doors.js';
 import * as THREE from 'three';
 import { G } from '../../core/state.js';
 import { MapBuilder, makeSky, makeGround, makeClouds } from '../builder.js';
@@ -66,6 +67,7 @@ export function loadMap(id) {
     nav: null, sun, spawns: def.spawns, pickups: def.pickups,
     barrelCols, water: def.water || null, surfaces: def.surfaces || null, ladders: def.ladders || [],
   };
+  setupDoors(b.doors, group);
   buildHash(G.world);
   return G.world;
 }

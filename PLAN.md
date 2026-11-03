@@ -40,7 +40,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 
 ## Extra requests (added mid-Phase 6)
 - [ ] X1 Prone / crawl (Z toggles prone? -> key: Z is scope zoom, so prone = X; hold-crouch then crouch again also fine)
-- [ ] X2 Fix Gorge train car enter/exit lag and stutter (and same bug class elsewhere); openable train doors
+- [x] X2 Train cars: root cause was float error on steps exactly PHYS.step high (fixed globally in physics.blocked with +1 cm); boxcar floor lowered to one normal step, full-width floor, no boarding steps on the narrow walkway; sliding doors (E, bots open them, block movement + bullets). tests/doorways.mjs.
 
 ## Then: Phase 6 — vehicles (match setting "Vehicles: On/Off", default OFF)
 - [x] 6a Drivable jeep with gunner turret (E enter/exit). DONE: Vehicles On/Off in the lobby (default Off; Gorge, FFA/TDM/Sandbox/CTF), dynamic OBB collider, chase cam, M2 gunner with overheat, roadkill, explosions, respawn 20 s.

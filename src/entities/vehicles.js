@@ -103,7 +103,7 @@ export function vehiclesEnabled() {
 export function resetVehicles() {
   for (const v of vehicles) { G.scene.remove(v.m.root); stopEngine(v); }
   vehicles.length = 0; hidePlayerBody();
-  if (G.world) G.world.dynamic = [];
+  if (G.world) G.world.dynamic = (G.world.dynamic || []).filter((d) => !d.vehicle);
   if (!vehiclesEnabled()) return;
   for (const h of G.world.def.vehicles) spawnVehicle(h);
 }

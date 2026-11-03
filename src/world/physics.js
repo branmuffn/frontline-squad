@@ -54,7 +54,7 @@ export function rampHeight(rp, x, z) {
 export function blocked(x, z, r, y, h) {
   const w = G.world, b = w.bounds;
   if (x - r < b.minX || x + r > b.maxX || z - r < b.minZ || z + r > b.maxZ) return true;
-  const feet = y + PHYS.step, top = y + h;
+  const feet = y + PHYS.step + 0.01, top = y + h; // +1 cm: a step exactly PHYS.step high must not count as a wall (float error)
   const list = query(x - r, x + r, z - r, z + r);
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
