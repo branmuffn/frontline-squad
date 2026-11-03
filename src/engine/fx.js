@@ -155,6 +155,10 @@ export function impact(x, y, z, nx, ny, nz, mat) {
 export function blood(x, y, z, dx, dz, head) {
   for (let i = 0; i < (head ? 9 : 5); i++) smoke.spawn(x, y, z, dx * rand(0.5, 2) + rand(-0.6, 0.6), rand(-0.3, 1), dz * rand(0.5, 2) + rand(-0.6, 0.6), rand(0.25, 0.5), rand(0.12, 0.22), 1.8, 0.42, 0.06, 0.05, 0.75, 3, 3);
 }
+export function trail(x, y, z) {
+  glow.spawn(x, y, z, rand(-0.3, 0.3), rand(-0.3, 0.3), rand(-0.3, 0.3), 0.08, 0.35, 0, 1, 0.75, 0.35, 1, 0, 0);
+  smoke.spawn(x, y, z, rand(-0.25, 0.25), rand(0.1, 0.5), rand(-0.25, 0.25), rand(0.8, 1.4), 0.3, 3, 0.75, 0.74, 0.72, 0.5, -0.3, 1.5);
+}
 export function muzzleSmoke(x, y, z) { smoke.spawn(x, y, z, rand(-0.2, 0.2), rand(0.2, 0.6), rand(-0.2, 0.2), 0.6, 0.18, 3, 0.7, 0.7, 0.7, 0.18, -0.4, 1); }
 
 export function explosion(x, y, z, big = 1) {

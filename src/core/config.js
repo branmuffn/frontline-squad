@@ -38,7 +38,7 @@ export const WEAPONS = {
     stats: { damage: 0.42, rate: 0.9, accuracy: 0.66, range: 0.42, mobility: 0.85 },
   },
   m870: {
-    id: 'm870', slot: 0, name: 'M870', cls: 'Shotgun', auto: false, pump: true, rate: 0.82, mag: 7, reserve: 35,
+    id: 'm870', slot: 0, name: 'M870', cls: 'Shotgun', auto: false, pump: true, shells: true, rate: 0.82, mag: 7, reserve: 35,
     damage: 17, pellets: 9, headMul: 1.6, legMul: 0.9, falloff: [7, 26, 0.2], range: 45,
     spread: { hip: 0.072, ads: 0.052, move: 0.01, air: 0.03, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.05, h: 0.012, drift: 0, recover: 6 },
@@ -57,6 +57,65 @@ export const WEAPONS = {
     desc: 'Bolt-action. A body shot drops a full-health target. Useless from the hip.',
     stats: { damage: 1, rate: 0.08, accuracy: 0.95, range: 1, mobility: 0.4 },
   },
+  ak47: {
+    id: 'ak47', slot: 0, name: 'AK-47', cls: 'Assault rifle', auto: true, rate: 0.1, mag: 30, reserve: 150,
+    damage: 33, headMul: 2.0, legMul: 0.8, falloff: [28, 70, 0.72], pellets: 1, range: 160,
+    spread: { hip: 0.034, ads: 0.005, move: 0.025, air: 0.06, bloom: 0.006, bloomMax: 0.034, recover: 0.08 },
+    recoil: { v: 0.016, h: 0.006, drift: 0.0016, recover: 6 },
+    reload: 2.2, reloadEmpty: 2.7, draw: 0.6, speed: 0.95, adsZoom: 0.78, adsTime: 0.18,
+    sound: 'ak', noise: 40, tracer: 1, sight: 'iron',
+    desc: 'Hard-hitting full-auto rifle. Kicks harder than the M4, kills faster.',
+    stats: { damage: 0.66, rate: 0.62, accuracy: 0.6, range: 0.7, mobility: 0.56 },
+  },
+  m249: {
+    id: 'm249', slot: 0, name: 'M249', cls: 'Light machine gun', auto: true, rate: 0.075, mag: 100, reserve: 200,
+    damage: 26, headMul: 1.9, legMul: 0.8, falloff: [30, 80, 0.7], pellets: 1, range: 160,
+    spread: { hip: 0.045, ads: 0.012, move: 0.035, air: 0.07, bloom: 0.004, bloomMax: 0.03, recover: 0.08 },
+    recoil: { v: 0.009, h: 0.006, drift: 0.0008, recover: 6 },
+    reload: 5.0, reloadEmpty: 5.5, draw: 0.9, speed: 0.85, adsZoom: 0.8, adsTime: 0.28,
+    sound: 'lmg', noise: 42, tracer: 1, sight: 'dot',
+    desc: 'A hundred-round belt. Suppress a lane, but the reload takes forever.',
+    stats: { damage: 0.52, rate: 0.82, accuracy: 0.45, range: 0.72, mobility: 0.3 },
+  },
+  spas12: {
+    id: 'spas12', slot: 0, name: 'SPAS-12', cls: 'Shotgun', auto: false, shells: true, rate: 0.3, mag: 8, reserve: 32,
+    damage: 13, pellets: 8, headMul: 1.5, legMul: 0.9, falloff: [6, 22, 0.2], range: 40,
+    spread: { hip: 0.08, ads: 0.06, move: 0.012, air: 0.03, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.04, h: 0.012, drift: 0, recover: 7 },
+    reloadStart: 0.3, shellReload: 0.42, draw: 0.6, speed: 0.95, adsZoom: 0.88, adsTime: 0.18,
+    sound: 'shotgun', noise: 45, tracer: 0.35, sight: 'bead',
+    desc: 'Semi-auto shotgun. Less punch per shell than the M870, far faster follow-ups.',
+    stats: { damage: 0.75, rate: 0.5, accuracy: 0.25, range: 0.18, mobility: 0.6 },
+  },
+  barrett: {
+    id: 'barrett', slot: 0, name: 'BARRETT .50', cls: 'Anti-materiel rifle', auto: false, rate: 0.55, mag: 10, reserve: 30,
+    damage: 110, headMul: 2.0, legMul: 0.8, falloff: [400, 500, 1], pellets: 1, range: 300,
+    spread: { hip: 0.1, ads: 0.0, move: 0.06, air: 0.14, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.08, h: 0.02, drift: 0, recover: 4 },
+    reload: 3.4, reloadEmpty: 3.9, draw: 0.9, speed: 0.85, adsZoom: 0.2, adsTime: 0.3, scope: true, heavy: true,
+    sound: 'barrett', noise: 70, tracer: 1,
+    desc: 'Semi-auto .50 cal. One body shot kills, and the noise gives you away.',
+    stats: { damage: 1, rate: 0.18, accuracy: 0.9, range: 1, mobility: 0.25 },
+  },
+  rpg: {
+    id: 'rpg', slot: 0, name: 'RPG-7', cls: 'Rocket launcher', auto: false, projectile: true, rate: 1.0, mag: 1, reserve: 4,
+    damage: 150, headMul: 1, legMul: 1, falloff: [999, 1000, 1], pellets: 1, range: 220,
+    spread: { hip: 0.02, ads: 0.004, move: 0.02, air: 0.04, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.03, h: 0.01, drift: 0, recover: 5 },
+    reload: 2.6, reloadEmpty: 2.6, draw: 0.8, speed: 0.9, adsZoom: 0.8, adsTime: 0.22, heavy: true,
+    sound: 'rpg', noise: 50, tracer: 0, sandboxOnly: true,
+    desc: 'Unguided rocket. Sandbox only.',
+    stats: { damage: 1, rate: 0.05, accuracy: 0.6, range: 0.8, mobility: 0.4 },
+  },
+  deagle: {
+    id: 'deagle', slot: 1, name: 'DESERT EAGLE', cls: 'Pistol', auto: false, rate: 0.32, mag: 7, reserve: 35,
+    damage: 58, headMul: 2.0, legMul: 0.85, falloff: [25, 60, 0.7], pellets: 1, range: 120,
+    spread: { hip: 0.022, ads: 0.003, move: 0.02, air: 0.06, bloom: 0.012, bloomMax: 0.04, recover: 0.2 },
+    recoil: { v: 0.05, h: 0.012, drift: 0, recover: 7 },
+    reload: 1.7, reloadEmpty: 2.0, draw: 0.4, speed: 1.0, adsZoom: 0.85, adsTime: 0.12,
+    sound: 'deagle', noise: 40, tracer: 1, sight: 'iron',
+    desc: 'A headshot kills outright. Seven rounds, heavy kick.',
+  },
   usp: {
     id: 'usp', slot: 1, name: 'USP .45', cls: 'Pistol', auto: false, rate: 0.15, mag: 15, reserve: 75,
     damage: 34, headMul: 2.25, legMul: 0.85, falloff: [20, 50, 0.65], pellets: 1, range: 110,
@@ -64,6 +123,7 @@ export const WEAPONS = {
     recoil: { v: 0.02, h: 0.006, drift: 0, recover: 9 },
     reload: 1.35, reloadEmpty: 1.6, draw: 0.3, speed: 1.05, adsZoom: 0.86, adsTime: 0.1,
     sound: 'pistol', noise: 30, tracer: 1, sight: 'iron',
+    desc: 'Reliable sidearm. Fifteen rounds, quick draw.',
   },
   knife: {
     id: 'knife', slot: 2, name: 'KNIFE', cls: 'Melee', melee: true, rate: 0.45, heavyRate: 1.0,
@@ -71,10 +131,15 @@ export const WEAPONS = {
   },
 };
 
-export const PRIMARIES = ['m4', 'mp5', 'm870', 'l96'];
+export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'l96', 'barrett'];
+export const SECONDARIES = ['usp', 'deagle'];
+export const ALL_PRIMARIES = [...PRIMARIES, 'rpg'];
 
 // Killfeed tags for non-gun damage sources
-export const SOURCE_NAMES = { frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL' };
+export const SOURCE_NAMES = { frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL' };
+
+// explosion types: radius, max damage, visual size
+export const EXPLOSIONS = { frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 170, big: 1.25 }, rpg: { R: 5.5, D: 150, big: 1 }, barrel: { R: 6.5, D: 140, big: 1.1 } };
 
 export const GRENADE = { fuse: 3.0, throwSpeed: 17, radius: 7, damage: 135, perLife: 2 };
 
@@ -105,6 +170,10 @@ export const MODES = {
   survival: {
     id: 'survival', name: 'SURVIVAL', desc: 'Hold out against escalating waves. Three lives, no timer.',
     counts: null, lives: 3,
+  },
+  sandbox: {
+    id: 'sandbox', name: 'SANDBOX', desc: 'Everything unlocked, no XP. Set your own rules. Press B for the weapon menu.',
+    time: 0, counts: [0, 3, 5, 8, 12], defaultCount: 5, countLabel: 'Bots',
   },
 };
 
@@ -147,3 +216,8 @@ export const STREAKS = [
 ];
 
 export const PICKUP = { health: 50, respawn: 25 };
+
+export const SANDBOX_RULES = [
+  ['teams', 'Team play'], ['infAmmo', 'Infinite ammo'], ['god', 'God mode'], ['lowGrav', 'Low gravity'],
+  ['oneShot', 'One-shot kills'], ['headshots', 'Headshots only'], ['knife', 'Knives only'], ['passive', 'Passive bots (target practice)'],
+];

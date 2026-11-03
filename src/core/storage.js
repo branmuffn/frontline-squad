@@ -5,12 +5,12 @@ const KEY = 'frontline_solo_ops_v2';
 export const DEFAULT_KEYS = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', crouch: 'KeyC', crouchAlt: 'ControlLeft',
   sprint: 'ShiftLeft', reload: 'KeyR', primary: 'Digit1', secondary: 'Digit2', melee: 'Digit3', grenade: 'KeyG',
-  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab',
+  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab', armory: 'KeyB', interact: 'KeyE',
 };
 export const KEY_LABELS = {
   forward: 'Move forward', back: 'Move back', left: 'Strafe left', right: 'Strafe right', jump: 'Jump', crouch: 'Crouch',
   crouchAlt: 'Crouch (alternate)', sprint: 'Sprint', reload: 'Reload', primary: 'Primary weapon', secondary: 'Pistol',
-  melee: 'Knife', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon', scoreboard: 'Scoreboard',
+  melee: 'Knife', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -22,8 +22,9 @@ function freshProfile() {
   return {
     v: 2,
     settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
-    loadout: { primary: 'm4', camo: 'std' },
-    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', counts: { ffa: 5, tdm: 5 } },
+    loadout: { primary: 'm4', secondary: 'usp', camo: 'std' },
+    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', counts: { ffa: 5, tdm: 5, sandbox: 5 },
+      sandbox: { teams: false, infAmmo: true, god: false, lowGrav: false, oneShot: false, headshots: false, knife: false, passive: false } },
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0 },
     best: { ffa: 0, tdm: 0, survival: { easy: 0, normal: 0, hard: 0 }, wave: 0 },

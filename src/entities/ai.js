@@ -14,6 +14,8 @@ import { tracer, enemyFlash, impact, blood } from '../engine/fx.js';
 const STYLE = {
   m4: { min: 8, max: 28, burst: [3, 6] }, mp5: { min: 3, max: 15, burst: [4, 8] }, m870: { min: 1.5, max: 7, burst: [1, 1] },
   l96: { min: 20, max: 70, burst: [1, 1] }, usp: { min: 4, max: 16, burst: [1, 3] },
+  ak47: { min: 8, max: 26, burst: [3, 5] }, m249: { min: 6, max: 30, burst: [6, 12] }, spas12: { min: 1.5, max: 8, burst: [2, 3] },
+  barrett: { min: 25, max: 80, burst: [1, 1] }, deagle: { min: 4, max: 18, burst: [1, 2] }, knife: { min: 0, max: 1.4, burst: [1, 1] },
 };
 const TYPES = {
   soldier: { hp: 100, speed: 1, aggro: 0, acc: 1, dmg: 1 },
@@ -31,7 +33,7 @@ export function createBot(o) {
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {
-    type: o.type || 'soldier', T: type, weapon: o.weapon, style: STYLE[o.weapon], magMax: w.mag, mag: w.mag, reloadUntil: 0,
+    type: o.type || 'soldier', T: type, weapon: o.weapon, scoped: !!w.scope, melee: !!w.melee, style: STYLE[o.weapon], magMax: w.mag, mag: w.mag, reloadUntil: 0,
     state: 'patrol', path: null, pathI: 0, goal: null, repathAt: 0, thinkAt: rand(0, 0.3), target: null, visible: false,
     lastSeen: -99, lastKnown: null, reactAt: 0, trackStart: 0, burst: 0, nextShot: 0, pauseUntil: 0,
     strafeDir: chance(0.5) ? 1 : -1, strafeSwitch: 0, cover: null, coverUntil: 0, peekUntil: 0, wantCover: false,
@@ -39,7 +41,7 @@ export function createBot(o) {
     wantCrouch: false, crouchUntil: 0, aimStart: 0, hunt: false, desiredYaw: 0, vx: 0, vz: 0, flankUntil: 0,
     onDamaged: onDamaged,
   };
-  if (o.weapon === 'l96') {
+  if (w.scope) {
     u.laser = new THREE.Line(laserGeo(), new THREE.LineBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.55, depthWrite: false }));
     u.laser.visible = false; u.laser.frustumCulled = false; G.scene.add(u.laser);
   }
@@ -123,7 +125,7 @@ function think(u, cfg) {
     const vis = losClear(u.x, eye, u.z, t.x, t.y + t.h - 0.17, t.z) || losClear(u.x, eye, u.z, t.x, t.y + t.h * 0.5, t.z);
     if (!vis) continue;
     let s = 60 - d;
-    if (t.isPlayer) s += mode === 'survival' ? 25 : mode === 'tdm' ? 4 : cfg.playerBias;
+    if (t.isPlayer) s += mode === 'survival' ? 25 : G.match.teams ? 4 : cfg.playerBias;
     if (t === b.target) s += 14;
     if (hitBy) s += 25;
     if (t.health < 40) s += 6;
@@ -171,7 +173,7 @@ function think(u, cfg) {
   const prev = b.state;
   if (b.evade) b.state = 'evade';
   else if (b.target && b.visible) {
-    if ((b.wantCover || (u.health < 40 && !b.T.noCover) || (G.now < b.reloadUntil && Math.hypot(b.target.x - u.x, b.target.z - u.z) < 18)) && prev !== 'cover') {
+    if (!b.melee && (b.wantCover || (u.health < 40 && !b.T.noCover) || (G.now < b.reloadUntil && Math.hypot(b.target.x - u.x, b.target.z - u.z) < 18)) && prev !== 'cover') {
       const c = findCover(u, b.target);
       b.wantCover = false;
       if (c) { b.cover = c; b.coverUntil = G.now + rand(1.6, 3.2); b.state = 'cover'; setGoal(u, c.x, c.y, c.z, true); }
@@ -191,7 +193,7 @@ function think(u, cfg) {
 
   if (b.state === 'patrol' && (!b.goal || !b.path || b.pathI >= b.path.length || prev !== 'patrol')) {
     let n;
-    if (mode === 'tdm' && chance(0.6)) {
+    if (G.match.teams && chance(0.6)) {
       // drift toward the enemy side so the squads actually meet
       const es = G.world.spawns.teams[1 - u.team]; const s = es[randInt(0, es.length - 1)];
       n = nearestNode(s[0] * 0.6, 0, s[1] * 0.6) || randomNode();
@@ -213,12 +215,12 @@ function think(u, cfg) {
     if (Math.hypot(b.investigate.x - u.x, b.investigate.z - u.z) < 2.5) b.investigate.until = Math.min(b.investigate.until, G.now + 2);
   } else if (b.state === 'engage') {
     const t = b.target, d = Math.hypot(t.x - u.x, t.z - u.z), st = b.style;
-    if (d > st.max || b.T.aggro >= 1) setGoal(u, t.x, t.y, t.z);
+    if (d > st.max || b.T.aggro >= 1 || b.melee) setGoal(u, t.x, t.y, t.z);
     else b.path = null;
     if (G.now > b.strafeSwitch) { b.strafeSwitch = G.now + rand(0.5, 1.6); if (chance(0.55)) b.strafeDir *= -1; }
     if (G.now > b.crouchUntil) {
       b.crouchUntil = G.now + rand(0.8, 2.2);
-      b.wantCrouch = b.weapon === 'l96' ? chance(0.7) : chance(cfg.aggro * 0.3) && d > 8;
+      b.wantCrouch = b.scoped ? chance(0.7) : chance(cfg.aggro * 0.3) && d > 8;
     }
   }
   // stuck detection
@@ -249,14 +251,14 @@ function fire(u, cfg) {
   const b = u.brain, t = b.target, w = WEAPONS[b.weapon];
   const my = u.y + (u.crouch ? 0.98 : 1.38);
   const mx = u.x - Math.sin(u.yaw) * 0.72 + Math.cos(u.yaw) * 0.08, mz = u.z - Math.cos(u.yaw) * 0.72 - Math.sin(u.yaw) * 0.08;
-  const head = chance(cfg.headChance * (b.weapon === 'l96' ? 2 : 1));
+  const head = chance(cfg.headChance * (b.scoped ? 2 : 1));
   const ax = t.x, ay = t.y + (head ? t.h - 0.17 : t.h * 0.6), az = t.z;
   let dx = ax - mx, dy = ay - my, dz = az - mz; const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
   const settle = clamp((G.now - b.trackStart) / cfg.settle, 0, 1);
   let err = cfg.aimErr * (2.4 - 1.6 * settle);
   err += (t.moveSpeed || 0) * 0.0068 * (1 - 0.4 * settle);
   if (u.moveSpeed > 1) err += 0.012;
-  err += (b.weapon === 'l96' ? 0.002 : w.spread.hip * 0.3);
+  err += (b.scoped ? 0.002 : w.spread.hip * 0.3);
   err *= b.T.acc;
   if (G.match.mode === 'survival') err *= Math.max(0.7, 1 - (G.match.wave - 1) * 0.03);
   const dir = { x: 0, y: 0, z: 0 };
@@ -285,14 +287,14 @@ function fire(u, cfg) {
       const md = Math.hypot(cx, cy, cz);
       if (md < 1.4 && md > 0.25 && k === 0) play('whiz', { x: mx + dir.x * tt, y: my + dir.y * tt, z: mz + dir.z * tt }, { gain: 0.9 });
     }
-    if (k === 0 || chance(0.3)) tracer(mx, my, mz, mx + dir.x * end, my + dir.y * end, mz + dir.z * end, 0xffb46a, b.weapon === 'l96' ? 560 : 300);
+    if (k === 0 || chance(0.3)) tracer(mx, my, mz, mx + dir.x * end, my + dir.y * end, mz + dir.z * end, 0xffb46a, b.scoped ? 560 : 300);
     anyEnd = end;
   }
   enemyFlash(mx, my, mz);
   play(w.sound, { x: mx, y: my, z: mz }, { occlude: true, gain: 0.9 });
   noise(u.x, my, u.z, w.noise, u);
   b.mag--;
-  if (b.mag <= 0) { b.reloadUntil = G.now + (w.pump ? 2.6 : w.reload * 1.1); b.burst = 0; play('magOut', { x: u.x, y: my, z: u.z }, { gain: 0.5 }); }
+  if (b.mag <= 0) { b.reloadUntil = G.now + (w.shells ? 2.6 : w.reload * 1.1); b.burst = 0; play('magOut', { x: u.x, y: my, z: u.z }, { gain: 0.5 }); }
   return anyEnd;
 }
 
@@ -316,11 +318,11 @@ export function updateBots(dt) {
     } else if (b.state === 'engage' && t) {
       const d = Math.hypot(t.x - u.x, t.z - u.z), st = b.style;
       const tx = (t.x - u.x) / (d || 1), tz = (t.z - u.z) / (d || 1);
-      if (b.path && (d > st.max || b.T.aggro >= 1)) { const fp = followPath(u); if (fp) { mvx = fp[0]; mvz = fp[1]; } speed = baseSpeed * (b.T.aggro >= 1 ? 0.95 : 0.75); }
-      else if (d < st.min && b.weapon !== 'm870') { mvx = -tx; mvz = -tz; speed = baseSpeed * 0.55; }
-      if (b.weapon !== 'l96' || !b.wantCrouch) { mvx += -tz * b.strafeDir * 0.8; mvz += tx * b.strafeDir * 0.8; }
+      if (b.path && (d > st.max || b.T.aggro >= 1 || b.melee)) { const fp = followPath(u); if (fp) { mvx = fp[0]; mvz = fp[1]; } speed = baseSpeed * (b.T.aggro >= 1 ? 0.95 : 0.75); }
+      else if (d < st.min && WEAPONS[b.weapon].pellets <= 1) { mvx = -tx; mvz = -tz; speed = baseSpeed * 0.55; }
+      if (!b.melee && (!b.scoped || !b.wantCrouch)) { mvx += -tz * b.strafeDir * 0.8; mvz += tx * b.strafeDir * 0.8; }
       const l = Math.hypot(mvx, mvz); if (l > 1e-3) { mvx /= l; mvz /= l; }
-      speed = Math.min(speed, baseSpeed * 0.7);
+      if (!b.melee) speed = Math.min(speed, baseSpeed * 0.7); else if (!b.path || d < 3) { mvx = tx; mvz = tz; speed = baseSpeed * 1.1; }
     } else if (b.state === 'cover' && b.cover) {
       const fp = followPath(u);
       if (fp && fp[2] > 0.5) { mvx = fp[0]; mvz = fp[1]; speed = baseSpeed * 1.05; b.wantCrouch = false; }
@@ -356,11 +358,17 @@ export function updateBots(dt) {
     u.yaw += Math.sign(dyaw) * Math.min(Math.abs(dyaw), turn * dt);
     // ---- shooting ----
     const facing = Math.abs(dyaw) < 0.3;
-    const canShoot = aiming && G.now >= b.reactAt && facing && !b.reloadUntil && !(b.state === 'cover' && u.crouch && b.cover && b.wantCrouch) && G.state === 'playing';
+    const canShoot = aiming && G.now >= b.reactAt && facing && !b.reloadUntil && !(b.state === 'cover' && u.crouch && b.cover && b.wantCrouch) && G.state === 'playing' && !(G.match.rules && G.match.rules.passive);
     if (u.laser) u.laser.visible = false;
     if (canShoot) {
       const w = WEAPONS[b.weapon];
-      if (b.weapon === 'l96') {
+      if (b.melee) {
+        if (Math.hypot(t.x - u.x, t.z - u.z) < 1.9 && Math.abs(t.y - u.y) < 1.3 && G.now >= b.nextShot) {
+          b.nextShot = G.now + 0.75;
+          play('knife', { x: u.x, y: u.y + 1.4, z: u.z }, { gain: 0.8 });
+          damage(t, WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 });
+        }
+      } else if (b.scoped) {
         if (!b.aimStart) b.aimStart = G.now;
         const need = 0.9 * cfg.sniperAim;
         const my = u.y + (u.crouch ? 0.98 : 1.38);
@@ -373,7 +381,7 @@ export function updateBots(dt) {
         if (G.now >= b.nextShot) {
           fire(u, cfg); b.burst--;
           b.nextShot = G.now + w.rate * rand(1.05, 1.35) * (w.auto ? 1 : 1.6);
-          if (b.burst <= 0) b.pauseUntil = G.now + rand(cfg.burstGap[0], cfg.burstGap[1]) * (w.pump ? 0.6 : 1);
+          if (b.burst <= 0) b.pauseUntil = G.now + rand(cfg.burstGap[0], cfg.burstGap[1]) * (w.shells ? 0.6 : 1);
         }
       }
     } else if (!aiming) b.aimStart = 0;

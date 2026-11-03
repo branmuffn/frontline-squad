@@ -7,6 +7,7 @@ import { moveBody, updateVertical, canStand, rayWorld, rayUnits, supportHeight }
 import { makeUnit, damage, isEnemy, noise, kill } from './units.js';
 import { updateViewmodel, vmFire, vmLand, ejectShell, vmModel } from './viewmodel.js';
 import { throwGrenade, explode } from './grenades.js';
+import { fireRocket } from './projectiles.js';
 import { play, setListener } from '../engine/audio.js';
 import { tracer, impact, blood, muzzleSmoke } from '../engine/fx.js';
 import * as hud from '../ui/hud.js';
@@ -17,7 +18,7 @@ let P = null;
 export function createPlayer(team) {
   P = makeUnit({ name: 'YOU', isPlayer: true, team });
   Object.assign(P, {
-    weapons: [G.profile.loadout.primary, 'usp', 'knife'], slot: 0, lastSlot: 1, ammo: {},
+    weapons: [G.profile.loadout.primary, G.profile.loadout.secondary || 'usp', 'knife'], slot: 0, lastSlot: 1, ammo: {},
     nextFire: 0, semiReady: true, bloom: 0, recoilP: 0, recoilY: 0, adsT: 0, sprintT: 0, sprinting: false,
     switchStart: -10, switchDur: 0.01, reloadStart: -1, reloadEnd: 0, reloadKind: 'mag', shellNext: 0, reloadSfx: 0,
     pumpStart: -1, boltStart: -1, adsBlockUntil: 0, meleeStart: -1, meleeHeavy: false, meleeHitAt: -1,
@@ -44,7 +45,8 @@ export function spawnPlayer(x, y, z, yaw) {
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
     pumpStart: -1, boltStart: -1, grenades: GRENADE.perLife, protectUntil: G.now + 2.2, streak: 0, eye: PHYS.eyeStand, semiReady: true,
   });
-  P.weapons[0] = G.profile.loadout.primary;
+  const lo = (G.match && G.match.loadout) || G.profile.loadout;
+  P.weapons = G.match && G.match.rules && G.match.rules.knife ? ['knife', 'knife', 'knife'] : [lo.primary, lo.secondary || 'usp', 'knife'];
   refillAmmo();
   P.switchStart = G.now; P.switchDur = WEAPONS[cur()].draw;
   P.damagers.clear();
@@ -62,6 +64,15 @@ function switchTo(slot) {
   hud.setWeapon(P);
 }
 export function selectSlot(slot) { switchTo(slot); }
+// Sandbox weapon menu: put any weapon in its slot and draw it
+export function equipWeapon(id) {
+  const w = WEAPONS[id], slot = w.slot === 1 ? 1 : 0;
+  P.weapons[slot] = id; P.ammo[id] = { mag: w.mag, res: w.reserve };
+  if (G.match.loadout) G.match.loadout[slot ? 'secondary' : 'primary'] = id;
+  P.lastSlot = P.slot; P.slot = slot; P.reloadStart = -1; P.meleeStart = -1; P.bloom = 0;
+  P.switchStart = G.now; P.switchDur = w.draw;
+  play('switch'); hud.setWeapon(P);
+}
 export function swapLast() { switchTo(P.lastSlot); }
 export function cycleWeapon(dir) { switchTo((P.slot + (dir > 0 ? 1 : 2)) % 3); }
 
@@ -69,7 +80,7 @@ export function startReload() {
   const id = cur(), w = WEAPONS[id], a = P.ammo[id];
   if (w.melee || reloading() || !a || a.mag >= w.mag || a.res <= 0 || !raised() || P.meleeStart >= 0) return;
   P.reloadStart = G.now; P.reloadSfx = 0;
-  if (w.pump) { P.reloadKind = 'shell'; P.shellNext = G.now + w.reloadStart + w.shellReload; }
+  if (w.shells) { P.reloadKind = 'shell'; P.shellNext = G.now + w.reloadStart + w.shellReload; }
   else { P.reloadKind = 'mag'; P.reloadEnd = G.now + (a.mag === 0 ? w.reloadEmpty : w.reload); }
   P.adsT = Math.min(P.adsT, 0.5);
 }
@@ -121,18 +132,23 @@ function fireOnce() {
     if (a.res > 0) startReload(); else hud.notice('Out of ammo. Switch weapons or find an ammo crate.');
     return false;
   }
-  a.mag--;
+  const inf = G.match.rules && G.match.rules.infAmmo;
+  if (!inf) a.mag--;
   G.match.stats.shots++;
   P.lastShotAt = G.now; P.protectUntil = 0;
   const moving = Math.min(1, P.moveSpeed / 6);
-  const adsF = id === 'l96' ? (P.adsT > 0.95 ? 1 : 0) : P.adsT;
+  const adsF = w.scope ? (P.adsT > 0.95 ? 1 : 0) : P.adsT;
   let spread = lerp(w.spread.hip, w.spread.ads, adsF) + moving * w.spread.move * (1 - adsF * 0.5) + (P.grounded ? 0 : w.spread.air) + P.bloom;
   if (P.crouch) spread *= 0.75;
   aimDir(_d);
   const o = cam(), [mx, my, mz] = muzzleWorld();
   let anyHit = false, hitHead = false;
   const dir = { x: 0, y: 0, z: 0 };
-  for (let k = 0; k < w.pellets; k++) {
+  if (w.projectile) {
+    coneDir(_d.x, _d.y, _d.z, spread, dir);
+    fireRocket(P, o.x + dir.x * 0.8, o.y + dir.y * 0.8 - 0.05, o.z + dir.z * 0.8, dir.x, dir.y, dir.z);
+  }
+  for (let k = 0; k < (w.projectile ? 0 : w.pellets); k++) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
     const wh = rayWorld(o.x, o.y, o.z, dir.x, dir.y, dir.z, w.range);
     const uh = rayUnits(o.x, o.y, o.z, dir.x, dir.y, dir.z, wh ? wh.t : w.range, (u) => !isEnemy(P, u));
@@ -150,7 +166,7 @@ function fireOnce() {
       impact(ex, ey, ez, wh.nx, wh.ny, wh.nz, wh.mat);
       if (k < 3) play(wh.mat === 'metal' ? 'impactMetal' : wh.mat === 'wood' ? 'impactWood' : wh.mat === 'sand' || wh.mat === 'ground' ? 'impactSoft' : 'impact', { x: ex, y: ey, z: ez }, { gain: 0.5 });
     } else { ex = o.x + dir.x * w.range; ey = o.y + dir.y * w.range; ez = o.z + dir.z * w.range; }
-    if (Math.random() < w.tracer) tracer(mx, my, mz, ex, ey, ez, 0xffe0a0, id === 'l96' ? 600 : 360);
+    if (Math.random() < w.tracer) tracer(mx, my, mz, ex, ey, ez, 0xffe0a0, w.scope ? 600 : 360);
   }
   if (anyHit) G.match.stats.hits++;
   if (hitHead) G.match.stats.headHits++;
@@ -161,9 +177,10 @@ function fireOnce() {
   P.recoilY += (Math.random() * 2 - 1) * r.h * rm + r.drift;
   P.bloom = Math.min(w.spread.bloomMax, P.bloom + w.spread.bloom);
   vmFire(id);
-  G.muzzleLight.position.set(mx, my, mz); G.muzzleLight.intensity = id === 'm870' || id === 'l96' ? 3 : 2;
+  const big = w.pellets > 1 || w.scope || w.heavy;
+  G.muzzleLight.position.set(mx, my, mz); G.muzzleLight.intensity = big ? 3 : 2;
   if (Math.random() < 0.3) muzzleSmoke(mx, my, mz);
-  G.shake = Math.min(0.03, (G.shake || 0) + (id === 'm870' || id === 'l96' ? 0.012 : 0.0025));
+  G.shake = Math.min(0.03, (G.shake || 0) + (big ? 0.012 : 0.0025));
   play(w.sound, null, { important: true, send: 0.25 });
   noise(P.x, P.y + 1.5, P.z, w.noise, P);
   if (w.pump) P.pumpStart = G.now + 0.14;
@@ -226,7 +243,7 @@ export function grenadePress() {
 export function grenadeRelease() {
   if (!P || P.cookStart < 0 || !P.alive) return;
   const held = G.now - P.cookStart;
-  P.cookStart = -1; P.grenades--; P.throwStart = G.now;
+  P.cookStart = -1; if (!(G.match.rules && G.match.rules.infAmmo)) P.grenades--; P.throwStart = G.now;
   aimDir(_d);
   const o = cam(), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   throwGrenade(P, o.x + _d.x * 0.4 - rx * 0.15, o.y + _d.y * 0.4 - 0.05, o.z + _d.z * 0.4 - rz * 0.15,
@@ -357,7 +374,7 @@ export function updatePlayer(dt) {
 
   const reloadP = reloading() ? (P.reloadKind === 'shell' ? 0.25 : (G.now - P.reloadStart) / (P.reloadEnd - P.reloadStart)) : -1;
   updateViewmodel(dt, {
-    weapon: id, visible: !(w.scope && P.adsT > 0.9), adsT: P.adsT, sprintT: P.sprintT, bob: P.bob, bobAmp: amp, mdx, mdy,
+    weapon: id, visible: !(w.scope && P.adsT > 0.9), loaded: !P.ammo[id] || P.ammo[id].mag > 0, adsT: P.adsT, sprintT: P.sprintT, bob: P.bob, bobAmp: amp, mdx, mdy,
     reload: reloadP, switchT: clamp((G.now - P.switchStart) / P.switchDur, 0, 1),
     melee: P.meleeStart >= 0 ? clamp((G.now - P.meleeStart) / (P.meleeHeavy ? 0.6 : 0.38), 0, 1) : -1, meleeHeavy: P.meleeHeavy,
     throwT: P.throwStart >= 0 ? (G.now - P.throwStart) / 0.45 : -1, cooking: P.cookStart >= 0, crouchT: P.crouchT,

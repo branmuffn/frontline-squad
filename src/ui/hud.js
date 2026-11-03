@@ -43,11 +43,11 @@ export function startMatch() {
   bannerQ = []; bannerUntil = 0; deathInfo = null;
   $('death').classList.add('hidden'); $('board').classList.add('hidden'); boardOpen = false;
   $('banner').classList.remove('show');
-  const lim = m.mode === 'tdm' ? `First team to ${m.scoreLimit}` : m.mode === 'ffa' ? `First to ${m.scoreLimit}` : 'Three lives';
-  $('score').className = 'score mode-' + m.mode;
+  const lim = m.mode === 'sandbox' ? 'Sandbox · press B for weapons' : m.mode === 'tdm' ? `First team to ${m.scoreLimit}` : m.mode === 'ffa' ? `First to ${m.scoreLimit}` : 'Three lives';
+  $('score').className = 'score mode-' + (m.teams ? 'tdm' : m.mode === 'survival' ? 'survival' : 'ffa');
   $('score').innerHTML = m.mode === 'survival'
     ? `<div class="sc-side"><small>Points</small><b id="scA">0</b></div><div class="sc-mid"><small>Wave</small><b id="scT">1</b></div><div class="sc-side"><small>Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`
-    : `<div class="sc-side a"><small id="scAn">${m.mode === 'tdm' ? TEAMS[0].name : 'You'}</small><b id="scA">0</b></div><div class="sc-mid"><b id="scT">--:--</b></div><div class="sc-side b"><small id="scBn">${m.mode === 'tdm' ? TEAMS[1].name : 'Leader'}</small><b id="scB">0</b></div><div class="sc-sub" id="scSub">${lim}</div>`;
+    : `<div class="sc-side a"><small id="scAn">${m.teams ? TEAMS[0].name : 'You'}</small><b id="scA">0</b></div><div class="sc-mid"><b id="scT">--:--</b></div><div class="sc-side b"><small id="scBn">${m.teams ? TEAMS[1].name : 'Leader'}</small><b id="scB">0</b></div><div class="sc-sub" id="scSub">${lim}</div>`;
   $('mapLabel').textContent = `${G.world.def.name} · ${MODES[m.mode].name}`;
   setStreaks(0, []);
   scoreChanged();
@@ -56,12 +56,12 @@ export function endMatch() { $('hud').classList.remove('active'); $('scope').cla
 
 export function scoreChanged() {
   const m = G.match, P = G.player; if (!m || !P) return;
-  if (m.mode === 'ffa') {
+  if (!m.teams && m.mode !== 'survival') {
     const others = G.units.filter((u) => u !== P).sort((a, b) => b.kills - a.kills);
     const lead = others[0];
     set('scA', 'text', String(P.kills));
     if (lead) { set('scB', 'text', String(lead.kills)); set('scBn', 'text', P.kills >= lead.kills ? `Next: ${lead.name}` : `Leader: ${lead.name}`); }
-  } else if (m.mode === 'tdm') { set('scA', 'text', String(m.teamScores[0])); set('scB', 'text', String(m.teamScores[1])); }
+  } else if (m.teams) { set('scA', 'text', String(m.teamScores[0])); set('scB', 'text', String(m.teamScores[1])); }
   else {
     set('scA', 'text', m.points.toLocaleString()); set('scT', 'text', String(Math.max(1, m.wave)));
     set('scSub', 'html', 'Lives ' + Array.from({ length: Math.max(m.lives, 0) }, () => '<i class="life"></i>').join(''));
@@ -140,8 +140,8 @@ function drawBoard() {
   const m = G.match, P = G.player; if (!m) return;
   const row = (u) => `<tr class="${u === P ? 'me' : ''}${u.alive ? '' : ' dead'}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists}</td><td>${u.streak}</td></tr>`;
   const head = '<tr><th>Operator</th><th>K</th><th>D</th><th>A</th><th>Streak</th></tr>';
-  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : fmtTime(m.time)}</span></div>`;
-  if (m.mode === 'tdm') {
+  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.def.time ? fmtTime(m.time) : ''}</span></div>`;
+  if (m.teams) {
     for (const t of [0, 1]) {
       const us = G.units.filter((u) => u.team === t).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
       html += `<div class="board-team t${t}"><div class="bt-name">${TEAMS[t].name}<b>${m.teamScores[t]}</b></div><table>${head}${us.map(row).join('')}</table></div>`;
@@ -164,7 +164,7 @@ export function updatePlayerHud(P, o) {
   setAmmo(P);
   const scoped = !!(w.scope && P.adsT > 0.9);
   $('scope').classList.toggle('on', scoped);
-  const hideCh = (P.adsT > 0.55 && !w.melee && w.id !== 'm870') || (w.id === 'l96' && P.adsT < 0.9) || P.sprintT > 0.6;
+  const hideCh = (P.adsT > 0.55 && !w.melee && !(w.pellets > 1)) || (w.scope && P.adsT < 0.9) || P.sprintT > 0.6;
   const fovRad = THREE.MathUtils.degToRad(G.camera.fov);
   const gap = clamp(o.spread * (window.innerHeight / 2) / Math.tan(fovRad / 2), 3, 120);
   set('crosshair', 'opacity', hideCh || w.melee ? (w.melee && !P.sprinting ? '1' : '0') : '1');
@@ -180,9 +180,9 @@ export function updatePlayerHud(P, o) {
 export function updateHud(dt) {
   const m = G.match, P = G.player; if (!m || !P) return;
   const rt = G.realTime;
-  if (m.mode !== 'survival') set('scT', 'text', fmtTime(m.time));
+  if (m.mode !== 'survival') set('scT', 'text', m.def.time ? fmtTime(m.time) : '∞');
   else { set('scB', 'text', String(m.remaining ?? 0)); if (m.waveState === 'intermission') set('scSub', 'html', `Next wave in ${Math.ceil(m.nextWaveAt - G.now)} · Lives ${m.lives}`); else if (rt > (cache.svT || 0)) { cache.svT = rt + 0.5; scoreChanged(); } }
-  if (m.mode === 'tdm' || m.mode === 'ffa') { if (rt > (cache.scT2 || 0)) { cache.scT2 = rt + 0.4; scoreChanged(); } }
+  if (m.mode !== 'survival') { if (rt > (cache.scT2 || 0)) { cache.scT2 = rt + 0.4; scoreChanged(); } }
   // timers
   if (rt > hitUntil) $('hitmarker').className = '';
   if (rt > noticeUntil) $('notice').classList.remove('show');
@@ -225,7 +225,7 @@ function updateTags() {
   const P = G.player, m = G.match, cam = G.camera;
   let ti = 0;
   const W = window.innerWidth, H = window.innerHeight;
-  if (m.mode === 'tdm') for (const u of G.bots) {
+  if (m.teams) for (const u of G.bots) {
     if (ti >= tags.length) break;
     if (!u.alive || u.team !== P.team) continue;
     _v.set(u.x, u.y + u.h + 0.35, u.z).project(cam);

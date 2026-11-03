@@ -59,6 +59,10 @@ const GUN = {
   shotgun: [0.6, [900, 300, 0.3, 1.0], [90, 35, 0.25, 1.0], [700, 120, 0.6, 0.4]],
   sniper: [0.8, [1100, 350, 0.4, 1.0], [70, 28, 0.35, 1.0], [600, 90, 0.9, 0.45]],
   pistol: [0.5, [2200, 1000, 0.12, 0.75], [200, 70, 0.08, 0.5], [1200, 300, 0.25, 0.16]],
+  ak: [0.55, [1200, 500, 0.18, 0.95], [120, 40, 0.13, 0.8], [800, 180, 0.4, 0.3]],
+  lmg: [0.5, [1500, 650, 0.15, 0.85], [130, 45, 0.11, 0.7], [900, 200, 0.35, 0.25]],
+  deagle: [0.65, [1700, 700, 0.18, 0.95], [150, 50, 0.12, 0.75], [900, 220, 0.4, 0.3]],
+  barrett: [1.0, [900, 250, 0.5, 1.1], [60, 24, 0.45, 1.2], [500, 70, 1.2, 0.55]],
 };
 function gun(d, t, kind) {
   const [crack, body, thump, tail] = GUN[kind];
@@ -70,6 +74,8 @@ function gun(d, t, kind) {
 const click = (d, t, f = 600, g = 0.14) => { tone(d, t, 0.03, { type: 'square', f0: f, gain: g * 0.6 }); noise(d, t, 0.05, { type: 'highpass', f0: 3000, gain: g }); };
 
 const RECIPES = {
+  ak: (d, t) => gun(d, t, 'ak'), lmg: (d, t) => gun(d, t, 'lmg'), deagle: (d, t) => gun(d, t, 'deagle'), barrett: (d, t) => gun(d, t, 'barrett'),
+  rpg: (d, t) => { noise(d, t, 0.6, { type: 'bandpass', f0: 400, f1: 1800, q: 0.7, gain: 0.9, attack: 0.02 }); tone(d, t, 0.3, { f0: 90, f1: 40, gain: 0.6 }); noise(d, t + 0.05, 0.9, { type: 'highpass', f0: 2500, gain: 0.15, attack: 0.1 }); },
   rifle: (d, t) => gun(d, t, 'rifle'), smg: (d, t) => gun(d, t, 'smg'), pistol: (d, t) => gun(d, t, 'pistol'),
   shotgun: (d, t) => { gun(d, t, 'shotgun'); click(d, t + 0.38, 520); click(d, t + 0.55, 760); },
   sniper: (d, t) => { gun(d, t, 'sniper'); click(d, t + 0.5, 700); click(d, t + 0.72, 520); },

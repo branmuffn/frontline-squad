@@ -31,6 +31,7 @@
       <div class="field"><span class="flabel">Difficulty</span><div id="diffSel" class="seg"></div></div>
       <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
     </div>
+    <div class="field hidden" id="sandboxOpts"><span class="flabel">Sandbox rules</span><div id="ruleSel" class="chips"></div></div>
     <button id="deploy" class="btn-primary deploy" type="button">Deploy</button>
     <p id="bestLine" class="best"></p>
     <nav class="menu-nav">
@@ -47,6 +48,8 @@
     <h2>Loadout</h2>
     <p class="lede">Pick your primary. You always carry a USP .45, a knife and two frag grenades.</p>
     <div id="weaponList" class="weapons"></div>
+    <h3>Sidearm</h3>
+    <div id="pistolList" class="pistols"></div>
     <h3>Weapon camo</h3>
     <p class="lede small">New finishes unlock as you rank up.</p>
     <div id="camoList" class="camos"></div>
@@ -100,11 +103,24 @@
       <div><kbd>G</kbd><span>Frag grenade, hold to cook</span></div>
       <div><kbd>F</kbd><span>Deploy killstreak</span></div>
       <div><kbd>Tab</kbd><span>Scoreboard</span></div>
+      <div><kbd>B</kbd><span>Weapon menu (Sandbox)</span></div>
+      <div><kbd>E</kbd><span>Pick up a dropped weapon</span></div>
       <div><kbd>Esc</kbd><span>Pause</span></div>
     </div>
     <p class="lede small">These are the defaults. Change any key in Settings. Arrow keys also turn the camera.</p>
     <p class="lede small">Killstreaks: 3 kills earns a Recon UAV, 5 a mortar strike, 7 a sentry gun. Knife an enemy from behind for an instant kill.</p>
     <div class="btn-row"><button id="controlsDone" class="btn-primary" type="button">Done</button></div>
+  </div>
+</section>
+
+<section id="armory" class="screen hidden">
+  <div class="panel wide">
+    <h2>Weapon menu</h2>
+    <p class="lede small">Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.</p>
+    <h3>Primary</h3><div id="armPrimary" class="arm-grid"></div>
+    <h3>Sidearm</h3><div id="armSecondary" class="arm-grid"></div>
+    <h3>Killstreaks and supplies</h3><div id="armExtras" class="arm-grid"></div>
+    <div class="btn-row"><button id="armClose" class="btn-primary" type="button">Back to the fight</button></div>
   </div>
 </section>
 

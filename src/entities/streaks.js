@@ -34,6 +34,12 @@ export function checkStreak(n) {
   hud.setStreaks(n, streakState.ready);
 }
 
+export function grantStreak(id) {
+  if (id === 'uav') { streakState.uavUntil = G.now + STREAKS[0].duration; hud.banner('RECON UAV', 'Enemy positions on your radar'); play('radio'); }
+  else if (!streakState.ready.includes(id)) streakState.ready.push(id);
+  hud.setStreaks(G.player ? G.player.streak : 0, streakState.ready);
+}
+
 export function useStreak() {
   const p = G.player;
   if (!p || !p.alive || G.state !== 'playing' || !streakState.ready.length) { play('deny'); return; }

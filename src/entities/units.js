@@ -29,6 +29,12 @@ export function damage(victim, amount, attacker, info = {}) {
   if (!victim.alive || !(G.state === 'playing' || G.state === 'dead' || G.state === 'intermission')) return 0;
   if (attacker && attacker !== victim && !isEnemy(attacker, victim)) return 0;
   if (victim.protectUntil > G.now && attacker !== victim) return 0;
+  const R = G.match && G.match.rules;
+  if (R) {
+    if (R.god && victim.isPlayer) return 0;
+    if (R.headshots && attacker && attacker !== victim && !info.headshot && !info.melee) return 0;
+    if (R.oneShot && attacker && attacker !== victim) amount = victim.health + 1;
+  }
   let dmg = amount;
   if (attacker === victim) dmg *= 0.6;
   dmg = Math.min(dmg, victim.health + 200);

@@ -1,5 +1,5 @@
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -8,7 +8,7 @@ import { rankProgress, rankFor } from '../game/progression.js';
 import { badgeSVG } from './badges.js';
 import { codeName } from './hud.js';
 
-const SCREENS = ['menu', 'loadout', 'settings', 'career', 'controls', 'pause', 'end'];
+const SCREENS = ['menu', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory'];
 let cb = null, back = 'menu';
 
 export function showScreen(id) {
@@ -58,7 +58,7 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); });
   seg($('diffSel'), Object.entries(DIFFICULTY).map(([k, d]) => ({ v: k, html: d.label })), L.difficulty, (v) => { L.difficulty = v; saveProfile(); refreshBest(); });
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
@@ -70,7 +70,14 @@ function refreshMenu() {
     });
   }
   mapSel.querySelectorAll('button').forEach((q) => q.classList.toggle('sel', q.dataset.v === L.map));
-  refreshCounts(); refreshBest();
+  refreshCounts(); refreshBest(); refreshSandbox();
+}
+function refreshSandbox() {
+  const L = G.profile.lobby;
+  $('sandboxOpts').classList.toggle('hidden', L.mode !== 'sandbox');
+  if (L.mode !== 'sandbox') return;
+  $('ruleSel').innerHTML = SANDBOX_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${L.sandbox[k] ? 'on' : ''}" aria-pressed="${!!L.sandbox[k]}">${label}</button>`).join('');
+  $('ruleSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { L.sandbox[bt.dataset.k] = !L.sandbox[bt.dataset.k]; saveProfile(); refreshSandbox(); }));
 }
 function refreshCounts() {
   const L = G.profile.lobby, m = MODES[L.mode];
@@ -83,7 +90,8 @@ function refreshCounts() {
 function refreshBest() {
   const pr = G.profile, L = pr.lobby;
   let t;
-  if (L.mode === 'survival') t = `Best on ${DIFFICULTY[L.difficulty].label.toLowerCase()}: ${(pr.best.survival[L.difficulty] || 0).toLocaleString()} points · furthest wave ${pr.best.wave}`;
+  if (L.mode === 'sandbox') t = 'Nothing in Sandbox counts toward XP or career stats.';
+  else if (L.mode === 'survival') t = `Best on ${DIFFICULTY[L.difficulty].label.toLowerCase()}: ${(pr.best.survival[L.difficulty] || 0).toLocaleString()} points · furthest wave ${pr.best.wave}`;
   else t = `Most kills in a ${L.mode === 'ffa' ? 'free-for-all' : 'team'} match: ${pr.best[L.mode]}`;
   $('bestLine').textContent = t;
 }
@@ -101,6 +109,8 @@ function refreshLoadout() {
     return `<button type="button" class="wcard ${lo.primary === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p>${bars}</button>`;
   }).join('');
   $('weaponList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.primary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
+  $('pistolList').innerHTML = SECONDARIES.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="wcard ${(lo.secondary || 'usp') === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p></button>`; }).join('');
+  $('pistolList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.secondary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
   $('camoList').innerHTML = CAMOS.map((c) => {
     const locked = rank < c.rank;
     return `<button type="button" class="camo ${lo.camo === c.id ? 'sel' : ''} ${locked ? 'locked' : ''}" data-v="${c.id}" ${locked ? 'disabled' : ''} title="${locked ? 'Unlocks at ' + esc(RANKS[c.rank].name) : esc(c.name)}"><i style="${camoStyle(c)}"></i><span>${esc(c.name)}</span>${locked ? `<small>${esc(RANKS[c.rank].name)}</small>` : ''}</button>`;
@@ -181,6 +191,18 @@ export function showEnd(r) {
   requestAnimationFrame(() => setTimeout(() => { const bar = $('endBar'); if (bar) bar.style.width = (after.pct * 100).toFixed(1) + '%'; }, 120));
 }
 
+// ---------- sandbox weapon menu ----------
+export function showArmory() {
+  const P = G.player, cur = P.weapons;
+  const btn = (id) => `<button type="button" data-w="${id}" class="${cur.includes(id) ? 'sel' : ''}"><b>${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small></button>`;
+  $('armPrimary').innerHTML = ALL_PRIMARIES.map(btn).join('');
+  $('armSecondary').innerHTML = SECONDARIES.map(btn).join('');
+  $('armExtras').innerHTML = STREAKS.map((s) => `<button type="button" data-a="${s.id}"><b>${s.name}</b><small>${esc(s.desc)}</small></button>`).join('')
+    + '<button type="button" data-a="refill"><b>REFILL AMMO</b><small>Full ammo and three grenades</small></button><button type="button" data-a="heal"><b>FULL HEALTH</b><small>Back to 100</small></button>';
+  document.querySelectorAll('#armory .arm-grid button').forEach((bt) => bt.addEventListener('click', () => cb.onArmory(bt.dataset.w ? { weapon: bt.dataset.w } : { action: bt.dataset.a })));
+  showScreen('armory');
+}
+
 // ---------- pause ----------
 export function showPause(lockError) {
   $('lockMsg').classList.toggle('hidden', !lockError);
@@ -208,5 +230,6 @@ export function initMenus(callbacks) {
   $('restart').addEventListener('click', () => cb.onRestart());
   $('quit').addEventListener('click', () => cb.onQuit());
   $('again').addEventListener('click', () => cb.onRestart());
+  $('armClose').addEventListener('click', () => cb.onArmory({ action: 'close' }));
   $('endMenu').addEventListener('click', () => cb.onQuit());
 }

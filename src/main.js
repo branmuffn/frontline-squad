@@ -7,15 +7,16 @@ import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play } from './engine/audio.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown } from './entities/player.js';
+import { updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
+import { updateRockets, rockets } from './entities/projectiles.js';
 import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
 import { updateGrenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
-import { updateStreaks, useStreak } from './entities/streaks.js';
+import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
 import { startMatch, updateMatch, abandonMatch } from './game/match.js';
 import { initHud, updateHud, toggleBoard, setFps } from './ui/hud.js';
-import { initMenus, showScreen, showPause } from './ui/menus.js';
+import { initMenus, showScreen, showPause, showArmory } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { damage } from './entities/units.js';
@@ -39,11 +40,11 @@ function boot() {
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
     onRestart: () => { if (lastCfg) deploy(lastCfg); }, onQuit: quit,
-    onMapPreview: (id) => loadMap(id), onCamo: (id) => setCamo(id), onSetting: applySetting,
+    onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -69,6 +70,23 @@ function deploy(cfg) {
   if (!input.freeLook) requestLock();
 }
 
+let armoryOpen = false;
+function openArmory() {
+  if (G.state !== 'playing' || !G.player.alive) return;
+  armoryOpen = true; G.pausedFrom = G.state; G.state = 'paused';
+  clearInput(); toggleBoard(false);
+  showArmory(); exitLock();
+}
+function onArmory(a) {
+  const P = G.player;
+  if (a.weapon) equipWeapon(a.weapon);
+  else if (a.action === 'refill') { refillAmmo(); P.grenades = 3; }
+  else if (a.action === 'heal') P.health = P.maxHealth;
+  else if (a.action && a.action !== 'close') grantStreak(a.action);
+  armoryOpen = false;
+  resume();
+}
+
 function pause(lockError) {
   if (!isLive()) return;
   G.pausedFrom = G.state; G.state = 'paused';
@@ -84,6 +102,7 @@ function resume() {
   requestLock();
 }
 function quit() {
+  armoryOpen = false;
   abandonMatch(); exitLock(); input.freeLook = false;
   showScreen('menu');
 }
@@ -106,6 +125,7 @@ function onCanvasClick() {
 function onKeyDown(code, e) {
   if (!(isLive() || G.state === 'paused')) return;
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
+  if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
   if (!isLive()) return;
   if (matches('scoreboard', code)) toggleBoard(true);
@@ -119,6 +139,7 @@ function onKeyDown(code, e) {
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
+  else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
 function onKeyUp(code) {
   if (matches('scoreboard', code)) toggleBoard(false);
@@ -140,6 +161,7 @@ function loop(t) {
       updateBots(dt);
       separateUnits();
       updateGrenades(dt);
+      updateRockets(dt);
       updatePickups(dt);
       updateStreaks(dt);
       updateHud(dt);

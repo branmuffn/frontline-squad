@@ -128,7 +128,7 @@ export function updateVertical(u, dt) {
     if (u.y - s <= 0.55) { u.y = s; u.vy = 0; return 0; }
     u.grounded = false;
   }
-  u.vy = Math.max(-40, u.vy - PHYS.gravity * dt);
+  u.vy = Math.max(-40, u.vy - PHYS.gravity * (G.gravMul || 1) * dt);
   let ny = u.y + u.vy * dt;
   if (u.vy > 0) {
     const ceil = ceiling(u.x, u.z, u.r * 0.9, u.y + u.h);
@@ -227,7 +227,8 @@ export function rayUnits(ox, oy, oz, dx, dy, dz, tmax, skip) {
       const lx = ox - cx, ly = oy - hy, lz = oz - cz;
       const b = lx * dx + ly * dy + lz * dz, c = lx * lx + ly * ly + lz * lz - hr * hr;
       const disc = b * b - c;
-      if (disc >= 0) { const t = -b - Math.sqrt(disc); if (t > 0 && t < best) { best = t; hu = u; zone = 'head'; } }
+      if (c <= 0) { if (0 < best) { best = 0; hu = u; zone = 'head'; } } // segment starts inside
+      else if (disc >= 0) { const t = -b - Math.sqrt(disc); if (t > 0 && t < best) { best = t; hu = u; zone = 'head'; } }
     }
     // body cylinder
     const r = 0.31, y0 = u.y, y1 = u.y + u.h - 0.34;
@@ -236,7 +237,8 @@ export function rayUnits(ox, oy, oz, dx, dy, dz, tmax, skip) {
     if (a > 1e-9) {
       const b = 2 * (dx * lx + dz * lz), c = lx * lx + lz * lz - r * r;
       const disc = b * b - 4 * a * c;
-      if (disc >= 0) {
+      if (c <= 0 && oy >= y0 && oy <= y1) { if (0 < best) { best = 0; hu = u; zone = (oy - u.y) < u.h * 0.46 ? 'legs' : 'body'; } }
+      else if (disc >= 0) {
         const t = (-b - Math.sqrt(disc)) / (2 * a);
         if (t > 0 && t < best) {
           const y = oy + dy * t;

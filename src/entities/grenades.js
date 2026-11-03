@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { GRENADE } from '../core/config.js';
+import { GRENADE, EXPLOSIONS } from '../core/config.js';
 import { query, losClear, supportHeight } from '../world/physics.js';
 import { damage, noise, isEnemy } from './units.js';
 import { play } from '../engine/audio.js';
@@ -31,7 +31,7 @@ export function updateGrenades(dt) {
     if (g.rest) continue;
     const steps = 4, h = dt / steps, r = 0.075;
     for (let s = 0; s < steps; s++) {
-      g.vy -= 19 * h;
+      g.vy -= 19 * (G.gravMul || 1) * h;
       const nx = g.x + g.vx * h, ny = g.y + g.vy * h, nz = g.z + g.vz * h;
       let bounced = false;
       const c = inside(nx, ny, nz, r);
@@ -61,8 +61,8 @@ export function updateGrenades(dt) {
 
 // kind: 'frag' | 'mortar'
 export function explode(x, y, z, owner, kind = 'frag') {
-  const R = kind === 'mortar' ? 8 : GRENADE.radius, maxD = kind === 'mortar' ? 170 : GRENADE.damage;
-  explosion(x, y, z, kind === 'mortar' ? 1.25 : 1);
+  const E = EXPLOSIONS[kind] || EXPLOSIONS.frag, R = E.R, maxD = E.D;
+  explosion(x, y, z, E.big);
   play('explosion', { x, y, z }, { important: true, range: 160, ref: 12 });
   noise(x, y, z, 45, owner);
   for (const u of G.units) {

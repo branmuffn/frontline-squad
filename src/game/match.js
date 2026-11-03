@@ -8,6 +8,7 @@ import { blocked, supportHeight, losClear } from '../world/physics.js';
 import { createPlayer, spawnPlayer, onPlayerDeath, refillAmmo } from '../entities/player.js';
 import { createBot, disposeBot, resetBotForSpawn } from '../entities/ai.js';
 import { clearGrenades } from '../entities/grenades.js';
+import { clearRockets } from '../entities/projectiles.js';
 import { resetPickups } from '../entities/pickups.js';
 import { resetStreaks } from '../entities/streaks.js';
 import { clearFx } from '../engine/fx.js';
@@ -18,7 +19,11 @@ import { showEnd } from '../ui/menus.js';
 
 let deployBeep = 0;
 
-function pickWeapon() { const r = Math.random(); return r < 0.45 ? 'm4' : r < 0.7 ? 'mp5' : r < 0.85 ? 'm870' : 'l96'; }
+function pickWeapon() {
+  if (G.match.rules && G.match.rules.knife) return 'knife';
+  const r = Math.random();
+  return r < 0.28 ? 'm4' : r < 0.46 ? 'ak47' : r < 0.62 ? 'mp5' : r < 0.71 ? 'm870' : r < 0.77 ? 'spas12' : r < 0.84 ? 'm249' : r < 0.94 ? 'l96' : 'barrett';
+}
 
 export function startMatch(cfg) {
   const mode = MODES[cfg.mode];
@@ -30,19 +35,25 @@ export function startMatch(cfg) {
     time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? cfg.count * 10 : mode.scoreLimit || 0,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
+    rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
   };
+  const m = G.match;
+  m.teams = cfg.mode === 'tdm' || !!(m.rules && m.rules.teams);
+  if (m.rules) m.loadout = { primary: G.profile.loadout.primary, secondary: G.profile.loadout.secondary || 'usp' };
+  G.gravMul = m.rules && m.rules.lowGrav ? 0.4 : 1;
   resetMatchXp();
   G.now = 0; G.noise.length = 0;
   const P = createPlayer(0);
   G.units = [P]; G.bots = [];
   const names = shuffle(BOT_NAMES.slice());
-  if (cfg.mode === 'ffa') {
+  if (!m.teams && cfg.mode !== 'survival') {
     for (let i = 0; i < cfg.count; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
-  } else if (cfg.mode === 'tdm') {
-    for (let i = 0; i < cfg.count - 1; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
-    for (let i = 0; i < cfg.count; i++) addBot({ name: names[cfg.count - 1 + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
+  } else if (m.teams) {
+    const allies = cfg.mode === 'tdm' ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = cfg.mode === 'tdm' ? cfg.count : cfg.count - allies;
+    for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
+    for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
-  resetPickups(); resetStreaks(); clearGrenades(); clearFx();
+  resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw);
   for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); }
   G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix();
@@ -60,14 +71,14 @@ function addBot(o) {
 export function cleanupMatch() {
   for (const b of G.bots) disposeBot(b);
   G.bots = []; G.units = G.player ? [] : [];
-  clearGrenades();
+  clearGrenades(); clearRockets();
 }
 
 // Choose the safest spawn: far from enemies, out of their sight, near friends in team modes.
 export function pickSpawn(u, opts = {}) {
   const sp = G.world.spawns, m = G.match;
   let list = sp.ffa;
-  if (m.mode === 'tdm') list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
+  if (m.teams) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
   if (m.mode === 'survival' && !u.isPlayer) list = sp.ffa.concat(sp.teams[0], sp.teams[1]);
   let best = null, bs = -1e9;
   for (const [x, z] of list) {
@@ -94,7 +105,7 @@ export function pickSpawn(u, opts = {}) {
 export function onKill(credited, victim, info) {
   const m = G.match; if (!m || m.ended) return;
   m.killsTotal++;
-  if (credited && m.mode === 'tdm') m.teamScores[credited.team]++;
+  if (credited && m.teams) m.teamScores[credited.team]++;
   if (victim.isPlayer) {
     onPlayerDeath();
     G.state = 'dead';
@@ -178,10 +189,10 @@ export function updateMatch(dt) {
     return;
   }
   m.elapsed += dt;
-  if (m.mode !== 'survival') {
+  if (m.def.time) {
     m.time -= dt;
     if (m.time <= 0) { m.time = 0; endMatch('time'); return; }
-  } else updateSurvival();
+  } else if (m.mode === 'survival') updateSurvival();
   if (m.mode !== 'survival') {
     for (const b of G.bots) {
       if (!b.alive && b.respawnAt && G.now >= b.respawnAt) { const s = pickSpawn(b); resetBotForSpawn(b, s.x, s.y, s.z, s.yaw); }

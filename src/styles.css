@@ -110,6 +110,17 @@ h3 { margin: 22px 0 4px; font-size: 20px; font-weight: 700; color: var(--ink); }
 .camo.locked { opacity: 0.45; cursor: not-allowed; }
 .camo.locked i { filter: grayscale(1) brightness(0.6); }
 
+.pistols { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)); gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: rgba(29, 36, 40, 0.8); padding: 6px 10px; font-weight: 700; font-size: 15px; }
+.chips button.on { border-color: var(--brass); background: rgba(143, 108, 44, 0.32); color: #ffe2a6; }
+.arm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.arm-grid button { border: 1px solid var(--line); background: var(--panel-2); padding: 10px; text-align: left; }
+.arm-grid button b { display: block; font-size: 18px; font-weight: 800; }
+.arm-grid button small { color: var(--ink-dim); font-size: 14px; }
+.arm-grid button.sel { border-color: var(--brass); background: rgba(143, 108, 44, 0.22); }
+.arm-grid button:hover { border-color: var(--ink-faint); }
+
 /* ---------- settings ---------- */
 .slider { display: block; margin-bottom: 12px; }
 .slider span { display: flex; justify-content: space-between; font-weight: 600; font-size: 16px; }

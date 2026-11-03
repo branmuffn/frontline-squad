@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { CAMOS } from '../core/config.js';
+import { CAMOS, WEAPONS } from '../core/config.js';
 import { damp, clamp } from '../core/util.js';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
@@ -111,7 +111,7 @@ function build() {
   const bead = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), M.brass); bead.position.set(0, 0.03, -0.71); g.add(bead);
   b(g, M.black, 0.006, 0.012, 0.03, 0, 0.048, -0.02);
   hands(g, [0, -0.08, 0.05], [0, -0.03, -0.36]);
-  models.m870 = { g, mag: null, pump, sight: new THREE.Vector3(0, 0.032, -0.71), muzzle: new THREE.Vector3(0, 0.012, -0.73), port: new THREE.Vector3(0.033, 0.01, -0.04), hip: new THREE.Vector3(0.17, -0.2, -0.36), adsDist: 0.42, shell: true };
+  models.m870 = { g, mag: null, pump, pumpAction: true, sight: new THREE.Vector3(0, 0.032, -0.71), muzzle: new THREE.Vector3(0, 0.012, -0.73), port: new THREE.Vector3(0.033, 0.01, -0.04), hip: new THREE.Vector3(0.17, -0.2, -0.36), adsDist: 0.42 };
 
   // ---- L96A1 ----
   g = new THREE.Group();
@@ -146,7 +146,82 @@ function build() {
   b(g, M.sleeve, 0.075, 0.075, 0.34, 0.06, -0.07, 0.2, -0.35, 0.3, 0);
   models.knife = { g, sight: new THREE.Vector3(0, 0, -0.1), muzzle: new THREE.Vector3(0, 0, -0.3), hip: new THREE.Vector3(0.16, -0.17, -0.34), adsDist: 0.4, melee: true };
 
-  for (const k in models) { models[k].g.visible = false; root.add(models[k].g); if (models[k].mag) models[k].magHome = models[k].mag.position.clone(); }
+
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // ---- AK-47 ----
+  g = new THREE.Group();
+  b(g, M.camo, 0.058, 0.085, 0.36, 0, 0, -0.12);
+  b(g, M.wood, 0.066, 0.07, 0.24, 0, -0.008, -0.42);
+  cyl(g, M.black, 0.011, 0.26, 0, 0.01, -0.66);
+  b(g, M.black, 0.026, 0.022, 0.2, 0, 0.045, -0.42);
+  b(g, M.black, 0.007, 0.03, 0.01, 0, 0.07, -0.62);
+  b(g, M.black, 0.007, 0.02, 0.02, -0.011, 0.068, -0.06); b(g, M.black, 0.007, 0.02, 0.02, 0.011, 0.068, -0.06);
+  b(g, M.wood, 0.05, 0.09, 0.26, 0, -0.03, 0.18, -0.1);
+  b(g, M.wood, 0.04, 0.1, 0.05, 0, -0.09, 0.0, 0.3);
+  mag = b(g, M.black, 0.045, 0.18, 0.075, 0, -0.13, -0.2, 0.35);
+  hands(g, [0, -0.09, 0.0], [0, -0.04, -0.42]);
+  models.ak47 = { g, mag, sight: V(0, 0.085, -0.62), muzzle: V(0, 0.01, -0.8), port: V(0.035, 0.015, -0.08), hip: V(0.19, -0.215, -0.4), adsDist: 0.66 };
+
+  // ---- M249 ----
+  g = new THREE.Group();
+  b(g, M.camo, 0.075, 0.11, 0.42, 0, 0, -0.1);
+  b(g, M.black, 0.07, 0.08, 0.22, 0, -0.01, -0.42);
+  cyl(g, M.black, 0.013, 0.34, 0, 0, -0.68); cyl(g, M.black, 0.018, 0.06, 0, 0, -0.86);
+  b(g, M.black, 0.055, 0.1, 0.24, 0, -0.03, 0.2);
+  b(g, M.black, 0.04, 0.1, 0.05, 0, -0.1, 0.02, 0.3);
+  mag = b(g, M.olive, 0.09, 0.11, 0.13, -0.078, -0.07, -0.14);
+  b(g, M.black, 0.012, 0.012, 0.26, 0.022, -0.05, -0.56); b(g, M.black, 0.012, 0.012, 0.26, -0.022, -0.05, -0.56);
+  sight = dotSight(g, -0.18);
+  hands(g, [0, -0.1, 0.02], [0, -0.05, -0.42]);
+  models.m249 = { g, mag, sight, muzzle: V(0, 0, -0.9), port: V(0.04, 0.02, -0.08), hip: V(0.2, -0.235, -0.42), adsDist: 0.46 };
+
+  // ---- Desert Eagle ----
+  g = new THREE.Group();
+  const dslide = b(g, M.camo, 0.042, 0.05, 0.22, 0, 0.026, -0.095);
+  b(g, M.black, 0.04, 0.035, 0.18, 0, -0.012, -0.08);
+  b(g, M.black, 0.04, 0.12, 0.058, 0, -0.07, 0.0, 0.22);
+  mag = b(g, M.dark, 0.032, 0.05, 0.045, 0, -0.13, 0.018, 0.22);
+  b(g, M.black, 0.006, 0.012, 0.006, 0, 0.057, -0.195);
+  b(g, M.black, 0.009, 0.01, 0.006, -0.01, 0.056, 0.005); b(g, M.black, 0.009, 0.01, 0.006, 0.01, 0.056, 0.005);
+  hands(g, [0, -0.065, 0.01], null, true);
+  models.deagle = { g, mag, slide: dslide, sight: V(0, 0.063, -0.195), muzzle: V(0, 0.026, -0.21), port: V(0.025, 0.035, -0.06), hip: V(0.14, -0.18, -0.38), adsDist: 0.4 };
+
+  // ---- SPAS-12 ----
+  g = new THREE.Group();
+  b(g, M.camo, 0.065, 0.1, 0.3, 0, 0, -0.06);
+  cyl(g, M.black, 0.015, 0.5, 0, 0.015, -0.45); cyl(g, M.black, 0.013, 0.42, 0, -0.03, -0.41);
+  for (let i = 0; i < 5; i++) b(g, M.black, 0.072, 0.066, 0.025, 0, -0.03, -0.28 - i * 0.04);
+  b(g, M.black, 0.014, 0.05, 0.3, 0, 0.035, 0.2); b(g, M.black, 0.014, 0.1, 0.02, 0, -0.005, 0.34);
+  b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, 0.05, 0.35);
+  const sbead = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), M.brass); sbead.position.set(0, 0.035, -0.69); g.add(sbead);
+  hands(g, [0, -0.09, 0.06], [0, -0.035, -0.36]);
+  models.spas12 = { g, mag: null, sight: V(0, 0.038, -0.69), muzzle: V(0, 0.015, -0.71), port: V(0.035, 0.02, -0.05), hip: V(0.18, -0.21, -0.38), adsDist: 0.44 };
+
+  // ---- Barrett .50 ----
+  g = new THREE.Group();
+  b(g, M.camo, 0.075, 0.11, 0.5, 0, 0, -0.05);
+  cyl(g, M.black, 0.016, 0.6, 0, 0.01, -0.6); b(g, M.black, 0.06, 0.04, 0.09, 0, 0.01, -0.93);
+  b(g, M.camo, 0.06, 0.12, 0.3, 0, -0.02, 0.3);
+  b(g, M.black, 0.045, 0.1, 0.05, 0, -0.1, 0.08, 0.3);
+  mag = b(g, M.black, 0.05, 0.1, 0.11, 0, -0.1, -0.12);
+  cyl(g, M.black, 0.024, 0.34, 0, 0.11, -0.06); cyl(g, M.black, 0.032, 0.08, 0, 0.11, -0.27); cyl(g, M.black, 0.028, 0.06, 0, 0.11, 0.12);
+  b(g, M.black, 0.012, 0.012, 0.3, 0.03, -0.07, -0.55, 0.3); b(g, M.black, 0.012, 0.012, 0.3, -0.03, -0.07, -0.55, 0.3);
+  hands(g, [0, -0.1, 0.08], [0, -0.05, -0.32]);
+  models.barrett = { g, mag, sight: V(0, 0.11, -0.06), muzzle: V(0, 0.01, -0.98), port: V(0.04, 0.02, -0.02), hip: V(0.2, -0.235, -0.4), adsDist: 0.25, scope: true };
+
+  // ---- RPG-7 ----
+  g = new THREE.Group();
+  cyl(g, M.olive, 0.034, 0.9, 0, 0.02, -0.2);
+  cyl(g, M.black, 0.045, 0.12, 0, 0.02, 0.27);
+  const warhead = new THREE.Group(); warhead.position.set(0, 0.02, -0.72); g.add(warhead);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 12), M.olive); cone.rotation.x = -Math.PI / 2; cone.position.z = -0.12; warhead.add(cone);
+  const wb = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.06, 12), M.olive); wb.rotation.x = Math.PI / 2; warhead.add(wb);
+  b(g, M.black, 0.04, 0.11, 0.05, 0, -0.07, -0.05, 0.25); b(g, M.black, 0.04, 0.1, 0.05, 0, -0.065, -0.3, 0.2);
+  b(g, M.black, 0.012, 0.05, 0.012, 0, 0.072, -0.32); b(g, M.black, 0.03, 0.03, 0.012, 0, 0.068, -0.02);
+  hands(g, [0, -0.08, -0.04], [0, -0.07, -0.3]);
+  models.rpg = { g, mag: warhead, sight: V(0, 0.097, -0.32), muzzle: V(0, 0.02, -0.86), hip: V(0.2, -0.2, -0.46), adsDist: 0.5, launcher: true };
+
+  for (const k in models) { const md = models[k]; md.g.visible = false; root.add(md.g); if (md.mag) md.magHome = md.mag.position.clone(); if (md.slide) md.slideHome = md.slide.position.z; if (md.pump) md.pumpHome = md.pump.position.z; }
 
   // grenade hand (left side, used during cook/throw)
   grenadeHand = new THREE.Group();
@@ -188,11 +263,12 @@ export function initViewmodel() {
 export function vmFire(weaponId) {
   const md = models[weaponId]; if (!md || md.melee) return;
   flash.visible = true; flash.position.copy(md.muzzle);
-  flash.rotation.z = Math.random() * 6.28; const s = weaponId === 'm870' ? 1.6 : weaponId === 'l96' ? 1.4 : weaponId === 'usp' ? 0.75 : 1;
+  const w = WEAPONS[weaponId], big = w.pellets > 1 || w.scope || w.projectile || weaponId === 'deagle';
+  flash.rotation.z = Math.random() * 6.28; const s = w.projectile ? 2.2 : big ? 1.5 : w.slot === 1 ? 0.75 : 1;
   flash.scale.setScalar(s * (0.8 + Math.random() * 0.4));
   vm.flashUntil = G.realTime + 0.045;
-  vm.kick = Math.min(1.5, vm.kick + (weaponId === 'm870' || weaponId === 'l96' ? 1.0 : weaponId === 'usp' ? 0.6 : 0.42));
-  if (md.port && !md.shell && weaponId !== 'l96') ejectShell(md);
+  vm.kick = Math.min(1.5, vm.kick + (big ? 1.0 : w.slot === 1 ? 0.6 : 0.42));
+  if (md.port && !md.pumpAction && !md.bolt) ejectShell(md);
   if (md.slide) md.slideKick = 1;
 }
 export function ejectShell(md) {
@@ -254,9 +330,10 @@ export function updateViewmodel(dt, st) {
       md.mag.position.copy(md.magHome); md.mag.position.y -= off * 0.28; md.mag.visible = off < 0.95;
     }
   } else if (md.mag) { md.mag.position.copy(md.magHome); md.mag.visible = true; }
-  if (md.pump) md.pump.position.z = -0.36 + (st.pump >= 0 ? Math.sin(Math.PI * st.pump) * 0.09 : 0);
+  if (md.pump) md.pump.position.z = md.pumpHome + (st.pump >= 0 ? Math.sin(Math.PI * st.pump) * 0.09 : 0);
+  if (md.launcher && st.reload < 0) md.mag.visible = st.loaded !== false;
   if (md.bolt) { const k = st.bolt >= 0 ? Math.sin(Math.PI * st.bolt) : 0; md.bolt.position.z = 0.06 + k * 0.09; md.bolt.rotation.z = k * 1.2; }
-  if (md.slide) { md.slideKick = damp(md.slideKick || 0, 0, 20, dt); md.slide.position.z = -0.08 + md.slideKick * 0.04; }
+  if (md.slide) { md.slideKick = damp(md.slideKick || 0, 0, 20, dt); md.slide.position.z = md.slideHome + md.slideKick * 0.04; }
   // weapon switch (lower / raise)
   const sw = 1 - st.switchT;
   _p.y -= sw * 0.32; rx -= sw * 0.7;
