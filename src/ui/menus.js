@@ -1,5 +1,5 @@
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, weaponPower } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -101,15 +101,22 @@ function camoStyle(c) {
   const spots = c.spots.map((s, i) => `radial-gradient(circle at ${20 + i * 30}% ${30 + (i % 2) * 40}%, ${s} 0 22%, transparent 23%)`).join(',');
   return `background:${spots ? spots + ',' : ''}${c.base}`;
 }
+// stat bars: Power is computed from real damage per shot; the rest are hand-tuned ratings
+function statBars(w, only) {
+  const pw = weaponPower(w);
+  const rows = [['Power', pw.v, pw.text]];
+  if (!only && w.stats) for (const [k, v] of Object.entries(w.stats)) if (k !== 'damage') rows.push([k === 'rate' ? 'Fire rate' : k[0].toUpperCase() + k.slice(1), v, '']);
+  return rows.map(([k, v, t]) => `<div class="stat"><span>${k}</span><i><b style="width:${(v * 100).toFixed(0)}%"></b></i><em>${t}</em></div>`).join('');
+}
 function refreshLoadout() {
   const lo = G.profile.loadout, rank = rankFor(G.profile.xp);
   $('weaponList').innerHTML = PRIMARIES.map((id) => {
     const w = WEAPONS[id];
-    const bars = Object.entries(w.stats).map(([k, v]) => `<div class="stat"><span>${k === 'rate' ? 'Fire rate' : k[0].toUpperCase() + k.slice(1)}</span><i><b style="width:${v * 100}%"></b></i></div>`).join('');
+    const bars = statBars(w);
     return `<button type="button" class="wcard ${lo.primary === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p>${bars}</button>`;
   }).join('');
   $('weaponList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.primary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
-  $('pistolList').innerHTML = SECONDARIES.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="wcard ${(lo.secondary || 'usp') === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p></button>`; }).join('');
+  $('pistolList').innerHTML = SECONDARIES.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="wcard ${(lo.secondary || 'usp') === id ? 'sel' : ''}" data-v="${id}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div><p>${esc(w.desc)}</p>${statBars(w)}</button>`; }).join('');
   $('pistolList').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { lo.secondary = bt.dataset.v; saveProfile(); refreshLoadout(); }));
   $('camoList').innerHTML = CAMOS.map((c) => {
     const locked = rank < c.rank;
@@ -194,7 +201,7 @@ export function showEnd(r) {
 // ---------- sandbox weapon menu ----------
 export function showArmory() {
   const P = G.player, cur = P.weapons;
-  const btn = (id) => `<button type="button" data-w="${id}" class="${cur.includes(id) ? 'sel' : ''}"><b>${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small></button>`;
+  const btn = (id) => `<button type="button" data-w="${id}" class="${cur.includes(id) ? 'sel' : ''}"><b>${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
   $('armPrimary').innerHTML = ALL_PRIMARIES.map(btn).join('');
   $('armSecondary').innerHTML = SECONDARIES.map(btn).join('');
   $('armExtras').innerHTML = STREAKS.map((s) => `<button type="button" data-a="${s.id}"><b>${s.name}</b><small>${esc(s.desc)}</small></button>`).join('')

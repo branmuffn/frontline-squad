@@ -98,7 +98,7 @@ h3 { margin: 22px 0 4px; font-size: 20px; font-weight: 700; color: var(--ink); }
 .wc-head b { display: block; font-size: 22px; font-weight: 800; }
 .wc-head small { color: var(--brass); font-size: 15px; font-weight: 600; }
 .wcard p { color: var(--ink-dim); font-size: 14px; margin: 6px 0 10px; min-height: 3.6em; }
-.stat { display: grid; grid-template-columns: 66px 1fr; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-dim); margin-top: 3px; }
+.stat { display: grid; grid-template-columns: 74px 1fr 38px; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-dim); margin-top: 3px; }
 .stat i { height: 4px; background: var(--panel-3); }
 .stat i b { display: block; height: 100%; background: var(--ink); }
 .camos { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -311,3 +311,6 @@ tr.dead td { opacity: 0.5; }
 @media (prefers-reduced-motion: reduce) { #banner.show, #center.pop, .xp, .nadewarn i, .load-bar i { animation-duration: 0.01s; } .rp-bar i { transition: none; } }
 .btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-ghost:disabled:hover { background: transparent; border-color: var(--line-2); }
+
+.stat em { font-style: normal; font-size: 12px; text-align: right; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.arm-grid .stat { width: 100%; }

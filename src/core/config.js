@@ -133,6 +133,11 @@ export const WEAPONS = {
   },
 };
 
+// Power = body damage of one trigger pull (all pellets), shown as a bar scaled to 110.
+export function weaponPower(w) {
+  const shot = w.damage * (w.pellets || 1);
+  return { v: Math.min(1, shot / 110), text: w.pellets > 1 ? `${w.damage}×${w.pellets}` : String(w.damage) };
+}
 export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'l96', 'barrett'];
 export const SECONDARIES = ['usp', 'deagle'];
 export const ALL_PRIMARIES = [...PRIMARIES, 'rpg'];
@@ -147,15 +152,15 @@ export const GRENADE = { fuse: 3.0, throwSpeed: 17, radius: 7, damage: 135, perL
 
 export const DIFFICULTY = {
   easy: {
-    label: 'EASY', react: [0.65, 1.0], aimErr: 0.085, settle: 1.4, dmgMul: 0.5, burstGap: [0.7, 1.2], burstMul: 0.6,
+    label: 'EASY', react: [0.65, 1.0], aimErr: 0.085, settle: 1.4, dmgMul: 0.7, burstGap: [0.7, 1.2], burstMul: 0.6,
     turn: 5, speed: 0.85, hearing: 0.7, aggro: 0.25, grenade: 0.0, playerBias: 4, headChance: 0.03, sniperAim: 1.6,
   },
   normal: {
-    label: 'NORMAL', react: [0.38, 0.6], aimErr: 0.06, settle: 0.95, dmgMul: 0.72, burstGap: [0.4, 0.8], burstMul: 0.85,
+    label: 'NORMAL', react: [0.38, 0.6], aimErr: 0.06, settle: 0.95, dmgMul: 1, burstGap: [0.4, 0.8], burstMul: 0.85,
     turn: 8, speed: 0.95, hearing: 1, aggro: 0.5, grenade: 0.1, playerBias: 8, headChance: 0.08, sniperAim: 1.15,
   },
   hard: {
-    label: 'HARD', react: [0.2, 0.34], aimErr: 0.042, settle: 0.6, dmgMul: 0.92, burstGap: [0.22, 0.5], burstMul: 1,
+    label: 'HARD', react: [0.2, 0.34], aimErr: 0.042, settle: 0.6, dmgMul: 1, burstGap: [0.22, 0.5], burstMul: 1,
     turn: 12, speed: 1.0, hearing: 1.3, aggro: 0.8, grenade: 0.2, playerBias: 12, headChance: 0.15, sniperAim: 0.85,
   },
 };
