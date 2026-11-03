@@ -17,6 +17,7 @@ export function buildHash(world) {
   const nx = Math.ceil((b.maxX - b.minX + 16) / CELL), nz = Math.ceil((b.maxZ - b.minZ + 16) / CELL);
   const cells = Array.from({ length: nx * nz }, () => []);
   for (const c of world.colliders) {
+    if (c.rayOnly) continue; // exact hulls are for bullets/LOS; movement uses the fitted boxes
     const i0 = Math.max(0, Math.floor((c.minX - minX) / CELL)), i1 = Math.min(nx - 1, Math.floor((c.maxX - minX) / CELL));
     const j0 = Math.max(0, Math.floor((c.minZ - minZ) / CELL)), j1 = Math.min(nz - 1, Math.floor((c.maxZ - minZ) / CELL));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) cells[j * nx + i].push(c);
@@ -181,11 +182,11 @@ const hitOut = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, mat: 'ground' };
 export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
   const w = G.world;
   const idx = 1 / (dx || 1e-12), idy = 1 / (dy || 1e-12), idz = 1 / (dz || 1e-12);
-  let best = tmax, bn = -1, bmat = null, bc = null;
+  let best = tmax, bn = -1, bmat = null, bc = null, hullN = null;
   const cols = w.colliders;
   for (let i = 0; i < cols.length; i++) {
     const c = cols[i];
-    if (c.pass) continue;
+    if (c.pass || c.noRay) continue;
     let t1 = (c.minX - ox) * idx, t2 = (c.maxX - ox) * idx;
     let tmin = t1 < t2 ? t1 : t2, tmx = t1 < t2 ? t2 : t1, ax = 0;
     t1 = (c.minY - oy) * idy; t2 = (c.maxY - oy) * idy;
@@ -194,7 +195,14 @@ export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
     t1 = (c.minZ - oz) * idz; t2 = (c.maxZ - oz) * idz;
     a = t1 < t2 ? t1 : t2; b = t1 < t2 ? t2 : t1;
     if (a > tmin) { tmin = a; ax = 2; } if (b < tmx) tmx = b;
-    if (tmx < 0 || tmin > tmx) continue;
+    if (tmx < 0 || tmin > tmx || tmin >= best) continue;
+    if (c.hull) {
+      const sp = hullSpan(c, ox, oy, oz, dx, dy, dz);
+      if (!sp || sp[1] < 0 || sp[0] >= best) continue;
+      if (any) return true;
+      best = sp[0] < 0 ? 0 : sp[0]; bn = 5; bmat = c.mat; bc = c; hullN = sp[2];
+      continue;
+    }
     const t = tmin < 0 ? 0 : tmin;
     if (t < best) { best = t; bn = ax; bmat = c.mat; bc = c; if (any) return true; }
   }
@@ -226,8 +234,22 @@ export function rayWorld(ox, oy, oz, dx, dy, dz, tmax, any = false) {
     const span = bc.axis === 'z' ? bc.maxZ - bc.minZ : bc.maxX - bc.minX, k = (bc.to - bc.from) / span;
     const l = Math.hypot(k, 1);
     if (bc.axis === 'z') { h.ny = 1 / l; h.nz = -k / l; } else { h.ny = 1 / l; h.nx = -k / l; }
-  } else h.ny = 1;
+  } else if (bn === 5) { if (hullN) { h.nx = hullN[0]; h.ny = hullN[1]; h.nz = hullN[2]; } else h.ny = 1; }
+  else h.ny = 1;
   return h;
+}
+
+// Entry/exit of a ray through a convex hull collider: [tEnter, tExit, entryPlane] or null.
+export function hullSpan(c, ox, oy, oz, dx, dy, dz) {
+  let tE = -Infinity, tX = Infinity, pl = null;
+  for (const p of c.hull) {
+    const den = p[0] * dx + p[1] * dy + p[2] * dz, dist = p[3] - (p[0] * ox + p[1] * oy + p[2] * oz);
+    if (Math.abs(den) < 1e-12) { if (dist < 0) return null; continue; }
+    const t = dist / den;
+    if (den < 0) { if (t > tE) { tE = t; pl = p; } } else if (t < tX) tX = t;
+    if (tE > tX) return null;
+  }
+  return [tE, tX, pl];
 }
 
 export function losClear(ax, ay, az, bx, by, bz) {

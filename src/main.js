@@ -25,6 +25,7 @@ import { setNameStyle } from './core/config.js';
 import { initMenus, showScreen, showPause, showArmory } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
+import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
 import { damage, kill } from './entities/units.js';
 
 let wantResume = false, lastCfg = null;
@@ -57,7 +58,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -80,7 +81,7 @@ function deploy(cfg) {
   lastCfg = cfg;
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
-  startMatch(cfg);
+  startMatch(cfg); syncColliderDebug();
   showScreen(null);
   wantResume = false;
   if (!input.freeLook) requestLock();
@@ -150,6 +151,7 @@ function onCanvasClick() {
 
 function onKeyDown(code, e) {
   if (!(isLive() || G.state === 'paused')) return;
+  if (code === 'F9') { e.preventDefault(); toggleColliderDebug(); return; }
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }

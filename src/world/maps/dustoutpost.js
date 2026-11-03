@@ -120,8 +120,9 @@ export default {
 
     // ---- north plaza ----
     b.geom(new THREE.CylinderGeometry(1.5, 1.6, 0.9, 16), 'adobeTrim', 0, 0.45, -17);
+    const well = b.lastTris;
     b.geom(new THREE.CylinderGeometry(1.15, 1.15, 0.92, 16), 'adobeDark', 0, 0.47, -17);
-    b.col(0, 0, -17, 2.9, 0.9, 2.9, 'adobe');
+    b.colFit(well, 'adobe', 1, 3, { floor: 0, hull: true });
     for (const sx of [-1, 1]) { b.solid(sx * 0.95, 0.9, -17, 0.12, 1.5, 0.12, 'woodDark'); }
     b.deco(0, 2.4, -17, 2.1, 0.12, 0.12, 'woodDark');
     b.solid(-10, 0, -14, 6, 1.15, 0.7, 'adobe'); b.solid(10, 0, -14, 6, 1.15, 0.7, 'adobe');

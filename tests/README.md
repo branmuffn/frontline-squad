@@ -10,6 +10,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `shot.mjs` — `shotSession()`: real renderer; `prep(cfg, steps)` deploys at render scale 0.1, `shot(file, fn)` restores scale 1, renders, screenshots.
 - `regress.mjs [secs]` — FFA/TDM/Survival/Sandbox × 4 maps: kills, NaN, units stuck in geometry, spawn/pickup nav checks, console errors.
   Keep under ~25–35 s game time per combo or it exceeds the 300 s tool limit.
+- `hitbox.mjs [tol] [maps]` — static audit: every bullet-blocking box must hug visible geometry (hull colliders are exact).
 - `p5.mjs <mode> <map> [secs]` — quick run of a Phase 5 mode.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

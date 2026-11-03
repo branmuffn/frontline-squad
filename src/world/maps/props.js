@@ -102,11 +102,12 @@ export function palm(b, x, z, h = 5.5, lean = 0.12, seed = 1) {
   const ang = seed * 2.1;
   const tx = x + Math.cos(ang) * lean * h, tz = z + Math.sin(ang) * lean * h;
   b.geom(new THREE.CylinderGeometry(0.13, 0.2, h, 7), 'trunk', (x + tx) / 2, h / 2, (z + tz) / 2, Math.sin(ang) * lean, 0, -Math.cos(ang) * lean);
+  const trunk = b.lastTris;
   for (let i = 0; i < 7; i++) {
     const a = i / 7 * Math.PI * 2 + seed;
     b.geom(new THREE.BoxGeometry(0.5, 0.03, 2.6), 'leaf', tx + Math.cos(a) * 1.1, h - 0.15, tz + Math.sin(a) * 1.1, 0.35, -a + Math.PI / 2, 0);
   }
-  b.col(x, 0, z, 0.36, h * 0.9, 0.36, 'wood');
+  b.colFit(trunk, 'wood', 3, 1, { floor: 0, hull: true });
 }
 
 export function lampPost(b, x, z, h = 9) {

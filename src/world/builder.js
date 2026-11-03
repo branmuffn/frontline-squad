@@ -186,6 +186,50 @@ const FACES = [
   [[0, 0, 1], [1, 0, 0], [0, 1, 0]], [[0, 0, -1], [-1, 0, 0], [0, 1, 0]],
 ];
 
+// World-space triangle soup (flat array, 9 numbers per triangle) of a geometry under a matrix
+export function geomTris(g, m) {
+  const p = g.attributes.position, out = [], v = new THREE.Vector3();
+  const n = g.index ? g.index.count : p.count;
+  for (let i = 0; i < n; i++) { v.fromBufferAttribute(p, g.index ? g.index.getX(i) : i).applyMatrix4(m); out.push(v.x, v.y, v.z); }
+  return out;
+}
+// Ray-only collider: AABB for the broad phase plus outward planes [nx, ny, nz, d] (inside: n·p <= d)
+function hullCollider(tris, mat, floor) {
+  const b = bboxOf([[...Array(tris.length / 3)].map((_, i) => tris.slice(i * 3, i * 3 + 3))]), planes = [];
+  const cx = (b[0] + b[3]) / 2, cy = (b[1] + b[4]) / 2, cz = (b[2] + b[5]) / 2;
+  for (let i = 0; i < tris.length; i += 9) {
+    const ux = tris[i + 3] - tris[i], uy = tris[i + 4] - tris[i + 1], uz = tris[i + 5] - tris[i + 2];
+    const vx = tris[i + 6] - tris[i], vy = tris[i + 7] - tris[i + 1], vz = tris[i + 8] - tris[i + 2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz);
+    if (l < 1e-9) continue; nx /= l; ny /= l; nz /= l;
+    let d = nx * tris[i] + ny * tris[i + 1] + nz * tris[i + 2];
+    if (nx * cx + ny * cy + nz * cz > d) { nx = -nx; ny = -ny; nz = -nz; d = -d; }
+    if (!planes.some((p) => p[0] * nx + p[1] * ny + p[2] * nz > 0.9999 && Math.abs(p[3] - d) < 1e-3)) planes.push([nx, ny, nz, d]);
+  }
+  if (floor !== undefined) { planes.push([0, -1, 0, -floor]); b[1] = Math.max(b[1], floor); }
+  return { minX: b[0], maxX: b[3], minY: b[1], maxY: b[4], minZ: b[2], maxZ: b[5], mat, pass: false, rayOnly: true, hull: planes, tris };
+}
+function clipAll(polys, ax, val, keepGreater) {
+  const out = [];
+  for (const poly of polys) {
+    const r = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const ia = keepGreater ? a[ax] >= val : a[ax] <= val, ib = keepGreater ? b[ax] >= val : b[ax] <= val;
+      if (ia) r.push(a);
+      if (ia !== ib) { const t = (val - a[ax]) / (b[ax] - a[ax]); r.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]); }
+    }
+    if (r.length >= 3) out.push(r);
+  }
+  return out;
+}
+function bboxOf(polys) {
+  if (!polys.length) return null;
+  const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (const poly of polys) for (const q of poly) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], q[k]); b[k + 3] = Math.max(b[k + 3], q[k]); }
+  return b;
+}
+
 export class MapBuilder {
   constructor() {
     this.batches = new Map();
@@ -229,6 +273,10 @@ export class MapBuilder {
   }
   deco(x, y0, z, w, h, d, matKey, o = {}) { this._box(x, y0, z, w, h, d, matKey, o.rot || 0); return this; }
   col(x, y0, z, w, h, d, mat = 'concrete', o = {}) {
+    if (o.rot && Math.abs(Math.sin(o.rot * 2)) > 0.02) { // rotated box: several tight AABBs instead of one inflated one
+      const g = new THREE.BoxGeometry(w, h, d), m = new THREE.Matrix4().makeRotationY(o.rot).setPosition(x, y0 + h / 2, z);
+      return this.colFit(geomTris(g, m), mat, 1, Math.max(2, Math.ceil(Math.max(w, d) / 0.9)), { pass: o.pass, floor: y0, oneAxis: true, hull: true });
+    }
     let hw = w / 2, hd = d / 2;
     if (o.rot) { const c = Math.abs(Math.cos(o.rot)), s = Math.abs(Math.sin(o.rot)); [hw, hd] = [hw * c + hd * s, hw * s + hd * c]; }
     this.colliders.push({ minX: x - hw, maxX: x + hw, minY: y0, maxY: y0 + h, minZ: z - hd, maxZ: z + hd, mat, pass: !!o.pass });
@@ -238,6 +286,7 @@ export class MapBuilder {
   geom(geometry, matKey, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
     const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
     const g = geometry.index ? geometry : geometry; const nm = new THREE.Matrix3().getNormalMatrix(m);
+    this.lastTris = geomTris(g, m);
     const b = this.batch(matKey), base = b.pos.length / 3;
     const p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
     const v = new THREE.Vector3();
@@ -249,6 +298,33 @@ export class MapBuilder {
     if (g.index) for (let i = 0; i < g.index.count; i++) b.idx.push(base + g.index.getX(i));
     else for (let i = 0; i < p.count; i++) b.idx.push(base + i);
     geometry.dispose();
+    return this;
+  }
+  // Tight colliders for a convex shape (world-space triangles): slice into `layers` along y and a grid over x/z; each cell gets the exact AABB of (shape ∩ cell), so no box corner sticks far past the visible surface.
+  colFit(tris, mat, layers = 2, strips = 2, o = {}) {
+    let y0 = Infinity, y1 = -Infinity;
+    for (let i = 1; i < tris.length; i += 3) { y0 = Math.min(y0, tris[i]); y1 = Math.max(y1, tris[i]); }
+    if (o.floor !== undefined) y0 = Math.max(y0, o.floor);
+    const polys = []; for (let i = 0; i < tris.length; i += 9) polys.push([tris.slice(i, i + 3), tris.slice(i + 3, i + 6), tris.slice(i + 6, i + 9)]);
+    for (let L = 0; L < layers; L++) {
+      const ya = y0 + (y1 - y0) * L / layers, yb = y0 + (y1 - y0) * (L + 1) / layers;
+      const lp = clipAll(clipAll(polys, 1, ya, true), 1, yb, false), lb = bboxOf(lp);
+      if (!lb) continue;
+      // grid over x and z: `strips` cells on the longer axis, proportionally fewer on the shorter (just 1 with o.oneAxis)
+      const ex = lb[3] - lb[0], ez = lb[5] - lb[2];
+      const nx = ex >= ez ? strips : o.oneAxis ? 1 : Math.max(1, Math.round(strips * ex / ez)), nz = ez > ex ? strips : o.oneAxis ? 1 : Math.max(1, Math.round(strips * ez / ex));
+      for (let I = 0; I < nx; I++) {
+        const sp = clipAll(clipAll(lp, 0, lb[0] + ex * I / nx, true), 0, lb[0] + ex * (I + 1) / nx, false);
+        if (!sp.length) continue;
+        for (let K = 0; K < nz; K++) {
+          const bb = bboxOf(nz === 1 ? sp : clipAll(clipAll(sp, 2, lb[2] + ez * K / nz, true), 2, lb[2] + ez * (K + 1) / nz, false));
+          if (!bb || bb[3] - bb[0] < 0.02 || bb[5] - bb[2] < 0.02 || bb[4] - bb[1] < 0.02) continue;
+          this.colliders.push({ minX: bb[0], maxX: bb[3], minY: L === 0 && o.floor !== undefined ? o.floor : bb[1], maxY: bb[4], minZ: bb[2], maxZ: bb[5], mat, pass: !!o.pass, noRay: !!o.hull });
+        }
+      }
+    }
+    // bullets and line of sight test the exact convex hull; the boxes above only handle movement
+    if (o.hull) this.colliders.push(hullCollider(tris, mat, o.floor));
     return this;
   }
   quad(a, b2, c, d, matKey, center) {

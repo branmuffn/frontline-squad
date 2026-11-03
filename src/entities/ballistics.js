@@ -4,7 +4,7 @@
 // Penetration by calibre: how thick a surface each class can punch through and what it costs in damage.
 import { G } from '../core/state.js';
 import { WEAPONS, PENETRATION } from '../core/config.js';
-import { rayWorld, rayUnits } from '../world/physics.js';
+import { rayWorld, rayUnits, hullSpan } from '../world/physics.js';
 import { damage, isEnemy } from './units.js';
 import { damageBarrel } from './worldprops.js';
 import { impact, blood, tracer } from '../engine/fx.js';
@@ -17,6 +17,7 @@ export function falloff(w, d) {
 
 // distance the ray travels inside an axis-aligned collider (from its entry at tEnter)
 function exitT(c, ox, oy, oz, dx, dy, dz) {
+  if (c.hull) { const sp = hullSpan(c, ox, oy, oz, dx, dy, dz); return sp ? sp[1] : 0; }
   let tmx = Infinity;
   for (const [o, d, mn, mx] of [[ox, dx, c.minX, c.maxX], [oy, dy, c.minY, c.maxY], [oz, dz, c.minZ, c.maxZ]]) {
     if (Math.abs(d) < 1e-9) continue;

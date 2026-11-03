@@ -1,3 +1,4 @@
+import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
 import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
@@ -21,16 +22,9 @@ const open = (id, from) => { back = from || 'menu'; showScreen(id); };
 
 // ---------- map previews (collider-only build) ----------
 function previewColliders(def) {
-  const cols = [], ramps = [];
-  const stub = {
-    solid(x, y0, z, w, h, d, m, o = {}) { return this.col(x, y0, z, w, h, d, m, o); },
-    col(x, y0, z, w, h, d, m, o = {}) { cols.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, top: y0 + h, pass: o.pass }); return this; },
-    deco() { return this; }, quad() { return this; }, light() { return this; },
-    geom(g) { g.dispose(); return this; },
-    ramp(a, b2, c, d) { ramps.push({ x0: a, x1: b2, z0: c, z1: d }); return {}; },
-    stairs(a, b2, c, d) { ramps.push({ x0: a, x1: b2, z0: c, z1: d }); return {}; },
-  };
-  def.build(stub);
+  const mb = new MapBuilder(); def.build(mb);
+  const cols = mb.colliders.filter((c) => !c.rayOnly).map((c) => ({ x0: c.minX, x1: c.maxX, z0: c.minZ, z1: c.maxZ, top: c.maxY, pass: c.pass }));
+  const ramps = mb.ramps.map((r) => ({ x0: r.minX, x1: r.maxX, z0: r.minZ, z1: r.maxZ }));
   return { cols, ramps };
 }
 function drawPreview(canvas, def) {

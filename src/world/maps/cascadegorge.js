@@ -8,7 +8,8 @@ const H = 8;
 
 function boulder(b, x, z, s, y0 = 0, seed = 1) {
   b.geom(new THREE.IcosahedronGeometry(1, 0), seed % 2 ? 'rock' : 'rockDark', x, y0 + 0.42 * s, z, seed * 0.7, seed * 1.3, seed * 0.4, s, 0.72 * s, 1.1 * s);
-  b.col(x, y0, z, 1.45 * s, 1.08 * s, 1.6 * s, 'concrete');
+  const n = s > 1.15 ? 3 : s > 0.6 ? 2 : 1;
+  b.colFit(b.lastTris, 'concrete', n, 2, { floor: y0, hull: true });
 }
 function pine(b, x, z, h = 9, y0 = 0) {
   b.geom(new THREE.CylinderGeometry(0.16, 0.26, h * 0.5, 7), 'bark', x, y0 + h * 0.25, z);
@@ -16,7 +17,7 @@ function pine(b, x, z, h = 9, y0 = 0) {
     const r = (1.9 - i * 0.38) * h / 9, ch = h * 0.3;
     b.geom(new THREE.ConeGeometry(r, ch, 8), 'pine', x, y0 + h * 0.32 + i * h * 0.17 + ch / 2, z, 0, i * 0.7, 0);
   }
-  b.col(x, y0, z, 0.55, h * 0.6, 0.55, 'wood');
+  b.col(x, y0, z, 0.5, h * 0.5, 0.5, 'wood');
 }
 
 function boxcar(b, cx, open, hatch) {

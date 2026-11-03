@@ -274,6 +274,7 @@ function drawRadar() {
   for (const r of [R / 3, R * 2 / 3]) { ctx.beginPath(); ctx.arc(S / 2, S / 2, r, 0, Math.PI * 2); ctx.stroke(); }
   ctx.translate(S / 2, S / 2); ctx.rotate(P.yaw); ctx.scale(sc, sc); ctx.translate(-P.x, -P.z);
   for (const c of G.world.colliders) {
+    if (c.rayOnly) continue;
     if (c.maxY < P.y + 0.7 || c.minY > P.y + 2.2 || c.maxX < P.x - range * 1.5 || c.minX > P.x + range * 1.5 || c.maxZ < P.z - range * 1.5 || c.minZ > P.z + range * 1.5) continue;
     ctx.fillStyle = c.maxY - c.minY > 2.2 ? 'rgba(170,176,170,0.55)' : 'rgba(150,156,150,0.3)';
     ctx.fillRect(c.minX, c.minZ, c.maxX - c.minX, c.maxZ - c.minZ);
