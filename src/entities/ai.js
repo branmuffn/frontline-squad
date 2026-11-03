@@ -8,7 +8,7 @@ import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
 import { drops, dropWeapon, removeDrop } from './worldprops.js';
 import { botUseStreaks } from './streaks.js';
-import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun } from './soldier.js';
+import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun, restyleSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
 import { damageBarrel } from './worldprops.js';
@@ -35,7 +35,7 @@ const laserGeo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('p
 export function createBot(o) {
   const type = TYPES[o.type || 'soldier'];
   const u = makeUnit({ name: o.name, team: o.team, maxHealth: type.hp, health: type.hp });
-  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin });
+  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin, style: o.type === 'zombie' ? 'zombie' : o.type === 'infected' ? 'infected' : 'soldier' });
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {
@@ -59,7 +59,7 @@ export function createBot(o) {
 export function convertBot(u, type, weapon) {
   const b = u.brain; b.T = TYPES[type]; b.type = type; b.guns = [weapon]; setBotWeapon(u, weapon, false);
   b.alwaysHunt = true; b.target = null; b.state = 'patrol';
-  if (u.soldier) u.soldier.mats.acc.color.setHex(type === 'infected' ? 0x6fbf4a : 0x888888).convertSRGBToLinear();
+  if (u.soldier) restyleSoldier(u.soldier, type === 'infected' ? 'infected' : 'soldier', type === 'infected' ? 0x6fbf4a : 0x888888);
 }
 
 // Ladder climbing, same speed and exit as the player's

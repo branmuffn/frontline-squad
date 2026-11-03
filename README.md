@@ -17,7 +17,7 @@ npm run build:standalone  # one self-contained HTML file in dist-standalone/
 
 - **Modes:** Free for All, Team Deathmatch, Survival (escalating waves, three lives), Gun Game (11-tier ladder, knife kills demote), Infection (infected knife-hunters convert survivors), Capture the Flag (first to 3), Zombies (endless rounds, points, wall-buys, mystery box, power-ups), Sandbox (everything unlocked, no XP, rule toggles, B opens the weapon menu).
 - **Maps:** Steel Yard, Dust Outpost, Atomic Acres (1950s test town), Cascade Gorge (canyon, railway bridge with freight train, ladders, creek).
-- **Weapons:** M4A1, AK-47, MP5, M870, SPAS-12, M249, L96A1, Barrett .50, RPG-7 (Sandbox), USP .45, Desert Eagle, knife (backstab instakill), cookable frags.
+- **Weapons:** M4A1, AK-47, MP5, M870, SPAS-12, M249, Mk 14 EBR (2× scope), L96A1 and Barrett .50 (4×/8× scopes), RPG-7 (Sandbox), USP .45, Desert Eagle, knife (backstab instakill), cookable frags.
 - **World:** explosive barrels with chain reactions, weapon drops (E to swap), bullets punch through thin wood, wading slows you down.
 - **Killstreaks:** 3 kills earns a Recon UAV, 5 a mortar strike, 7 a sentry gun.
 - **Progression:** XP for kills and medals, 20 ranks with insignia, weapon camos unlocked by rank, career stats. Everything is saved in localStorage.
