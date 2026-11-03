@@ -74,6 +74,8 @@ export default {
     for (let x = -19.5; x <= 19.5; x += 1.5) { p.push([x, 2.0, H]); p.push([x, -2.0, H]); }
     for (const cx of [-4.5, 4.5]) for (let x = cx - 3; x <= cx + 3; x += 1.5) p.push([x, 0, H + 0.9]);
     for (const cx of [-4.5, 4.5]) { p.push([cx, 1.8, H + 0.45]); p.push([cx, -1.8, H + 0.45]); }
+    for (let x = -16; x <= 16; x += 1.5) p.push([x, 0, 5.0]); // catwalk under the bridge (ladder access)
+    p.push([6.6, 1.3, 5.0]);
     return p;
   })(),
   ladders: [

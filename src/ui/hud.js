@@ -288,7 +288,7 @@ function drawRadar() {
     ctx.beginPath(); ctx.arc(u.x, u.z, ally ? 1.2 : 1.4, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
-  for (const s of streakState.sentries) { ctx.fillStyle = '#9fe0ff'; ctx.fillRect(s.x - 0.9, s.z - 0.9, 1.8, 1.8); }
+  for (const s of streakState.sentries) { ctx.fillStyle = isEnemy(s.owner, G.player) ? '#ff6b5a' : '#9fe0ff'; ctx.fillRect(s.x - 0.9, s.z - 0.9, 1.8, 1.8); }
   for (const s of streakState.shells) { ctx.strokeStyle = 'rgba(229,96,74,0.7)'; ctx.lineWidth = 0.4; ctx.beginPath(); ctx.arc(s.x, s.z, 2, 0, Math.PI * 2); ctx.stroke(); }
   ctx.restore();
   // player marker + view cone

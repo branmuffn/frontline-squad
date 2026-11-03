@@ -71,6 +71,8 @@ export function dropWeapon(id, x, y, z, ammo) {
   while (drops.length > 10) G.scene.remove(drops.shift().mesh);
 }
 
+export function removeDrop(d) { G.scene.remove(d.mesh); const i = drops.indexOf(d); if (i >= 0) drops.splice(i, 1); }
+
 function nearestDrop() {
   const P = G.player; if (!P || !P.alive) return null;
   let best = null, bd = 1.7;

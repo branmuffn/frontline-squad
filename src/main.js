@@ -11,7 +11,8 @@ import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon
 import { updateRockets, rockets } from './entities/projectiles.js';
 import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
-import { updateWorldProps, tryPickup } from './entities/worldprops.js';
+import * as worldprops from './entities/worldprops.js';
+const { updateWorldProps, tryPickup } = worldprops;
 import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
 import { updateGrenades } from './entities/grenades.js';
@@ -48,7 +49,7 @@ function boot() {
   });
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics };
+  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

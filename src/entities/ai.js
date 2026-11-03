@@ -6,6 +6,8 @@ import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfa
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
+import { drops, dropWeapon, removeDrop } from './worldprops.js';
+import { botUseStreaks } from './streaks.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
@@ -35,7 +37,7 @@ export function createBot(o) {
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {
-    guns: o.guns || [o.weapon], switchAt: 0,
+    guns: o.guns || [o.weapon], switchAt: 0, ready: [], uavUntil: 0, climb: null, loot: null,
     type: o.type || 'soldier', T: type, weapon: o.weapon, scoped: !!w.scope, melee: !!w.melee, style: STYLE[o.weapon], magMax: w.mag, mag: w.mag, reloadUntil: 0,
     state: 'patrol', path: null, pathI: 0, goal: null, repathAt: 0, thinkAt: rand(0, 0.3), target: null, visible: false,
     lastSeen: -99, lastKnown: null, reactAt: 0, trackStart: 0, burst: 0, nextShot: 0, pauseUntil: 0,
@@ -49,6 +51,54 @@ export function createBot(o) {
     u.laser.visible = false; u.laser.frustumCulled = false; G.scene.add(u.laser);
   }
   return u;
+}
+
+// Ladder climbing, same speed and exit as the player's
+function climbLadder(u, b, dt) {
+  const c = b.climb, L = c.L;
+  u.onLadder = true; u.vy = 0; u.grounded = false; u.airPeak = u.y; b.vx = 0; b.vz = 0;
+  u.x += (L.x + L.nx * 0.55 - u.x) * Math.min(1, dt * 8); u.z += (L.z + L.nz * 0.55 - u.z) * Math.min(1, dt * 8);
+  u.y += (c.up ? 3.4 : -3.4) * dt;
+  const done = c.up ? u.y >= L.maxY - 0.03 : u.y <= L.minY;
+  if (done || G.now > c.until) {
+    u.y = done ? (c.up ? L.maxY : L.minY) : u.y;
+    if (done) { u.x = c.exit[0]; u.z = c.exit[2]; }
+    u.grounded = true; u.onLadder = false; b.climb = null;
+  }
+}
+
+// ---------- weapon pickups ----------
+const TIER = { usp: 1, deagle: 1.6, mp5: 2, m870: 2.2, spas12: 2.3, m4: 3, ak47: 3, m249: 3, l96: 3, barrett: 4 };
+function lootSlot(u, id) {
+  const b = u.brain, have = b.guns.indexOf(id);
+  if (have >= 0) return -1;
+  if (G.match.slots === 'classic' || b.guns.length < 2) return WEAPONS[id].slot === 1 ? Math.min(1, b.guns.length - 1) : 0;
+  return Math.max(0, b.guns.indexOf(b.weapon));
+}
+function considerLoot(u, b) {
+  if (b.loot || b.melee || b.guns[0] === 'knife' || (G.match.rules && G.match.rules.knife)) return;
+  for (const d of drops) {
+    if (!TIER[d.id] || Math.abs(d.y - u.y) > 1.2 || Math.hypot(d.x - u.x, d.z - u.z) > 12) continue;
+    if (!d.seen) d.seen = new Set();
+    if (d.seen.has(u)) continue;
+    d.seen.add(u);
+    const slot = lootSlot(u, d.id); if (slot < 0) continue;
+    const cur = b.guns[slot];
+    if (TIER[d.id] > (TIER[cur] || 0) || chance(0.2)) { b.loot = d; setGoal(u, d.x, d.y, d.z, true); return; }
+  }
+}
+function tryLoot(u, b) {
+  const d = b.loot;
+  if (!drops.includes(d)) { b.loot = null; return; }
+  if (Math.hypot(d.x - u.x, d.z - u.z) > 1.1 || Math.abs(d.y - u.y) > 1.2) return;
+  b.loot = null;
+  const slot = lootSlot(u, d.id); if (slot < 0) return;
+  const old = b.guns[slot];
+  b.guns[slot] = d.id;
+  removeDrop(d);
+  if (old && !WEAPONS[old].melee) dropWeapon(old, u.x, u.y + 0.02, u.z);
+  setBotWeapon(u, d.id);
+  play('pickup', { x: u.x, y: u.y + 1, z: u.z }, { gain: 0.5 });
 }
 
 // Change the gun a bot is holding: brain stats, model and sniper laser
@@ -85,10 +135,11 @@ export function disposeBot(u) {
 }
 
 export function resetBotForSpawn(u, x, y, z, yaw) {
-  Object.assign(u, { x, y, z, vx: 0, vz: 0, vy: 0, yaw, alive: true, health: u.maxHealth, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH, protectUntil: G.now + 1.2, streak: 0 });
+  Object.assign(u, { x, y, z, vx: 0, vz: 0, vy: 0, yaw, alive: true, health: u.maxHealth, grounded: true, crouch: false, crouchT: 0, h: PHYS.standH, protectUntil: G.now + 2.2, streak: 0 });
   u.damagers.clear();
   const b = u.brain;
   if (b.guns[0] !== b.weapon) setBotWeapon(u, b.guns[0], false);
+  b.climb = null; b.loot = null; u.onLadder = false;
   Object.assign(b, { state: 'patrol', path: null, pathI: 0, goal: null, target: null, visible: false, lastSeen: -99, lastKnown: null, burst: 0, mag: b.magMax, reloadUntil: 0, cover: null, wantCover: false, investigate: null, evade: null, grenades: 1, thinkAt: G.now + rand(0.1, 0.4), reactAt: G.now + 0.6, stuck: 0, aimStart: 0, wantCrouch: false });
   const s = u.soldier; s.deathT = -1; s.root.visible = true; s.root.position.set(x, y, z); s.pose.rotation.set(0, 0, 0);
   if (u.laser) u.laser.visible = false;
@@ -119,6 +170,12 @@ function followPath(u) {
   while (b.pathI < b.path.length) {
     const p = b.path[b.pathI];
     const d = Math.hypot(p[0] - u.x, p[2] - u.z);
+    const nx = b.path[b.pathI + 1];
+    if (p.ladder && nx && nx.ladder === p.ladder && Math.abs(nx[1] - p[1]) > 1) {
+      // reached a ladder end with the other end next: climb it
+      if (d < 0.7) { b.climb = { L: p.ladder, up: nx[1] > p[1], exit: nx, until: G.now + 8 }; b.pathI += 2; return null; }
+      return [(p[0] - u.x) / d, (p[2] - u.z) / d, d];
+    }
     if (d < (b.pathI < b.path.length - 1 ? 1.0 : 0.6)) { b.pathI++; continue; }
     return [(p[0] - u.x) / d, (p[2] - u.z) / d, d];
   }
@@ -222,6 +279,16 @@ function think(u, cfg) {
     if (hp) { b.state = 'heal'; setGoal(u, hp.x, hp.y, hp.z); } else b.state = 'patrol';
   } else b.state = 'patrol';
   if (b.state !== 'cover' && prev === 'cover') b.wantCrouch = false;
+  // parity with the player: pick up better guns, use earned killstreaks, UAV reveals enemies
+  if (!b.visible && b.state !== 'evade') considerLoot(u, b);
+  if (b.loot) { if (b.visible || b.state === 'evade') b.loot = null; else b.state = 'loot'; }
+  botUseStreaks(u);
+  if (b.uavUntil > G.now && !b.visible && !b.target && G.now > (b.uavPing || 0)) {
+    b.uavPing = G.now + 3;
+    let best = null, bd = Infinity;
+    for (const t of G.units) if (t.alive && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
+    if (best) { b.target = best; b.lastSeen = G.now - 2; b.lastKnown = { x: best.x, y: best.y, z: best.z }; }
+  }
 
   if (b.state === 'patrol' && (!b.goal || !b.path || b.pathI >= b.path.length || prev !== 'patrol')) {
     let n;
@@ -329,22 +396,23 @@ export function updateBots(dt) {
     const t = b.target;
     // ---- desired movement ----
     let mvx = 0, mvz = 0;
-    const baseSpeed = 5.0 * cfg.speed * b.T.speed;
+    // same speeds as the player: walk = PHYS.walk x gun handling, sprint = x sprintMul when not fighting
+    const baseSpeed = PHYS.walk * (WEAPONS[b.weapon].speed || 1) * cfg.speed * b.T.speed, sprint = baseSpeed * PHYS.sprintMul;
     let speed = baseSpeed;
     if (b.state === 'evade' && b.evade) {
       const dx = u.x - b.evade.x, dz = u.z - b.evade.z, l = Math.hypot(dx, dz) || 1;
-      mvx = dx / l; mvz = dz / l; speed = baseSpeed * 1.2; b.wantCrouch = false;
+      mvx = dx / l; mvz = dz / l; speed = sprint; b.wantCrouch = false;
     } else if (b.state === 'engage' && t) {
       const d = Math.hypot(t.x - u.x, t.z - u.z), st = b.style;
       const tx = (t.x - u.x) / (d || 1), tz = (t.z - u.z) / (d || 1);
-      if (b.path && (d > st.max || b.T.aggro >= 1 || b.melee)) { const fp = followPath(u); if (fp) { mvx = fp[0]; mvz = fp[1]; } speed = baseSpeed * (b.T.aggro >= 1 ? 0.95 : 0.75); }
+      if (b.path && (d > st.max || b.T.aggro >= 1 || b.melee)) { const fp = followPath(u); if (fp) { mvx = fp[0]; mvz = fp[1]; } speed = b.T.aggro >= 1 || b.melee ? sprint : baseSpeed * 0.8; }
       else if (d < st.min && WEAPONS[b.weapon].pellets <= 1) { mvx = -tx; mvz = -tz; speed = baseSpeed * 0.55; }
       if (!b.melee && (!b.scoped || !b.wantCrouch)) { mvx += -tz * b.strafeDir * 0.8; mvz += tx * b.strafeDir * 0.8; }
       const l = Math.hypot(mvx, mvz); if (l > 1e-3) { mvx /= l; mvz /= l; }
-      if (!b.melee) speed = Math.min(speed, baseSpeed * 0.7); else if (!b.path || d < 3) { mvx = tx; mvz = tz; speed = baseSpeed * 1.1; }
+      if (!b.melee) speed = Math.min(speed, baseSpeed * 0.75); else if (!b.path || d < 3) { mvx = tx; mvz = tz; speed = sprint; }
     } else if (b.state === 'cover' && b.cover) {
       const fp = followPath(u);
-      if (fp && fp[2] > 0.5) { mvx = fp[0]; mvz = fp[1]; speed = baseSpeed * 1.05; b.wantCrouch = false; }
+      if (fp && fp[2] > 0.5) { mvx = fp[0]; mvz = fp[1]; speed = sprint; b.wantCrouch = false; }
       else {
         // at cover: crouch, then peek by standing up
         if (!b.peekUntil || G.now > b.peekUntil + 1.6) b.peekUntil = G.now + rand(1.2, 2.4);
@@ -353,7 +421,7 @@ export function updateBots(dt) {
     } else {
       const fp = followPath(u);
       if (fp) { mvx = fp[0]; mvz = fp[1]; }
-      speed = b.state === 'patrol' ? baseSpeed * 0.62 : b.state === 'hunt' ? baseSpeed * 0.95 : baseSpeed * 0.8;
+      speed = b.state === 'patrol' ? baseSpeed * 0.75 : sprint; // hunting, investigating, healing and looting are done at a run
       b.wantCrouch = false;
     }
     // crouch handling
@@ -364,11 +432,15 @@ export function updateBots(dt) {
     if (inWater(u)) speed *= 0.62;
     b.vx = damp(b.vx, mvx * speed, 10, dt); b.vz = damp(b.vz, mvz * speed, 10, dt);
     const ox = u.x, oz = u.z;
-    const hit = moveBody(u, b.vx * dt, b.vz * dt);
-    if (hit && b.state === 'engage') b.strafeDir *= -1;
-    updateVertical(u, dt);
-    if (u.fallH) applyFall(u);
+    if (b.climb) climbLadder(u, b, dt);
+    else {
+      const hit = moveBody(u, b.vx * dt, b.vz * dt);
+      if (hit && b.state === 'engage') b.strafeDir *= -1;
+      updateVertical(u, dt);
+      if (u.fallH) applyFall(u);
+    }
     u.moveSpeed = Math.hypot(u.x - ox, u.z - oz) / Math.max(dt, 1e-4);
+    if (b.loot) tryLoot(u, b);
     // ---- facing / aiming ----
     let wantYaw = u.yaw, turn = 7;
     const aiming = t && b.visible && (b.state === 'engage' || b.state === 'cover');

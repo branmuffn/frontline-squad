@@ -57,15 +57,28 @@ export function buildNav() {
       }
     }
   }
-  // extra hand-placed nodes, linked to anything walkable within reach
-  const extra = (w.def.navExtra || []).map(([x, z, y]) => {
+  // extra hand-placed nodes, linked to anything walkable within reach; ladders add a node at each end
+  const ladderEnds = [];
+  for (const L of w.ladders || []) {
+    ladderEnds.push([L.x + L.nx * 0.8, L.z + L.nz * 0.8, L.minY, L, 'bottom'], [L.x - L.nx * 0.75, L.z - L.nz * 0.75, L.maxY, L, 'top']);
+  }
+  const extra = [...(w.def.navExtra || []), ...ladderEnds].map(([x, z, y, L, end]) => {
     const s = supportHeight(x, z, 0.2, y + 0.05);
     if (Math.abs(s - y) > 0.06 || blocked(x, z, 0.36, s, 1.75)) return null;
     const i = Math.max(0, Math.min(ni - 1, Math.round((x - x0) / S))), j = Math.max(0, Math.min(nj - 1, Math.round((z - z0) / S)));
     const n = { id: nodes.length, x, y: s, z, i, j, edges: [], cost: [], cover: 0, main: false };
+    if (L) { n.ladder = L; n.ladderEnd = end; }
     nodes.push(n); grid[j * ni + i].push(n);
     return n;
   }).filter(Boolean);
+  // climb edges between the two ends of each ladder (both ways)
+  for (const a of extra) {
+    if (a.ladderEnd !== 'bottom') continue;
+    const t = extra.find((q) => q.ladder === a.ladder && q.ladderEnd === 'top');
+    if (!t) continue;
+    const c = (t.y - a.y) * 1.5 + 1;
+    a.edges.push(t.id); a.cost.push(c); t.edges.push(a.id); t.cost.push(c);
+  }
   for (const e of extra) {
     for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
       const ii = e.i + di, jj = e.j + dj;
@@ -157,13 +170,14 @@ export function findPath(fx, fy, fz, tx, ty, tz) {
   }
   if (!found) return null;
   const pts = [];
-  for (let c = bnode.id; c !== -1; c = from[c]) { const n = nav.nodes[c]; pts.push([n.x, n.y, n.z]); }
+  for (let c = bnode.id; c !== -1; c = from[c]) { const n = nav.nodes[c]; const p = [n.x, n.y, n.z]; if (n.ladder) p.ladder = n.ladder; pts.push(p); }
   pts.reverse();
   // string-pull: skip intermediate nodes when a straight walk works
   const out = [];
   let i = 0, cx = fx, cy = fy, cz = fz;
   while (i < pts.length) {
     let k = Math.min(pts.length - 1, i + 5);
+    for (let q = i; q <= k; q++) if (pts[q].ladder) { k = q; break; } // ladder ends are mandatory waypoints
     while (k > i && !(Math.abs(pts[k][1] - cy) < 0.3 && canWalk(cx, cy, cz, pts[k][0], pts[k][1], pts[k][2]))) k--;
     out.push(pts[k]); cx = pts[k][0]; cy = pts[k][1]; cz = pts[k][2]; i = k + 1;
   }

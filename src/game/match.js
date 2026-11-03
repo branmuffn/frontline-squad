@@ -139,7 +139,7 @@ export function onKill(credited, victim, info) {
     victim.respawnAt = G.now + (m.mode === 'survival' ? 5 : 3);
     hud.showDeath(credited, info, victim.respawnAt);
   } else {
-    victim.respawnAt = m.mode === 'survival' ? G.now + 3 : G.now + 3.2;
+    victim.respawnAt = G.now + 3; // same delay as the player
     if (m.mode === 'survival') m.alive = Math.max(0, (m.alive || 0) - 1);
   }
   if (m.mode === 'ffa' && credited && credited.kills >= m.scoreLimit) endMatch('limit');

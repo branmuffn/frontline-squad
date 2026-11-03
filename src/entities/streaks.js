@@ -56,7 +56,7 @@ export function useStreak() {
     for (let i = 0; i < 6; i++) {
       const a = rand(0, 6.28), r = rand(0, 6.5);
       const x = h.x + Math.cos(a) * r, z = h.z + Math.sin(a) * r;
-      streakState.shells.push({ x, z, at: G.now + 1.6 + i * 0.55 + rand(0, 0.25), whistled: false });
+      streakState.shells.push({ x, z, at: G.now + 1.6 + i * 0.55 + rand(0, 0.25), whistled: false, owner: p });
     }
     hud.notice('Mortar strike inbound');
     play('radio');
@@ -64,7 +64,7 @@ export function useStreak() {
     let x = p.x + dir.x * 2, z = p.z + dir.z * 2;
     if (blocked(x, z, 0.45, p.y, 1.2)) { x = p.x; z = p.z; }
     const y = supportHeight(x, z, 0.3, p.y + 0.5);
-    streakState.sentries.push(makeSentry(x, y, z, p.yaw));
+    streakState.sentries.push(makeSentry(x, y, z, p.yaw, p));
     hud.notice('Sentry gun deployed');
     play('switch');
   }
@@ -72,7 +72,7 @@ export function useStreak() {
   hud.setStreaks(p.streak, streakState.ready);
 }
 
-function makeSentry(x, y, z, yaw) {
+function makeSentry(x, y, z, yaw, owner) {
   const g = new THREE.Group(), dark = new THREE.MeshStandardMaterial({ color: 0x2a3034, roughness: 0.6, metalness: 0.3 });
   const olive = new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 0.8 });
   for (let i = 0; i < 3; i++) {
@@ -82,22 +82,22 @@ function makeSentry(x, y, z, yaw) {
   const head = new THREE.Group(); head.position.y = 0.95; g.add(head);
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.5), olive); head.add(body);
   const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.03, -0.5); head.add(barrel);
-  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: 0x5fd0ff })); lamp.position.set(0.1, 0.17, -0.2); head.add(lamp);
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: owner.isPlayer || (G.match.teams && owner.team === G.player.team) ? 0x5fd0ff : 0xff4a3a })); lamp.position.set(0.1, 0.17, -0.2); head.add(lamp);
   dark.color.convertSRGBToLinear(); olive.color.convertSRGBToLinear();
   g.position.set(x, y, z); g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   G.scene.add(g);
-  return { mesh: g, head, x, y, z, yaw, until: G.now + STREAKS[2].duration, next: 0, target: null, retarget: 0 };
+  return { mesh: g, head, x, y, z, yaw, owner, until: G.now + STREAKS[2].duration, next: 0, target: null, retarget: 0 };
 }
 
 export function updateStreaks(dt) {
-  const st = streakState, p = G.player;
+  const st = streakState;
   for (let i = st.shells.length - 1; i >= 0; i--) {
     const s = st.shells[i];
     if (!s.whistled && G.now > s.at - 1.0) { s.whistled = true; play('whistle', { x: s.x, y: 8, z: s.z }, { range: 140, ref: 14 }); }
-    if (G.now >= s.at) { explode(s.x, supportHeight(s.x, s.z, 0.2, 30) + 0.1, s.z, p, 'mortar'); st.shells.splice(i, 1); }
+    if (G.now >= s.at) { explode(s.x, supportHeight(s.x, s.z, 0.2, 30) + 0.1, s.z, s.owner, 'mortar'); st.shells.splice(i, 1); }
   }
   for (let i = st.sentries.length - 1; i >= 0; i--) {
-    const s = st.sentries[i];
+    const s = st.sentries[i], p = s.owner;
     if (G.now >= s.until) { explodeSentry(s); st.sentries.splice(i, 1); continue; }
     const ey = s.y + 1.0;
     if (G.now > s.retarget) {
@@ -133,3 +133,37 @@ export function updateStreaks(dt) {
 }
 
 function explodeSentry(s) { G.scene.remove(s.mesh); play('radio', { x: s.x, y: s.y, z: s.z }); }
+
+// ---------- bots earn and use the same rewards ----------
+export function botStreak(u, n) {
+  const s = STREAKS.find((q) => q.kills === n), b = u.brain;
+  if (!s || !b) return;
+  const hostile = isEnemy(u, G.player);
+  if (s.auto) {
+    b.uavUntil = G.now + s.duration;
+    if (hostile) hud.notice(`Enemy UAV overhead (${u.name})`);
+  } else if (!b.ready.includes(s.id)) b.ready.push(s.id);
+}
+// called from bot thinking: deploy any ready reward when it makes sense
+export function botUseStreaks(u) {
+  const b = u.brain;
+  if (!b.ready.length || !u.alive) return;
+  const id = b.ready[0];
+  if (id === 'sentry') {
+    if (b.visible) return; // set it down in a quiet moment
+    const y = supportHeight(u.x, u.z, 0.3, u.y + 0.5);
+    streakState.sentries.push(makeSentry(u.x - Math.sin(u.yaw) * 1.2, y, u.z - Math.cos(u.yaw) * 1.2, u.yaw, u));
+    b.ready.shift();
+    if (isEnemy(u, G.player)) hud.notice(`Enemy sentry gun deployed (${u.name})`);
+  } else if (id === 'mortar') {
+    const k = b.lastKnown;
+    if (!k || Math.hypot(k.x - u.x, k.z - u.z) < 14) return; // never shell yourself
+    for (let i = 0; i < 6; i++) {
+      const a = rand(0, 6.28), r = rand(0, 6.5);
+      streakState.shells.push({ x: k.x + Math.cos(a) * r, z: k.z + Math.sin(a) * r, at: G.now + 1.6 + i * 0.55 + rand(0, 0.25), whistled: false, owner: u });
+    }
+    b.ready.shift();
+    if (isEnemy(u, G.player)) hud.notice('Incoming enemy mortar strike!');
+    play('radio', { x: u.x, y: u.y + 1.5, z: u.z });
+  }
+}
