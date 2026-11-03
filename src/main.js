@@ -7,7 +7,7 @@ import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { loadMap, setShadows } from './world/maps/index.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
+import { spawnPlayer, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
 import { updateWorldProps, tryPickup } from './entities/worldprops.js';
 import { updateBots } from './entities/ai.js';
@@ -15,12 +15,12 @@ import { separateUnits } from './entities/units.js';
 import { updateGrenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
 import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
-import { startMatch, updateMatch, abandonMatch } from './game/match.js';
+import { startMatch, updateMatch, abandonMatch, pickSpawn } from './game/match.js';
 import { initHud, updateHud, toggleBoard, setFps } from './ui/hud.js';
 import { initMenus, showScreen, showPause, showArmory } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
-import { damage } from './entities/units.js';
+import { damage, kill } from './entities/units.js';
 
 let wantResume = false, lastCfg = null;
 
@@ -40,7 +40,7 @@ function boot() {
   });
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
-    onRestart: () => { if (lastCfg) deploy(lastCfg); }, onQuit: quit,
+    onRestart: () => { if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
@@ -102,6 +102,16 @@ function resume() {
   wantResume = true;
   requestLock();
 }
+// Pause-menu escape hatch: a fresh spawn without a death (Survival charges a life by counting it as one).
+function redeploy() {
+  const P = G.player;
+  if (G.state !== 'paused' || G.pausedFrom !== 'playing' || !P || !P.alive || G.now - P.lastHitAt < 4) return;
+  G.state = 'playing';
+  if (G.match.mode === 'survival') kill(P, null, { weapon: 'redeploy', noStreak: true });
+  else { const streak = P.streak, s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); P.streak = streak; }
+  G.pausedFrom = G.state; G.state = 'paused';
+  resume();
+}
 function quit() {
   armoryOpen = false;
   abandonMatch(); exitLock(); input.freeLook = false;
@@ -162,6 +172,7 @@ function loop(t) {
       updatePlayer(dt);
       updateBots(dt);
       separateUnits();
+      for (const u of G.units) if (u.alive) physics.depenetrate(u);
       updateGrenades(dt);
       updateRockets(dt);
       updateWorldProps(dt);

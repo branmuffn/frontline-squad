@@ -309,3 +309,5 @@ tr.dead td { opacity: 0.5; }
 }
 @media (max-width: 560px) { .maps, .row2 { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #banner.show, #center.pop, .xp, .nadewarn i, .load-bar i { animation-duration: 0.01s; } .rp-bar i { transition: none; } }
+.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-ghost:disabled:hover { background: transparent; border-color: var(--line-2); }

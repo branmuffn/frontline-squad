@@ -3,8 +3,14 @@ import { crate, sandbags, barrel, wallX, wallZ, palm } from './props.js';
 
 const D = 1.6, DOOR = 2.35; // door width / lintel height
 
+// doorways are narrower than the 2 m nav grid can thread, so each door gets a waypoint pair
+const doorNav = [];
 function house(b, cx, cz, w, d, doors, wins = {}) {
   const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2, h = 3.2, t = 0.5;
+  for (const o of doors.n || []) doorNav.push([o, z0 - 1.1, 0], [o, z0 + 1.1, 0]);
+  for (const o of doors.s || []) doorNav.push([o, z1 - 1.1, 0], [o, z1 + 1.1, 0]);
+  for (const o of doors.w || []) doorNav.push([x0 - 1.1, o, 0], [x0 + 1.1, o, 0]);
+  for (const o of doors.e || []) doorNav.push([x1 - 1.1, o, 0], [x1 + 1.1, o, 0]);
   const g = (side) => [...(doors[side] || []).map((o) => ({ a: o - D / 2, b: o + D / 2, top: DOOR })), ...(wins[side] || []).map((o) => ({ a: o - 1, b: o + 1, win: [1.1, 2.0] }))];
   wallX(b, x0 - t / 2, x1 + t / 2, z0, h, t, 'adobe', g('n'));
   wallX(b, x0 - t / 2, x1 + t / 2, z1, h, t, 'adobe', g('s'));
@@ -40,7 +46,10 @@ export default {
     { type: 'ammo', x: 2, y: 3.9, z: -2 }, { type: 'ammo', x: -26, y: 0, z: -4 }, { type: 'ammo', x: 26, y: 0, z: 6 }, { type: 'ammo', x: 0, y: 0, z: 21.5 },
     { type: 'ammo', x: -28, y: 4.6, z: -28 },
   ],
+  get navExtra() { return doorNav; },
   build(b) {
+    doorNav.length = 0;
+    doorNav.push([0, -6.1, 0], [0, -3.9, 0], [0, 3.9, 0], [0, 6.1, 0]); // command building doors
     // ---- perimeter walls with crenellations ----
     b.solid(0, 0, -37.4, 76, 5, 1.2, 'adobe'); b.solid(0, 0, 37.4, 76, 5, 1.2, 'adobe');
     b.solid(-37.4, 0, 0, 1.2, 5, 76, 'adobe'); b.solid(37.4, 0, 0, 1.2, 5, 76, 'adobe');

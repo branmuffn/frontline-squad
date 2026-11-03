@@ -277,3 +277,26 @@ export function rayUnits(ox, oy, oz, dx, dy, dz, tmax, skip) {
   }
   return hu ? { unit: hu, t: best, zone } : null;
 }
+
+// Per-frame safety net: if a unit ends up overlapping solid geometry (moving train, crowd push, spawn on a prop),
+// move it out along the shortest escape: a small lift onto a surface, or the nearest clear spot in rings around it.
+const RING_DIRS = Array.from({ length: 16 }, (_, k) => [Math.cos(k / 16 * Math.PI * 2), Math.sin(k / 16 * Math.PI * 2)]);
+export function depenetrate(u) {
+  if (u.onLadder) return false;
+  if (!blocked(u.x, u.z, u.r, u.y, u.h)) { u._safeX = u.x; u._safeY = u.y; u._safeZ = u.z; return false; }
+  let best = null, bestCost = Infinity;
+  const lift = supportHeight(u.x, u.z, SUPPORT_R, u.y + 2.2);
+  if (lift > u.y + 0.01 && !blocked(u.x, u.z, u.r, lift, u.h)) { best = [u.x, lift, u.z]; bestCost = (lift - u.y) * 1.5; }
+  for (let d = 0.08; d <= 3.2 && d < bestCost; d += 0.08) {
+    for (const [cx, cz] of RING_DIRS) {
+      const x = u.x + cx * d, z = u.z + cz * d;
+      const y = Math.max(supportHeight(x, z, SUPPORT_R, u.y + PHYS.step), Math.min(u.y, supportHeight(x, z, SUPPORT_R, u.y + 0.05)));
+      if (u.y - y > 0.6) continue; // never shove someone off a ledge
+      if (!blocked(x, z, u.r, y, u.h)) { best = [x, y, z]; bestCost = d; break; }
+    }
+  }
+  if (!best && u._safeX !== undefined && !blocked(u._safeX, u._safeZ, u.r, u._safeY, u.h)) best = [u._safeX, u._safeY, u._safeZ];
+  if (!best) return false;
+  u.x = best[0]; u.y = best[1]; u.z = best[2]; u.vy = Math.max(0, u.vy); u.grounded = true;
+  return true;
+}

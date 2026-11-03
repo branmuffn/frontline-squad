@@ -35,8 +35,8 @@ function house(b, s, siding) {
   const top = s < 0;
   const sx0 = Math.min(X(5.6), X(7.6)), sx1 = Math.max(X(5.6), X(7.6)), sz0 = Math.min(Z(1.3), Z(7.8)), sz1 = Math.max(Z(1.3), Z(7.8));
   b.stairs(sx0, sx1, sz0, sz1, 'z', top ? 3.25 : 0, top ? 0 : 3.25, 'woodDark');
-  { // railing on the upstairs edge of the stairwell
-    const x = X(5.6), z0 = Math.min(Z(0.2), Z(7.0)), z1 = Math.max(Z(0.2), Z(7.0));
+  { // railing on the upstairs edge of the stairwell, set back onto the slab so it never overhangs the steps
+    const x = X(5.42), z0 = Math.min(Z(0.2), Z(7.0)), z1 = Math.max(Z(0.2), Z(7.0));
     b.col(x, 3.25, (z0 + z1) / 2, 0.1, 1.0, z1 - z0, 'wood', { pass: true });
     b.deco(x, 4.2, (z0 + z1) / 2, 0.08, 0.06, z1 - z0, 'paintWhite');
     for (let ld = 0.6; ld < 7.0; ld += 0.9) b.deco(x, 3.25, Z(ld), 0.05, 0.95, 0.05, 'paintWhite');

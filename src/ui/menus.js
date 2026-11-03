@@ -206,6 +206,11 @@ export function showArmory() {
 // ---------- pause ----------
 export function showPause(lockError) {
   $('lockMsg').classList.toggle('hidden', !lockError);
+  const P = G.player, canRedeploy = !!(P && P.alive && G.pausedFrom === 'playing');
+  $('redeploy').classList.toggle('hidden', !canRedeploy);
+  const underFire = P && G.now - P.lastHitAt < 4;
+  $('redeploy').disabled = underFire;
+  $('redeploy').textContent = underFire ? 'Redeploy (not while under fire)' : G.match && G.match.mode === 'survival' ? 'Redeploy (costs a life)' : 'Redeploy';
   showScreen('pause');
 }
 
@@ -228,6 +233,7 @@ export function initMenus(callbacks) {
   $('pauseSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'pause'); });
   $('pauseControls').addEventListener('click', () => open('controls', 'pause'));
   $('restart').addEventListener('click', () => cb.onRestart());
+  $('redeploy').addEventListener('click', () => cb.onRedeploy());
   $('quit').addEventListener('click', () => cb.onQuit());
   $('again').addEventListener('click', () => cb.onRestart());
   $('armClose').addEventListener('click', () => cb.onArmory({ action: 'close' }));
