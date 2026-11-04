@@ -99,6 +99,10 @@ function boxcar(b, cx, open, hatch) {
   }
 }
 
+// low ridge (two ramps meeting in a crest): real cover for prone/crouched players, walkable, bullets stop on it
+function ridge(b, x, z, w, d, h, y0 = 0) {
+  b.ramp(x - w / 2, x, z - d / 2, z + d / 2, 'x', y0, y0 + h, 'grass', y0); b.ramp(x, x + w / 2, z - d / 2, z + d / 2, 'x', y0 + h, y0, 'grass', y0);
+}
 function ladderVis(b, x, z, y0, y1, alongZ, top = 0.9) {
   for (const o of [-0.25, 0.25]) b.deco(x + (alongZ ? 0 : o), y0, z + (alongZ ? o : 0), 0.06, y1 - y0 + top, 0.06, 'steelRust');
   for (let y = y0 + 0.3; y < y1 + Math.min(0.9, top) - 0.05; y += 0.32) b.deco(x, y, z, alongZ ? 0.05 : 0.5, 0.04, alongZ ? 0.5 : 0.05, 'steelRust');
@@ -182,6 +186,12 @@ export default {
       [[-36, -18, 10], [-42, -26, 11], [-48, 10, 9], [-31, 15, 10], [-53, 22, 12], [-46, -12, 9], [-56, -24, 11], [-27, -26, 9]]
         .forEach(([x, z, h]) => pine(b, -x * sx, z * -sx, h, H));
       crate(b, sx * 33, sx * -4, 1.6, 1.4, H); crate(b, sx * 52, sx * 4, 1.8, 1.6, H);
+      // rolling ground: low ridges between the spawns, plus grass tufts and stones so the plateau isn't a flat table
+      for (const [x, z, w, d, h] of [[41, 3, 4, 4.5, 0.8], [31, 1, 3.2, 4, 0.7], [52, -14, 3.2, 3.2, 0.6]]) ridge(b, -x * sx, z * -sx, w, d, h, H);
+      for (let i = 0; i < 40; i++) {
+        const x = -(23 + ((i * 37) % 34)) * sx, z = (((i * 53) % 54) - 27) * -sx, t = (i * 7) % 3;
+        b.geom(new THREE.IcosahedronGeometry(t ? 0.22 : 0.16, 0), t === 2 ? 'rockDark' : 'grass', x, H + 0.02, z, i, i * 1.7, 0, 1.6, 0.35, 1.3);
+      }
     }
     for (const sz of [-1, 1]) { // canyon end walls
       b.deco(0, 0, sz * 31.5, 40, 16, 3, 'rock');
@@ -230,6 +240,7 @@ export default {
     b.solid(-6.5, 0.45, -14, 2.2, 1.3, 4.4, 'steelRust', { rot: 0.25 }); b.solid(-6.3, 1.75, -15.4, 2.0, 1.0, 1.6, 'steelRust', { rot: 0.25 });
     for (const dz of [-1.5, 1.5]) for (const dx of [-1.1, 1.1]) b.deco(-6.5 + dx, 0, -14 + dz, 0.3, 0.8, 0.8, 'rubber', { rot: 0.25 });
     crate(b, -11, 12, 1.6, 1.4); crate(b, 11, -12, 1.6, 1.4);
+    for (let i = 0; i < 46; i++) { const x = ((i * 29) % 36) - 18, z = ((i * 41) % 56) - 28; if (kept(x, z) && Math.abs(x - 5.75) > 3.2) b.geom(new THREE.IcosahedronGeometry(0.2, 0), i % 3 ? 'grass' : 'rock', x, 0.02, z, i, i * 2.3, 0, 1.7, 0.3, 1.4); }
 
     // ---- distant mountains ----
     for (let i = 0; i < 24; i++) {

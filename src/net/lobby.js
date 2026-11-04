@@ -88,6 +88,7 @@ const name = () => { saved.name = $('mpName').value.trim() || saved.name; persis
 
 export function initLobby(cb) {
   show = cb.showScreen;
+  $('mpBuild').textContent = 'Version: ' + net.BUILD; $('buildTag').textContent = 'Frontline: Solo Ops · ' + net.BUILD;
   $('openOperator').addEventListener('click', () => { fillSkins(); show('operator'); });
   $('operatorDone').addEventListener('click', () => show('menu'));
   // invite link: hosted copies open straight into the host's lobby (#join=CODE)

@@ -28,6 +28,7 @@ import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entit
 export const MAX_PLAYERS = 8;
 export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm'];
 export const COOP = (mode) => mode === 'survival' || mode === 'zombies';
+export const BUILD = (typeof window !== 'undefined' && window.__BUILD) || 'dev build';
 const VER = 1, SNAP_DT = 1 / 30, INTERP = 0.1;
 const WIDS = Object.keys(WEAPONS);
 const r2 = (v) => Math.round(v * 100) / 100, r3 = (v) => Math.round(v * 1000) / 1000;
@@ -140,7 +141,7 @@ function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
   L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
-  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin });
+  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD });
   status('Connected. Waiting for the host to start…', 'ok');
 }
 
@@ -269,6 +270,7 @@ function hostMsg(r, m) {
     case 'hello':
       if (m.v !== VER) { r.link.send({ t: 'full', why: 'Version mismatch: both players need the same game file.' }); setTimeout(() => r.link.close(), 500); return; }
       r.name = clean(m.name); r.hello = true; r.skin = cleanSkin(m.k);
+      if (m.b && m.b !== BUILD) { const w = `${clean(m.name)} is on ${m.b}, you are on ${BUILD}. Everyone should reload the same link.`; status(w, 'warn'); r.link.send({ t: 'chat', n: '', m: w, k: 'sys' }); }
       { let n = 2; const base = r.name; while ([S.name, ...S.remotes.filter((x) => x !== r && x.hello).map((x) => x.name)].includes(r.name)) r.name = (base.slice(0, 12) + n++); }
       r.link.send({ t: 'welcome', slot: r.slot });
       status(`${r.name} joined.`, 'ok'); play('pickup');

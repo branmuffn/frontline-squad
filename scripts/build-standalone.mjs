@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 // Bundles the same source into one fully offline HTML file: three.js r128 and the Barlow Condensed font are inlined.
 import { build } from 'esbuild';
 import fs from 'node:fs';
@@ -14,8 +15,11 @@ let html = fs.readFileSync('index.html', 'utf8');
 html = html.replace('<link rel="stylesheet" href="/src/fonts.css">\n', () => `<style>\n${fonts}</style>\n`);
 html = html.replace('<link rel="stylesheet" href="/src/styles.css">', () => `<style>\n${css}</style>`);
 if (/https?:\/\//.test(html.replace(/http:\/\/www\.w3\.org\/[^"']*/g, ''))) console.warn('WARNING: external URL left in the standalone build');
+// build label (menu + lobby): lets friends check they run the same version
+let n = 0; try { n = +execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim() + 1; } catch { n = 0; }
+const BUILD = `build ${n} · ${new Date().toISOString().slice(0, 10)}`;
 html = html.replace('<script type="module" src="/src/main.js"></script>', () =>
-  `<script>\n${three}\n</script>\n<script>\n${js}\n</script>`);
+  `<script>window.__BUILD=${JSON.stringify(BUILD)};</script>\n<script>\n${three}\n</script>\n<script>\n${js}\n</script>`);
 fs.mkdirSync('dist-standalone', { recursive: true });
 fs.writeFileSync('dist-standalone/frontline_solo_ops.html', html);
 console.log(`dist-standalone/frontline_solo_ops.html  ${(html.length / 1024).toFixed(1)} KB`);

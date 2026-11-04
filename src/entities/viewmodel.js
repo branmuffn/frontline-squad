@@ -193,7 +193,7 @@ function build() {
   b(g, M.wood, 0.05, 0.09, 0.26, 0, -0.03, 0.18, -0.1);
   b(g, M.wood, 0.04, 0.1, 0.05, 0, -0.09, 0.0, 0.3);
   mag = b(g, M.black, 0.045, 0.18, 0.075, 0, -0.13, -0.2, 0.35);
-  b(mag, M.black, 0.98, 0.5, 1, 0, -0.62, -0.25, 0.35);
+  b(mag, M.black, 0.044, 0.09, 0.075, 0, -0.112, -0.019, 0.35); // lower curve of the banana mag (was sized in metres: a 1 m slab under the gun)
   for (let i = 0; i < 5; i++) b(g, M.black, 0.06, 0.006, 0.01, 0, 0.044, -0.25 + i * 0.05);
   b(g, M.port, 0.004, 0.022, 0.08, 0.03, 0.015, -0.1); b(g, M.black, 0.03, 0.035, 0.03, 0, 0.045, -0.62);
   trigger(g, -0.035, -0.050);
