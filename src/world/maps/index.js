@@ -7,8 +7,9 @@ import yard from './steelyard.js';
 import outpost from './dustoutpost.js';
 import atomic from './atomicacres.js';
 import gorge from './cascadegorge.js';
+import range from './firingrange.js';
 
-export const MAPS = { yard, outpost, atomic, gorge };
+export const MAPS = { yard, outpost, atomic, gorge, range };
 export const MAP_LIST = [yard, outpost, atomic, gorge];
 
 function disposeGroup(g) {

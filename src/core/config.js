@@ -294,6 +294,10 @@ export const MODES = {
     id: 'zombies', name: 'ZOMBIES', desc: 'Endless undead rounds. Earn points, buy wall weapons, gamble on the mystery box.',
     counts: null, lives: 3,
   },
+  range: {
+    id: 'range', name: 'PRACTICE RANGE', desc: 'Its own range: targets at 10 to 100 m, moving targets, damage numbers. Every weapon (B), infinite ammo, no XP.',
+    time: 0, counts: null,
+  },
   sandbox: {
     id: 'sandbox', name: 'SANDBOX', desc: 'Everything unlocked, no XP. Set your own rules. Press B for the weapon menu.',
     time: 0, counts: [0, 3, 5, 8, 12], defaultCount: 5, countLabel: 'Bots',

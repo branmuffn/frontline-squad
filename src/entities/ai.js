@@ -429,7 +429,7 @@ export function updateBots(dt) {
   for (const u of G.bots) {
     const s = u.soldier, b = u.brain;
     if (!u.alive) { animateSoldier(s, u, dt); if (u.laser) u.laser.visible = false; continue; }
-    if (frozen) { u.moveSpeed = 0; animateSoldier(s, u, dt); continue; }
+    if (frozen || u.dummy) { if (frozen) u.moveSpeed = 0; animateSoldier(s, u, dt); continue; } // practice-range dummies never think
     if (u.vehicle) { botVehicle(u, dt, cfg); u.moveSpeed = 0; if (u.laser) u.laser.visible = false; animateSoldier(s, u, dt); continue; }
     if (G.now >= b.thinkAt) { b.thinkAt = G.now + rand(0.2, 0.32); think(u, cfg); chooseGun(u); }
     if (b.reloadUntil && G.now >= b.reloadUntil) { b.reloadUntil = 0; b.mag = b.magMax; }

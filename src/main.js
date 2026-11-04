@@ -96,6 +96,7 @@ function applySetting(k) {
 }
 
 function deploy(cfg) {
+  if (cfg.mode === 'range') cfg = { ...cfg, map: 'range', count: 0 }; // the range is its own map
   lastCfg = cfg; G.netPaused = false;
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
@@ -224,7 +225,7 @@ function onKeyDown(code, e) {
   else if (matches('streak', code)) useStreak();
   else if (matches('equip', code)) useEquipment(G.player);
   else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !openCrate(G.player) && !vehicleInteract(G.player) && !doorInteract(G.player)) tryPickup(); }
-  else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
+  else if (matches('armory', code) && (G.match.mode === 'sandbox' || G.match.mode === 'range')) openArmory();
 }
 function onKeyUp(code) {
   if (matches('scoreboard', code)) toggleBoard(false);

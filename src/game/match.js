@@ -125,6 +125,7 @@ export function cleanupMatch() {
 
 // Choose the safest spawn: far from enemies, out of their sight, near friends in team modes.
 export function pickSpawn(u, opts = {}) {
+  { const H = G.match && G.match.hook; const f = H && H.spawnFor && H.spawnFor(u); if (f) return f; }
   const sp = G.world.spawns, m = G.match;
   let list = sp.ffa;
   if (m.teams && !(m.hook && m.hook.ffaSpawns)) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);

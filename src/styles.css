@@ -535,3 +535,6 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .sk-pick { align-self: center; margin-left: auto; padding: 6px 12px; border: 1px solid var(--line); background: none; color: var(--ink); cursor: pointer; white-space: nowrap; } .sk-pick.on { background: rgba(143, 108, 44, 0.35); border-color: var(--brass, #c9a25a); }
 #streaks .pbody { display: flex; flex-direction: column; min-height: 0; overflow: hidden; } #streakCards { flex: 1 1 auto; min-height: 0; overflow-y: auto; } #streakRules { flex: 0 0 auto; }
 .streak-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; } #armExtras small { display: none; } #armExtras button { padding-top: 4px; padding-bottom: 4px; }
+.dmgnum { position: absolute; transform: translate(-50%, 0); font-weight: 800; font-size: 20px; color: #fff; text-shadow: 0 2px 4px #000; pointer-events: none; opacity: 0; white-space: nowrap; }
+.dmgnum.head { color: #ffd36a; font-size: 24px; } .dmgnum.go { animation: dmgup 0.9s ease-out forwards; }
+@keyframes dmgup { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -46px); } }

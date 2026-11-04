@@ -151,6 +151,16 @@ export function flash(k) {
   el.style.transition = 'none'; el.style.opacity = String(Math.min(1, 0.25 + k)); void el.offsetWidth;
   el.style.transition = `opacity ${0.5 + 3 * k}s ease-in ${0.25 + 0.6 * k}s`; el.style.opacity = '0';
 }
+// practice range: the damage of each hit floats up from the target (head = gold), with the distance
+const dmgPool = []; let dmgI = 0; const _pv = new THREE.Vector3();
+export function dmgNumber(u, dmg, info) {
+  if (!dmgPool.length) for (let i = 0; i < 10; i++) { const d = document.createElement('div'); d.className = 'dmgnum'; $('hud').appendChild(d); dmgPool.push(d); }
+  _pv.set(u.x, u.y + u.h + 0.25, u.z).project(G.camera); if (_pv.z > 1) return;
+  const el = dmgPool[dmgI++ % dmgPool.length], head = info.zone === 'head' || info.headshot;
+  el.textContent = `${Math.round(dmg)}${head ? ' HEAD' : info.zone === 'groin' ? ' OUCH' : ''}${info.dist ? ` · ${Math.round(info.dist)} m` : ''}`;
+  el.className = 'dmgnum' + (head ? ' head' : ''); el.style.left = ((_pv.x * 0.5 + 0.5) * innerWidth + (Math.random() - 0.5) * 30) + 'px'; el.style.top = ((-_pv.y * 0.5 + 0.5) * innerHeight) + 'px';
+  void el.offsetWidth; el.classList.add('go');
+}
 export function notice(text) { if (!text) return; set('notice', 'text', text); $('notice').classList.add('show'); noticeUntil = G.realTime + 1.8; }
 export function banner(title, sub = '', share) { if (share && G.mp && G.mp.host && G.mp.live) G.mp.banner(title, sub, share); bannerQ.push({ title, sub }); if (bannerQ.length > 4) bannerQ.shift(); }
 export function center(text, dur = 0.95) { const c = $('center'); c.textContent = text; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); centerUntil = G.realTime + dur; }

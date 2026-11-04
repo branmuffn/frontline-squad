@@ -16,7 +16,7 @@ export function resetMatchXp() {
 }
 
 export function award(key, label, amount = XP[key], quiet = false) {
-  const m = G.match; if (!m || !amount || m.mode === 'sandbox') return;
+  const m = G.match; if (!m || !amount || m.mode === 'sandbox' || m.mode === 'range') return;
   const before = rankFor(G.profile.xp + m.xpTotal);
   m.xpTotal += amount;
   const e = m.xp.get(label) || { label, count: 0, xp: 0 }; e.count++; e.xp += amount; m.xp.set(label, e);
@@ -33,7 +33,7 @@ function medal(k) {
 }
 export function awardKill(victim, info, victimStreak) {
   const m = G.match, p = G.player;
-  if (m.mode === 'sandbox') return;
+  if (m.mode === 'sandbox' || m.mode === 'range') return;
   award('kill', info.weapon === 'sentry' ? 'Sentry kill' : info.weapon === 'mortar' ? 'Mortar kill' : 'Elimination');
   if (info.headshot && !info.explosive) { medal('headshot'); G.profile.career.headshots++; }
   if (info.melee) { award('melee', info.backstab ? 'Backstab' : 'Knife kill'); G.profile.career.knifeKills++; }

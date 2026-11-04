@@ -55,11 +55,12 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkillVis(); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkillVis(); $('mapSel').parentElement.classList.toggle('hidden', v === 'range'); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
   $('modeDesc').textContent = MODES[L.mode].desc;
   refreshSkill(); refreshSkillVis();
   if (!$('matchRulesBtn').dataset.on) { $('matchRulesBtn').dataset.on = '1'; $('matchRulesBtn').addEventListener('click', () => { $('matchOpts').classList.toggle('hidden'); $('botOpts').classList.add('hidden'); refreshMatchOpts(); }); $('matchOptsX').addEventListener('click', () => $('matchOpts').classList.add('hidden')); }
   if (!$('botRulesBtn').dataset.on) { $('botRulesBtn').dataset.on = '1'; $('botRulesBtn').addEventListener('click', () => { $('botOpts').classList.toggle('hidden'); $('matchOpts').classList.add('hidden'); refreshBotOpts(); }); $('botOptsX').addEventListener('click', () => $('botOpts').classList.add('hidden')); }
+  $('mapSel').parentElement.classList.toggle('hidden', L.mode === 'range'); // the range is its own map
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
     mapSel.dataset.built = '1';

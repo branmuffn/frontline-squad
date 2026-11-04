@@ -58,6 +58,7 @@ export function damage(victim, amount, attacker, info = {}) {
   let dmg = H && H.modDamage ? H.modDamage(victim, attacker, amount) : amount;
   if (attacker === victim) dmg *= 0.6;
   dmg *= vestMul(victim, info); // heavy vest
+  if (G.match && G.match.mode === 'range' && attacker === G.player && dmg > 0) { hud.dmgNumber(victim, dmg, info); G.match.bestHit = Math.max(G.match.bestHit || 0, Math.round(dmg)); }
   dmg = Math.min(dmg, victim.health + 200);
   victim.health -= dmg;
   victim.lastHitAt = G.now; victim.lastAttacker = attacker;

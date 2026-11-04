@@ -1,3 +1,4 @@
+import { RANGE_TARGETS, RANGE_MOVERS } from '../world/maps/firingrange.js';
 // Phase 5 modes as hooks on top of the shared match flow (match.js calls these when present).
 // Hook fields: setup, weapons(u), onSpawn(u), onKill, onDamage, modDamage, update, result, score, botGoal, interact, prompting
 import * as THREE from 'three';
@@ -334,4 +335,24 @@ const zombies = {
   result() { const m = G.match; return { result: 'survival', title: 'Overrun', detail: `You survived to round ${m.round} with ${m.points.toLocaleString()} points.` }; },
 };
 
-export const HOOKS = { gungame, infection, ctf, zombies };
+// ---------- practice range: dummies that stand still or ride a track, pop back up, never fight ----------
+const range = {
+  noDrops: true, noStreaks: true,
+  setup(m) {
+    m.rules = { infAmmo: true, passive: true };
+    const look = { uniform: 0x8a7a58, accent: 0xb8402e, helmet: 0x3b4034 };
+    for (const t of RANGE_TARGETS) { const b = G.spawnBot({ name: t.d + ' m', team: 9, weapon: 'knife', ...look }); b.dummy = { x: t.x, z: t.z }; }
+    for (const r of RANGE_MOVERS) { const b = G.spawnBot({ name: r.d + ' m mover', team: 9, weapon: 'knife', ...look }); b.dummy = { x: r.x0, z: r.z, rail: r, dir: 1 }; }
+  },
+  spawnFor(u) { return u.dummy ? { x: u.dummy.x, y: 0, z: u.dummy.z, yaw: 0 } : null; },
+  update(dt) {
+    for (const b of G.bots) {
+      const d = b.dummy; if (!d) continue;
+      if (!b.alive) continue; // pops back up through the normal respawn
+      if (d.rail) { const r = d.rail; d.x += r.speed * d.dir * dt; if (d.x > r.x1) { d.x = r.x1; d.dir = -1; } if (d.x < r.x0) { d.x = r.x0; d.dir = 1; } b.moveSpeed = r.speed; }
+      b.x = d.x; b.z = d.z; b.y = 0; b.yaw = 0; b.health = Math.max(b.health, 1);
+    }
+  },
+  score() { return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B for weapons · damage shows on hit' }; },
+};
+export const HOOKS = { gungame, infection, ctf, zombies, range };
