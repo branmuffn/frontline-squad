@@ -73,8 +73,9 @@ export function explode(x, y, z, owner, kind = 'frag') {
     if (owner && u !== owner && !isEnemy(owner, u)) continue;
     const cy = u.y + u.h * 0.6, d = Math.hypot(u.x - x, cy - y, u.z - z);
     if (d > R) continue;
-    if (!losClear(x, y + 0.25, z, u.x, cy, u.z) && !losClear(x, y + 0.25, z, u.x, u.y + u.h - 0.15, u.z)) continue;
-    const dmg = maxD * Math.pow(1 - d / R, 1.15) + 8;
+    const inV = !!u.vehicle; // vehicle crews: the hull blocks line of sight, but they still take part of the blast
+    if (!inV && !losClear(x, y + 0.25, z, u.x, cy, u.z) && !losClear(x, y + 0.25, z, u.x, u.y + u.h - 0.15, u.z)) continue;
+    const dmg = (maxD * Math.pow(1 - d / R, 1.15) + 8) * (inV ? 0.55 : 1);
     damage(u, dmg, owner, { weapon: kind, explosive: true, sx: x, sz: z, noStreak: kind === 'mortar' });
   }
   nearbyBarrels(x, y, z, R, (c, d) => damageBarrel(c, maxD * (1 - d / R) + 10, owner, true));

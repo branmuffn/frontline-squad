@@ -17,12 +17,12 @@ import { keyName } from '../ui/hud.js';
 import * as hud from '../ui/hud.js';
 
 export const VEHICLE_MODES = ['ffa', 'tdm', 'sandbox', 'ctf'];
-const JEEP = { hw: 1.02, hd: 2.15, y0: 0.32, y1: 1.28, hp: 700, maxF: 17, maxR: 6, accel: 9, brake: 24, wheelbase: 2.5, steerMax: 0.55, respawn: 20 };
+const JEEP = { hw: 1.02, hd: 2.15, y0: 0.32, y1: 1.28, hp: 560, crew: 0.85, maxF: 17, maxR: 6, accel: 9, brake: 24, wheelbase: 2.5, steerMax: 0.55, respawn: 20 };
 // seat offsets in jeep space (x right, z backwards): driver front-left, gunner standing at the back on the gun ring
 const SEATS = [{ x: -0.45, y: 0.45, z: -0.15, crouch: 0.75 }, { x: 0, y: 0.72, z: 1.05, crouch: 0 }];
 const GUN_PIVOT = { x: 0, y: 1.95, z: 0.55 };
 // helicopter: pilot (flies, nose gun at the crosshair) + door gunner on the right side
-const HELI = { hw: 1.12, hd: 2.6, y0: 0.3, y1: 2.35, hp: 900, respawn: 30, maxH: 27, accel: 15, climb: 7, yawRate: 1.7, ceiling: 46,
+const HELI = { hw: 1.12, hd: 2.6, y0: 0.3, y1: 2.35, hp: 680, crew: 0.6, respawn: 30, maxH: 27, accel: 15, climb: 7, yawRate: 1.7, ceiling: 46,
   seats: [{ x: 0, y: 0.72, z: -1.05, crouch: 0.6 }, { x: 0.62, y: 0.55, z: 0.15, crouch: 0.45 }], gunPivot: { x: 1.2, y: 1.45, z: 0.15 }, gunArc: [-Math.PI / 2 - 1.25, -Math.PI / 2 + 1.25],
   name: 'Helicopter', who: ['Fly the helicopter', 'Man the door gun', 'Helicopter full'],
   keys: [['W A S D', 'Fly'], ['Space / C', 'Up / down'], ['Mouse', 'Turn and aim']] };
@@ -173,6 +173,7 @@ export function damageVehicle(v, amount, attacker, kind = 'bullet') {
   const crew = v.seats.find((s) => s);
   if (attacker && crew && attacker !== crew && !isEnemy(attacker, crew)) return;
   v.hp -= amount; v.lastHitBy = attacker || v.lastHitBy;
+  if (attacker && attacker.isPlayer && kind === 'bullet') hud.hitMarker('hit');
   if (v.seats.includes(G.player)) G.shake = Math.min(0.05, (G.shake || 0) + amount * 0.0004);
   if (v.hp <= 0) destroyVehicle(v, attacker || v.lastHitBy);
 }

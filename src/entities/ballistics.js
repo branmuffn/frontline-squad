@@ -78,7 +78,18 @@ export function traceSegment(s, dx, dy, dz, len) {
     const fxOn = isP ? s.k < 3 : s.k < 2;
     if (fxOn) impact(wh.x, wh.y, wh.z, wh.nx, wh.ny, wh.nz, wh.mat);
     if (isP && s.k < 3) play(SFX(wh.mat), { x: wh.x, y: wh.y, z: wh.z }, { gain: 0.5 });
-    if (wh.col && wh.col.vehicle) { damageVehicle(wh.col.vehicle, w.damage * falloff(w, s.travelled + wh.t) * s.mul * s.mulPen * (w.pen === 'heavy' ? 1 : 0.35), s.shooter); return stop(s, wh, isP); }
+    if (wh.col && wh.col.vehicle) { // the hull takes the hit, and rounds go on into the crew (open jeep: most of it; helicopter skin/glass: less)
+      const v = wh.col.vehicle, base = w.damage * falloff(w, s.travelled + wh.t) * s.mul * s.mulPen;
+      const ch = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh.t + 5.5, (u) => u.vehicle !== v || u === s.shooter || !isEnemy(s.shooter, u));
+      if (ch) {
+        const head = ch.zone === 'head', zm = head ? w.headMul : ch.zone === 'legs' ? w.legMul : 1;
+        damage(ch.unit, base * zm * (v.spec.crew || 0.6), s.shooter, { weapon: s.wid, zone: ch.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist: s.travelled + ch.t });
+        if (!ch.unit.isPlayer) blood(s.x + dx * ch.t, s.y + dy * ch.t, s.z + dz * ch.t, dx, dz, head);
+        s.hit = { unit: ch.unit, head };
+      }
+      damageVehicle(v, base * (w.pen === 'heavy' ? 1.2 : 0.5) * (ch ? 0.5 : 1), s.shooter);
+      return stop(s, wh, isP);
+    }
     if (wh.col && wh.col.barrel) { damageBarrel(wh.col, w.damage * falloff(w, s.travelled + wh.t) * s.mul * s.mulPen, s.shooter); return stop(s, wh); }
     // penetration?
     const c = wh.col, m = wh.mat;
