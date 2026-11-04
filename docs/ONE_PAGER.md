@@ -33,6 +33,10 @@ A browser FPS delivered as one self-contained HTML file (~1.2 MB): three.js r128
 - Tests that need real time (chat rate limits, reconnects) must use the same fake clock the game uses.
 - Collision volumes double as armour: a vehicle box that fully encloses its crew made them unkillable until rounds were allowed through the hull.
 
+## Rev 3 progress
+Done: Standard weapon slots (rifle + sniper via pickups), match limits per mode (SP + MP), health/ammo pickups toggle, scope toggle, "Use mouse lock again", Operator screen, team vs all chat, bot settings hidden with no bots, intentional ladders with blocking and bots giving way, invite links and hosting guide (docs/HOSTING.md).
+Next: Gorge rework (ledges + bushes + bumpy slopes on the left, slide zones with a lethal middle on the right, metal zig-zag stairs, boxcar roof hatch, shorter train ladder), AK viewmodel fix, helicopter targets, game-ending replay, frame-rate limit, then 3b loadout & gear (incl. female operators), 3c medals + adjustable killstreaks + practice range, 3d netcode, 3e modes & weapons, 3f maps, vehicles, performance.
+
 ## Roadmap: suggested improvements
 **Multiplayer and netcode**
 1. Binary snapshots with delta compression (ArrayBuffer instead of JSON): ~70% less bandwidth, better on weak Wi-Fi.
