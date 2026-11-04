@@ -29,6 +29,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `uishot.mjs [w] [h]` — screenshots of the main menu (bot rules card open) and the MP lobby (/tmp/ui_*.png).
 - `mp3.mjs [mode] [map] [secs]` — host + 2 joiners: ready gate, unique names, chat relay (lobby + HUD), TDM team dealing, skins, pings on the scoreboard, joiner-vs-joiner hits, kick.
 - `mpstreaks.mjs` — joiner earns UAV/mortar/sentry from the host, deploys them through the host; strikes, sentries and sentry bursts mirrored.
+- `kcshot.mjs [gun|mortar]` — kill cam screenshot during the slow-motion final blow (/tmp/kc_*.png): killer's eyes or orbit view.
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

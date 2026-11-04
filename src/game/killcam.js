@@ -8,32 +8,39 @@ import { WEAPONS, TEAMS } from '../core/config.js';
 import { damp, clamp, lerp } from '../core/util.js';
 import { down } from '../core/input.js';
 import { losClear } from '../world/physics.js';
-import { makeSoldier, setSoldierGun, poseSoldier } from '../entities/soldier.js';
+import { makeSoldier, setSoldierGun, poseSoldier, setFlash } from '../entities/soldier.js';
 import { tracer } from '../engine/fx.js';
 import { play, setListener } from '../engine/audio.js';
 import { updateViewmodel, vmFire } from '../entities/viewmodel.js';
 
 const RATE = 0.05, KEEP = 5.5, MAX_FOOTAGE = 4, MAX_SPEED = 1.4, FALL = 0.5, TAIL = 0.35;
+// final blow: the last SLOW_PRE s before the kill and SLOW_POST after play at SLOW speed
+// (short respawn windows get a milder, shorter slow-down so there is still footage before it)
+const SLOWS = [{ k: 0.35, pre: 0.6, post: 0.15 }, { k: 0.6, pre: 0.4, post: 0.12 }].map((q) => ({ ...q, real: (q.pre + q.post) / q.k }));
+// kills where the killer's eyes don't show what happened: watch from a slow orbit around the victim instead
+const ORBIT = new Set(['mortar', 'sentry', 'barrel', 'vehicle', 'roadkill']);
 let frames = [], shots = [], nextSample = 0;
 let cam = null;     // active death camera state
 let body = null;    // the player's own third-person body, only shown in the kill cam
 
 export function resetKillcam() { frames = []; shots = []; nextSample = 0; endReplay(); cam = null; }
 
-const weaponOf = (u) => u.isPlayer ? (u.weapons ? u.weapons[u.slot] : null) : (u.brain ? u.brain.weapon : null);
+const weaponOf = (u) => u.isPlayer ? (u.weapons ? u.weapons[u.slot] : null) : (u.brain ? u.brain.weapon : u.weapon || null);
 
 // called once per live frame, after all updates
 export function recordFrame() {
   if (G.now < nextSample) return;
   nextSample = G.now + RATE;
   const us = [];
-  for (const u of G.units) us.push({ u, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w: weaponOf(u) });
+  for (const u of G.units) us.push({ u, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w: weaponOf(u), v: u.vehicle ? 1 : 0 });
   frames.push({ t: G.now, us });
   while (frames.length && frames[0].t < G.now - KEEP) frames.shift();
   while (shots.length && shots[0].t < G.now - KEEP) shots.shift();
 }
 // called by ballistics for every bullet/pellet: s is the live shot state (its x/y/z end up at the impact)
 export function recordShot(s) { if (G.match && !G.match.ended) shots.push({ t: G.now, s, x0: s.x, y0: s.y, z0: s.z, done: false }); }
+// multiplayer: shots mirrored from other players (drawn as tracers only) go into the footage too
+export function recordNetShot(u, w, x0, y0, z0, ex, ey, ez) { if (G.match && !G.match.ended) shots.push({ t: G.now, s: { shooter: u, w, k: 0, x: ex, y: ey, z: ez }, x0, y0, z0, done: false }); }
 
 // sample a unit's state at time t (linear interpolation between ~20 Hz frames)
 function sample(u, t) {
@@ -46,7 +53,7 @@ function sample(u, t) {
   const k = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
   const dy = Math.atan2(Math.sin(eb.yaw - ea.yaw), Math.cos(eb.yaw - ea.yaw));
   return { x: lerp(ea.x, eb.x, k), y: lerp(ea.y, eb.y, k), z: lerp(ea.z, eb.z, k), yaw: ea.yaw + dy * k, pitch: lerp(ea.pitch, eb.pitch, k),
-    alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w };
+    alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w, v: ea.v };
 }
 
 function ensureBody(P) {
@@ -56,17 +63,20 @@ function ensureBody(P) {
   return body;
 }
 
-export function onDeathCam(P, killer) {
+export function onDeathCam(P, killer, info = {}) {
   const delay = P.respawnAt - G.now; // respawn timing is owned by match.js and never changed here
   cam = { t: 0, phase: 'fall', from: { x: G.camera.position.x, y: G.camera.position.y, z: G.camera.position.z, yaw: P.yaw, pitch: P.pitch },
-    killer, deathAt: G.now, yaw: P.yaw, pitch: P.pitch, ox: P.x, oy: P.y + 1.45, oz: P.z, cx: P.x, cy: P.y + 1.45, cz: P.z, replay: null };
+    killer, info, deathAt: G.now, yaw: P.yaw, pitch: P.pitch, dist: killer ? Math.round(Math.hypot(killer.x - P.x, killer.z - P.z)) : 0, khp: killer && killer.alive ? Math.ceil(killer.health) : 0, ox: P.x, oy: P.y + 1.45, oz: P.z, cx: P.x, cy: P.y + 1.45, cz: P.z, replay: null };
   const ok = G.profile.settings.killcam && killer && !killer.isPlayer && killer !== P && frames.length > 4 && frames.some((f) => f.us.some((e) => e.u === killer));
   if (ok) {
     const window = Math.min(delay, 60) - FALL - 0.45;
     if (window > 0.8) {
-      const footage = Math.min(MAX_FOOTAGE, window * MAX_SPEED, G.now - frames[0].t);
-      const speed = Math.max(1, (footage + TAIL) / window);
-      cam.replay = { start: G.now - footage, end: G.now + TAIL, speed, t0: null, shotI: 0, saved: null };
+      const slow = SLOWS.find((q) => window - q.real >= 0.95) || null; // room for the slow-motion final blow?
+      const footage = Math.min(MAX_FOOTAGE, (slow ? window - slow.real : window) * MAX_SPEED + (slow ? slow.pre : 0), G.now - frames[0].t);
+      const speed = slow ? Math.max(1, (footage + TAIL - slow.pre - slow.post) / (window - slow.real)) : Math.max(1, (footage + TAIL) / window);
+      const ks = frames[frames.length - 1].us.find((e) => e.u === killer);
+      cam.replay = { start: G.now - footage, end: G.now + TAIL, speed, slow, t0: null, shotI: 0, saved: null,
+        orbit: ORBIT.has(info.weapon) || !!(ks && ks.v && killer.seat !== 1), oa: Math.atan2(P.x - killer.x, P.z - killer.z) };
     }
   }
 }
@@ -86,7 +96,7 @@ function endReplay() {
   if (!cam || !cam.replay || cam.phase !== 'replay') { showTag(false); return; }
   const r = cam.replay;
   for (const { u, snap } of r.saved || []) if (u.soldier) { restorePose(u.soldier, snap); u.soldier.root.visible = true; }
-  if (body) body.s.root.visible = false;
+  if (body) { body.s.root.visible = false; setFlash(body.s, 0); }
   showTag(false);
   cam.replay = null;
 }
@@ -100,7 +110,12 @@ function showTag(on, name) {
   const el = document.getElementById('killcam'); if (!el) return;
   el.classList.toggle('hidden', !on);
   document.getElementById('hud').classList.toggle('kc-on', !!on);
-  if (on && cam && cam.killer) document.getElementById('killcamName').textContent = cam.killer.name;
+  if (on && cam && cam.killer) {
+    const i = cam.info || {}, wl = WEAPONS[i.weapon] ? WEAPONS[i.weapon].name : String(i.weapon || '').toUpperCase();
+    document.getElementById('killcamName').textContent = cam.killer.name;
+    document.getElementById('killcamInfo').textContent = [wl, i.headshot ? 'headshot' : '', cam.dist ? cam.dist + ' m' : '', cam.khp ? cam.khp + ' HP left' : ''].filter(Boolean).join(' · ');
+  }
+  if (!on) document.getElementById('killcam').classList.remove('slow');
 }
 
 // returns true when the viewmodel should be drawn (kill cam shows the killer's gun)
@@ -122,9 +137,11 @@ export function updateDeathCam(dt, P, mdx, mdy) {
 
 function replayStep(dt, P) {
   const r = cam.replay;
-  r.t += dt * r.speed;
+  const q = r.slow, inSlow = !!q && r.t >= cam.deathAt - q.pre && r.t < cam.deathAt + q.post;
+  r.t += dt * (inSlow ? q.k : r.speed);
+  document.getElementById('killcam').classList.toggle('slow', !!inSlow);
   if (r.t >= r.end) { endReplay(); cam.phase = 'free'; cam.t = 0; return false; }
-  const k = cam.killer;
+  const k = cam.killer, sp = inSlow ? q.k : r.speed;
   // pose every soldier from the recording; units not in the recording keep their live pose
   for (const u of G.units) {
     const st = sample(u, r.t);
@@ -134,20 +151,26 @@ function replayStep(dt, P) {
       b.s.root.visible = true;
       if (st.w && st.w !== b.gun && WEAPONS[st.w] && !WEAPONS[st.w].melee) { setSoldierGun(b.s, st.w); b.gun = st.w; }
       Object.assign(b.ghost, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed, walkPhase: (b.ghost.walkPhase || 0) });
-      poseSoldier(b.s, b.ghost, dt * r.speed);
+      poseSoldier(b.s, b.ghost, dt * sp);
+      setFlash(b.s, 0.4 + 0.15 * Math.sin(G.realTime * 8), 0xff3a28); // you, in red
       continue;
     }
     if (!u.soldier || !st) continue;
-    if (u === k) { u.soldier.root.visible = false; continue; } // we are looking through the killer's eyes
+    if (u === k && !r.orbit) { u.soldier.root.visible = false; continue; } // we are looking through the killer's eyes
     u.soldier.root.visible = st.alive;
-    if (st.alive) { u._kcGhost = Object.assign(u._kcGhost || {}, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed }); poseSoldier(u.soldier, u._kcGhost, dt * r.speed); }
+    if (st.alive) { u._kcGhost = Object.assign(u._kcGhost || {}, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed }); poseSoldier(u.soldier, u._kcGhost, dt * sp); }
   }
-  // killer's eyes
+  if (r.orbit) return orbitStep(dt, P, r, sp);
+  // killer's eyes (lightly smoothed: the footage is 20 Hz)
   const ks = sample(k, r.t);
   if (ks) {
     const eye = 1.58 - ks.crouchT * 0.5;
-    G.camera.position.set(ks.x, ks.y + eye, ks.z);
-    G.camera.rotation.set(ks.pitch, ks.yaw, 0);
+    if (!r.sm) r.sm = { x: ks.x, y: ks.y + eye, z: ks.z, yaw: ks.yaw, pitch: ks.pitch };
+    const a = 1 - Math.exp(-dt * 25), m = r.sm;
+    m.x += (ks.x - m.x) * a; m.y += (ks.y + eye - m.y) * a; m.z += (ks.z - m.z) * a;
+    m.yaw += Math.atan2(Math.sin(ks.yaw - m.yaw), Math.cos(ks.yaw - m.yaw)) * a; m.pitch += (ks.pitch - m.pitch) * a;
+    G.camera.position.set(m.x, m.y, m.z);
+    G.camera.rotation.set(m.pitch, m.yaw, 0);
     const w = WEAPONS[ks.w] ? ks.w : 'm4';
     if (Math.abs(G.camera.fov - G.profile.settings.fov) > 0.1) { G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix(); }
     setListener(ks.x, ks.y + eye, ks.z, ks.yaw);
@@ -161,6 +184,24 @@ function replayStep(dt, P) {
     }
     updateViewmodel(dt, { weapon: w, visible: !WEAPONS[w].melee, loaded: true, adsT: 0, sprintT: 0, bob: 0, bobAmp: 0, mdx: 0, mdy: 0, reload: -1, switchT: 1, melee: -1, meleeHeavy: false, throwT: -1, cooking: false, crouchT: ks.crouchT, pump: -1, bolt: -1 });
     return !WEAPONS[w].melee;
+  }
+  return false;
+}
+
+// third-person view circling the victim (sentry, mortar, barrel and vehicle kills), walls pull the camera in
+function orbitStep(dt, P, r, sp) {
+  const v = sample(P, r.t) || { x: P.x, y: P.y, z: P.z };
+  r.oa += dt * sp * 0.35;
+  const R = 7, cx = v.x + Math.sin(r.oa) * R, cz = v.z + Math.cos(r.oa) * R, cy = v.y + 4.2;
+  let px = cx, py = cy, pz = cz;
+  for (let f = 1; f > 0.2 && !losClear(v.x, v.y + 1.4, v.z, px, py, pz); f -= 0.15) { px = v.x + (cx - v.x) * f; py = v.y + 1.4 + (cy - v.y - 1.4) * f; pz = v.z + (cz - v.z) * f; }
+  G.camera.position.set(px, py, pz);
+  G.camera.lookAt(v.x, v.y + 1.0, v.z);
+  setListener(px, py, pz, G.camera.rotation.y);
+  while (r.shotI < shots.length && shots[r.shotI].t <= r.t) {
+    const e = shots[r.shotI++], s = e.s;
+    tracer(e.x0, e.y0, e.z0, s.x, s.y, s.z, 0xffe0a0, 420);
+    if (s.k === 0 && s.w && s.w.sound) play(s.w.sound, { x: e.x0, y: e.y0, z: e.z0 }, { gain: 0.5 });
   }
   return false;
 }

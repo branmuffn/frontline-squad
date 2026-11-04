@@ -20,6 +20,7 @@ import { awardKill } from '../game/progression.js';
 import { pickSpawn, endMatch } from '../game/match.js';
 import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transport.js';
 import * as chat from '../ui/chat.js';
+import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entities/streaks.js';
 
 export const MAX_PLAYERS = 8;
@@ -381,7 +382,9 @@ function onKillEv(m) {
     const P = G.player;
     if (P.alive) { P.alive = false; P.health = 0; P.deaths++; P.streak = 0; }
     onPlayerDeath(); P.lastKiller = k; G.state = 'dead';
+    P.respawnAt = m.ra < 0 ? G.now + 1.6 : m.ra; // host clock (ours is synced to it); the host sends the spawn
     hud.showDeath(k, { weapon: m.w, headshot: m.h }, m.ra < 0 ? 99 : m.ra);
+    onDeathCam(P, k, { weapon: m.w, headshot: m.h });
   } else if (v.proxy && v.alive) proxyDie(v, k);
   if (k === G.player && v !== G.player) {
     hud.hitMarker('kill'); play('kill', null, { important: true, delay: 0.06 });
@@ -398,6 +401,7 @@ function replayShot(s, from) {
   if (u === G.player) return;
   let [, , mx, my, mz, ex, ey, ez] = s;
   tracer(mx, my, mz, ex, ey, ez, 0xffb46a, w.velocity || 420);
+  recordNetShot(u, w, mx, my, mz, ex, ey, ez);
   enemyFlash(mx, my, mz);
   play(w.sound, { x: mx, y: my, z: mz }, { occlude: true, gain: 0.9 });
   if (S.host) noise(u.x, my, u.z, w.noise, u);

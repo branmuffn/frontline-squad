@@ -158,11 +158,11 @@ export function onKill(credited, victim, info) {
     G.state = 'dead';
     if (m.mode === 'survival' || (m.hook && m.hook.waves)) {
       m.lives--;
-      if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); hud.showDeath(credited, info, 99); victim.respawnAt = G.now + 1.6; onDeathCam(victim, credited); return; }
+      if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); hud.showDeath(credited, info, 99); victim.respawnAt = G.now + 1.6; onDeathCam(victim, credited, info); return; }
     }
     victim.respawnAt = G.now + (m.mode === 'survival' ? 5 : 3);
     hud.showDeath(credited, info, victim.respawnAt);
-    onDeathCam(victim, credited);
+    onDeathCam(victim, credited, info);
   } else if (victim.remote) { // another human player (multiplayer host)
     if (m.mode === 'survival' || (m.hook && m.hook.waves)) {
       m.lives--;

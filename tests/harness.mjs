@@ -27,6 +27,6 @@ export async function open({ stub = true, w = 1280, h = 720, html = path.join(HE
   await page.addInitScript(STEP);
   await page.goto('http://game.local/');
   await page.waitForFunction(() => window.__frontline, null, { timeout: 30000 });
-  if (stub) await page.evaluate(() => { const r = window.__frontline.G.renderer; r.clear = () => {}; r.clearDepth = () => {}; r.render = (s, c) => { s.updateMatrixWorld(); if (c && !c.parent) c.updateMatrixWorld(); }; });
+  if (stub) await page.evaluate(() => { const r = window.__frontline.G.renderer; r.__orig = { render: r.render, clear: r.clear, clearDepth: r.clearDepth }; r.clear = () => {}; r.clearDepth = () => {}; r.render = (s, c) => { s.updateMatrixWorld(); if (c && !c.parent) c.updateMatrixWorld(); }; });
   return { browser, page, errors };
 }

@@ -490,3 +490,6 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .mp-look .flabel i { color: var(--ink-faint); font-style: normal; text-transform: none; }
 [data-state=choose] .mp-chat, [data-state=choose] .mp-look, [data-state=choose] #mpReady, [data-state=host] #mpReady { display: none; }
 #mpReady.on { background: #5b7f45; }
+#killcam .kc-tag em { font-style: normal; color: #ffe2a6; font-size: 16px; }
+#killcam .kc-slow { position: absolute; top: calc(7vh + 62px); left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: 800; letter-spacing: 0.3em; color: #ff8a70; opacity: 0; transition: opacity 0.2s; text-shadow: 0 2px 6px #000; }
+#killcam.slow .kc-slow { opacity: 1; } #killcam.slow::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 16vh rgba(150, 20, 10, 0.35); }

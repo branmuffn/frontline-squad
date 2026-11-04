@@ -90,6 +90,9 @@ check('hurt', Math.abs(s.c.P.hp - 70) < 1, s.c.P.hp);
 await H.evaluate(() => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote), b = G.bots.find((x) => x.alive); r.protectUntil = 0; F.damage(r, 999, b, { weapon: 'm4', sx: b.x, sz: b.z }); });
 await run(20); s = await st();
 check('client died', s.c.state === 'dead' && !s.c.P.alive, [s.c.state, s.c.P.alive]);
+await run(50);
+const kc = await C.evaluate(() => [!document.getElementById('killcam').classList.contains('hidden'), document.getElementById('killcamName').textContent, +(window.__frontline.G.player.respawnAt - window.__frontline.G.now).toFixed(1)]);
+check('joiner kill cam', kc[0] && kc[1].length > 0 && kc[2] > 0 && kc[2] < 4, kc);
 await run(420); s = await st();
 check('client respawned', s.c.state === 'playing' && s.c.P.alive && s.h.r.alive, [s.c.state, s.c.P.alive, s.h.r.alive]);
 // grenade from the client becomes real on the host
