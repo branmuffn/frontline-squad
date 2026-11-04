@@ -302,7 +302,7 @@ export function rayUnits(ox, oy, oz, dx, dy, dz, tmax, skip) {
         const t = (-b - Math.sqrt(disc)) / (2 * a);
         if (t > 0 && t < best) {
           const y = oy + dy * t;
-          if (y >= y0 && y <= y1) { best = t; hu = u; zone = (y - u.y) < u.h * 0.46 ? 'legs' : 'body'; }
+          if (y >= y0 && y <= y1) { best = t; hu = u; const rel = (y - u.y) / u.h, hl = Math.hypot(dx, dz) || 1, lat = Math.abs((u.x - ox) * dz - (u.z - oz) * dx) / hl; zone = rel > 0.43 && rel < 0.53 && lat < 0.11 ? 'groin' : rel < 0.46 ? 'legs' : 'body'; }
         }
       }
     }

@@ -50,7 +50,8 @@ function waterSurface(wh) {
 
 // One bullet state, shared by hitscan traces and projectiles in flight.
 export function newShot(shooter, wid, x, y, z, mul, k = 0) {
-  const s = { shooter, wid, w: WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false };
+  const s = { shooter, wid, w: WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false, kills: 0 };
+  if (shooter && shooter.isPlayer) { s.ads = shooter.adsT || 0; s.scopedFor = shooter.scopedAt ? G.now - shooter.scopedAt : 99; s.spin = shooter.spinAcc || 0; s.air = !shooter.grounded && !shooter.onLadder; }
   recordShot(s);
   return s;
 }
@@ -69,7 +70,7 @@ export function traceSegment(s, dx, dy, dz, len) {
     if (uh) {
       const t = uh.t, ex = s.x + dx * t, ey = s.y + dy * t, ez = s.z + dz * t, head = uh.zone === 'head', dist = s.travelled + t;
       const zm = head ? w.headMul : uh.zone === 'legs' ? w.legMul : 1;
-      damage(uh.unit, w.damage * falloff(w, dist) * zm * s.mul * s.mulPen, s.shooter, { weapon: s.wid, zone: uh.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist });
+      damage(uh.unit, w.damage * falloff(w, dist) * zm * s.mul * s.mulPen, s.shooter, { weapon: s.wid, zone: uh.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist, shot: s, pen: s.walls > 0 });
       if (!uh.unit.isPlayer) blood(ex, ey, ez, dx, dz, head);
       if (isP) play('bodyHit', { x: ex, y: ey, z: ez }, { gain: 0.6 });
       s.hit = { unit: uh.unit, head }; s.x = ex; s.y = ey; s.z = ez; s.travelled = dist; s.done = true;

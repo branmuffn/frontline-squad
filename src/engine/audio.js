@@ -145,6 +145,7 @@ const RECIPES = {
   casing: (d, t) => { for (let i = 0; i < 3; i++) tone(d, t + i * (0.05 + Math.random() * 0.05), 0.05, { type: 'triangle', f0: 3200 + Math.random() * 1800, gain: 0.025 / (i + 1) }); },
   splash: (d, t) => noise(d, t, 0.18, { type: 'bandpass', f0: 1200, f1: 500, q: 1, gain: 0.3 }),
   bird: (d, t) => { const f = 2200 + Math.random() * 1600; for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) tone(d, t + i * 0.13, 0.08, { f0: f, f1: f * (1.2 + Math.random() * 0.3), gain: 0.03 }); },
+  squeak: (d, t) => { tone(d, t, 0.09, { f0: 1400, f1: 2600, gain: 0.25 }); tone(d, t + 0.1, 0.12, { f0: 2600, f1: 1200, gain: 0.22 }); },
   land: (d, t) => noise(d, t, 0.13, { f0: 300, gain: 0.4 }),
   impact: (d, t) => noise(d, t, 0.05, { type: 'bandpass', f0: 2400, gain: 0.3 }),
   impactMetal: (d, t) => { tone(d, t, 0.07, { type: 'triangle', f0: 1400 + Math.random() * 1000, gain: 0.12 }); noise(d, t, 0.04, { type: 'highpass', f0: 4000, gain: 0.2 }); },

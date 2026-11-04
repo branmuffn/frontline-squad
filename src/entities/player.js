@@ -476,6 +476,8 @@ export function updatePlayer(dt) {
   // camera
   P.eye = damp(P.eye, P.prone ? PHYS.eyeProne : P.crouch ? PHYS.eyeCrouch : PHYS.eyeStand, P.prone || P.eye < PHYS.eyeCrouch - 0.05 ? 7 : 12, dt);
   const amp = Math.min(1.3, P.moveSpeed / 6) * (1 - P.adsT * 0.8) * (P.grounded ? 1 : 0);
+  { const dyw = Math.abs(Math.atan2(Math.sin(P.yaw - (P._ly ?? P.yaw)), Math.cos(P.yaw - (P._ly ?? P.yaw)))); P._ly = P.yaw; P.spinAcc = (P.spinAcc || 0) * Math.exp(-dt / 0.7) + dyw; }
+  if (P.adsT > 0.9 && !P._scoped) { P._scoped = true; P.scopedAt = G.now; } else if (P.adsT < 0.5) P._scoped = false;
   G.shake = damp(G.shake || 0, 0, 6, dt);
   const sh = G.shake;
   G.camera.position.set(P.x + Math.cos(P.bob) * 0.02 * amp * rx, P.y + P.eye + Math.sin(P.bob * 2) * 0.032 * amp, P.z + Math.cos(P.bob) * 0.02 * amp * rz);

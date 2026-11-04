@@ -1,7 +1,7 @@
 import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, MEDALS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -288,6 +288,7 @@ function refreshSettings() {
 
 // ---------- career ----------
 function refreshCareer() {
+  { const md = G.profile.career.medals || {}; $('medalCase').innerHTML = '<div>' + Object.entries(MEDALS).map(([k, n]) => `<span class="medal ${md[k] ? '' : 'none'}"><b>${md[k] || 0}</b>${esc(n)}</span>`).join('') + '</div>'; }
   const pr = G.profile, c = pr.career, rp = rankProgress(pr.xp);
   const kd = (c.kills / Math.max(1, c.deaths)).toFixed(2), acc = c.shots ? Math.round(c.hits / c.shots * 100) + '%' : '—';
   const hrs = c.seconds >= 3600 ? `${Math.floor(c.seconds / 3600)}h ${Math.floor(c.seconds % 3600 / 60)}m` : `${Math.floor(c.seconds / 60)}m`;

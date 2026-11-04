@@ -34,7 +34,7 @@ function freshProfile() {
     skin: { uniform: 'olive', pattern: 'plain', helmet: 'olive', op: 'rex' },
     hints: {},
     xp: 0,
-    career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0 },
+    career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0, medals: { __open: true } },
     best: { ffa: 0, tdm: 0, survival: { recruit: 0, easy: 0, normal: 0, hard: 0, elite: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },
   };
 }
@@ -44,6 +44,7 @@ function merge(base, saved) {
   for (const k of Object.keys(base)) {
     if (!(k in saved)) continue;
     const b = base[k], s = saved[k];
+    if (b && typeof b === 'object' && !Array.isArray(b) && b.__open) base[k] = s && typeof s === 'object' ? { ...s } : {}; // free-form maps (medal counts)
     if (b && typeof b === 'object' && !Array.isArray(b)) base[k] = merge(b, s);
     else if (typeof s === typeof b) base[k] = s;
   }
@@ -59,6 +60,7 @@ function fromSaved(saved) {
   p.presets = defs.map((d, i) => ({ ...d, ...(Array.isArray(saved.presets) && saved.presets[i] && typeof saved.presets[i] === 'object' ? saved.presets[i] : {}) }));
   p.preset = Math.max(0, Math.min(2, p.preset | 0));
   p.loadout = p.presets[p.preset];
+  if (p.career.medals) delete p.career.medals.__open;
   const L = p.lobby; // bot skill 1-10 replaced the 3-step difficulty
   if (!(L.skill >= 1 && L.skill <= 10)) L.skill = { easy: 3, normal: 5, hard: 7 }[L.difficulty] || 5;
   return p;

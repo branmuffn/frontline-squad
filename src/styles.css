@@ -525,3 +525,6 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
   .lo-card { padding: 6px; gap: 2px; } .lo-card img, .lo-card .ico, .lo-card .camo-sw { height: 44px; }
   .lo-card .stat { font-size: 11px; line-height: 1.1; } .lo-preview { min-height: 120px; } #loadout .lo-detail { margin: 2px 0; }
 }
+.medal-case > div { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; } .medal { border: 1px solid var(--line); padding: 3px 8px; font-size: 13px; } .medal b { color: #ffe2a6; margin-right: 5px; } .medal.none { opacity: 0.45; }
+.medal-case > div { flex-wrap: nowrap; overflow-x: auto; margin: 0 0 6px; padding-bottom: 2px; } .medal { white-space: nowrap; font-size: 12px; padding: 2px 6px; }
+@media (max-height: 700px) { #career .lede { display: none; } }

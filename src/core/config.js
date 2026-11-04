@@ -330,7 +330,12 @@ export const CAMOS = [
 export const XP = {
   kill: 100, headshot: 50, melee: 75, grenade: 75, longshot: 50, double: 50, triple: 100, multi: 150,
   firstBlood: 75, revenge: 50, assist: 40, streakEnd: 75, wave: 150, win: 500, complete: 200, survivor: 100,
+  noscope: 150, quickscope: 100, spin: 300, nutcracker: 75, wallbang: 75, collateral: 150, pointBlank: 25, lastStand: 50, airborne: 50, carePackage: 0,
 };
+// medals with their own banner + sound (the rest are XP popups); also counted in Career's medal case
+export const MEDALS = { noscope: 'No-scope', quickscope: 'Quickscope', spin: '360 No-scope', nutcracker: 'Nutcracker', wallbang: 'Wallbang', collateral: 'Collateral', pointBlank: 'Point blank', lastStand: 'Last stand', airborne: 'Airborne', longshot: 'Longshot', headshot: 'Headshot', revenge: 'Revenge', streakEnd: 'Buzzkill' };
+const BIG_MEDALS = ['noscope', 'spin', 'nutcracker', 'collateral'];
+export const isBigMedal = (k) => BIG_MEDALS.includes(k);
 
 export const STREAKS = [
   { kills: 3, id: 'uav', name: 'RECON UAV', desc: 'Reveals enemies on the radar', duration: 25, auto: true,
