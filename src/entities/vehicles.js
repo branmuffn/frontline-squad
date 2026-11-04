@@ -291,6 +291,7 @@ function makeHeliMesh() {
   if (!heliGeo) buildHeli();
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const hull = new THREE.Mesh(heliGeo.body, vMat); hull.castShadow = true; body.add(hull);
+  const glass = new THREE.Mesh(heliGeo.canopy, glassMat()); glass.position.set(0, 1.45, -1.35); glass.rotation.x = -1.25; glass.scale.set(0.86, 1.05, 0.8); body.add(glass); // see-through canopy
   const rotor = new THREE.Group(); rotor.position.set(0, 2.78, 0.25); body.add(rotor);
   const blades = new THREE.Mesh(heliGeo.rotor, vMat); blades.castShadow = true; rotor.add(blades);
   const disc = new THREE.Mesh(new THREE.CircleGeometry(4.7, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x202426, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
@@ -304,12 +305,40 @@ function makeHeliMesh() {
   G.scene.add(root);
   return { root, body, wheels: [], turret, gun, hull, rotor, blades, disc, tail, blob };
 }
-let heliGeo = null;
+let heliGeo = null, glassM = null;
+const glassMat = () => glassM || (glassM = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x86a8b6).convertSRGBToLinear(), transparent: true, opacity: 0.32, roughness: 0.1, metalness: 0.2, depthWrite: false }));
+// bullets: where on a vehicle a ray entered. Helicopters: the open doors and canopy let rounds reach the crew.
+export function crewMul(v, x, y, z) {
+  if (v.type !== 'heli') return v.spec.crew || 0.85;
+  const [lx, lz] = local(v, x, z), ly = y - v.y;
+  if (ly > 0.5 && ly < 2.25 && lz > -0.9 && lz < 1.0 && Math.abs(lx) > v.spec.hw - 0.25) return 1;   // open door
+  if (lz < -0.85 && ly > 1.1) return 0.85;                                                          // canopy glass
+  return v.spec.crew || 0.6;
+}
+// the tail rotor sticks out past the hull box: a small weak spot (3x damage)
+export function tailRotorHit(ox, oy, oz, dx, dy, dz, tmax) {
+  let best = null;
+  for (const v of vehicles) {
+    if (v.type !== 'heli' || !v.alive) continue;
+    const [tx, tz] = world(v, 0.2, 5.65), ty = v.y + 1.95, lx = ox - tx, ly = oy - ty, lz = oz - tz;
+    const b = lx * dx + ly * dy + lz * dz, c = lx * lx + ly * ly + lz * lz - 0.8 * 0.8, disc = b * b - c;
+    if (disc < 0) continue; const t = -b - Math.sqrt(disc);
+    if (t > 0 && t < tmax && (!best || t < best.t)) best = { v, t };
+  }
+  return best;
+}
 function buildHeli() {
   const OD = 0x4b5541, ODd = 0x3a4233, K = 0x1d2022, GL = 0x86a8b6, ST = 0xc9b25a;
   let b = new Builder();
-  b.add(0, lathe2([[0.0, -2.35], [0.45, -2.2], [0.88, -1.55], [1.05, -0.6], [1.08, 0.4], [0.95, 1.2], [0.6, 1.75], [0.3, 2.0], [0, 2.05]], 14), OD, [0, 1.35, 0], [Math.PI / 2, 0, 0], [1, 0.95, 1]);
-  b.add(0, sphere(1, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), GL, [0, 1.45, -1.35], [-1.25, 0, 0], [0.86, 1.05, 0.8], { ao: 0 }); // canopy
+  // nose and tail cone; the cabin between them is an open frame (doors slid back) so the crew can be seen and shot
+  b.add(0, lathe2([[0.0, -2.35], [0.45, -2.2], [0.88, -1.55], [1.02, -0.9], [1.0, -0.82]], 14), OD, [0, 1.35, 0], [Math.PI / 2, 0, 0], [1, 0.95, 1]);
+  b.add(0, lathe2([[1.0, 0.95], [0.95, 1.2], [0.6, 1.75], [0.3, 2.0], [0, 2.05]], 14), OD, [0, 1.35, 0], [Math.PI / 2, 0, 0], [1, 0.95, 1]);
+  b.add(0, rbox(1.95, 0.1, 1.85, 0.03, 1), ODd, [0, 0.42, 0.06]);   // cabin floor
+  b.add(0, rbox(1.95, 0.12, 1.85, 0.04, 1), OD, [0, 2.3, 0.06]);    // roof
+  b.add(0, rbox(1.9, 1.85, 0.08, 0.03, 1), ODd, [0, 1.35, 0.97]);   // rear bulkhead
+  for (const sx of [-1, 1]) for (const z of [-0.85, 0.95]) b.add(0, rbox(0.1, 1.85, 0.12, 0.03, 1), OD, [sx * 0.96, 1.35, z]); // door pillars
+  for (const sx of [-1, 1]) b.add(0, rbox(0.06, 1.7, 0.95, 0.02, 1), ODd, [sx * 1.02, 1.35, 1.5]); // doors slid back along the tail
+  b.add(0, rbox(0.5, 0.7, 0.5, 0.06, 1), K, [0, 0.8, -1.1]);       // pilot seat
   b.add(0, rbox(0.95, 0.42, 1.7, 0.12, 2), ODd, [0, 2.38, 0.35]);    // engine housing
   for (const sx of [-1, 1]) b.add(0, cyl(0.12, 0.12, 0.25, 8), K, [sx * 0.42, 2.38, 1.25], [Math.PI / 2, 0, 0]); // exhausts
   b.add(0, cyl(0.08, 0.08, 0.35, 8), K, [0, 2.62, 0.25]);             // mast
@@ -319,9 +348,8 @@ function buildHeli() {
   for (const sx of [-1, 1]) {
     b.add(0, cyl(0.05, 0.05, 3.3, 8), K, [sx * 0.88, 0.07, -0.15], [Math.PI / 2, 0, 0]); // skids
     for (const z of [-0.9, 0.8]) b.add(0, cyl(0.035, 0.035, 0.8, 6), K, [sx * 0.72, 0.42, z], [0, 0, sx * 0.4]);
-    b.add(0, rbox(0.04, 0.12, 1.4, 0.02, 1), ST, [sx * 1.04, 1.1, -0.1]); // stripe
+    b.add(0, rbox(0.04, 0.12, 1.2, 0.02, 1), ST, [sx * 0.99, 1.45, 1.55]); // stripe (on the slid-back door)
   }
-  b.add(0, rbox(1.75, 0.95, 1.15, 0.12, 2), ODd, [0, 1.15, 0.2]); // cabin sides (open doors)
   const body = b.geometry(); body.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.5, 1.5), 5);
   b = new Builder();
   for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; b.add(0, rbox(0.28, 0.035, 4.5, 0.012, 1), K, [Math.sin(a) * 2.35, 0.05, Math.cos(a) * 2.35], [0, a, 0]); }
@@ -330,7 +358,7 @@ function buildHeli() {
   b = new Builder();
   for (let i = 0; i < 2; i++) b.add(0, rbox(0.03, 0.14, 1.1, 0.01, 1), K, [0, 0, 0], [i * Math.PI / 2, 0, 0]);
   const tail = b.geometry(); tail.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 0.8);
-  heliGeo = { body, rotor, tail };
+  heliGeo = { body, rotor, tail, canopy: new THREE.SphereGeometry(1, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5) };
 }
 const lathe2 = (profile, rs) => new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(Math.max(0.0001, r), y)), rs);
 

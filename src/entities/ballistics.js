@@ -10,7 +10,7 @@ import { damageBarrel } from './worldprops.js';
 import { impact, blood, tracer } from '../engine/fx.js';
 import { play } from '../engine/audio.js';
 import { recordShot } from '../game/killcam.js';
-import { damageVehicle } from './vehicles.js';
+import { damageVehicle, crewMul, tailRotorHit } from './vehicles.js';
 
 export function falloff(w, d) {
   const [f0, f1, mn] = w.falloff;
@@ -63,6 +63,8 @@ export function traceSegment(s, dx, dy, dz, len) {
   whizCheck(s, dx, dy, dz, len);
   for (let guard = 0; guard < 6; guard++) {
     const wh = rayWorld(s.x, s.y, s.z, dx, dy, dz, len);
+    const tr = tailRotorHit(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len);
+    if (tr && !tr.v.seats.includes(s.shooter)) { const t = tr.t, dist = s.travelled + t; damageVehicle(tr.v, w.damage * falloff(w, dist) * s.mul * s.mulPen * 3, s.shooter); if (isP) { play('impactMetal', { x: s.x + dx * t, y: s.y + dy * t, z: s.z + dz * t }, { gain: 0.6 }); } impact(s.x + dx * t, s.y + dy * t, s.z + dz * t, -dx, -dy, -dz, 'metal'); s.x += dx * t; s.y += dy * t; s.z += dz * t; s.travelled = dist; s.done = true; return true; }
     const uh = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len, (u) => u === s.shooter || !isEnemy(s.shooter, u));
     if (uh) {
       const t = uh.t, ex = s.x + dx * t, ey = s.y + dy * t, ez = s.z + dz * t, head = uh.zone === 'head', dist = s.travelled + t;
@@ -83,7 +85,7 @@ export function traceSegment(s, dx, dy, dz, len) {
       const ch = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh.t + 5.5, (u) => u.vehicle !== v || u === s.shooter || !isEnemy(s.shooter, u));
       if (ch) {
         const head = ch.zone === 'head', zm = head ? w.headMul : ch.zone === 'legs' ? w.legMul : 1;
-        damage(ch.unit, base * zm * (v.spec.crew || 0.6), s.shooter, { weapon: s.wid, zone: ch.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist: s.travelled + ch.t });
+        damage(ch.unit, base * zm * crewMul(v, wh.x, wh.y, wh.z), s.shooter, { weapon: s.wid, zone: ch.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist: s.travelled + ch.t });
         if (!ch.unit.isPlayer) blood(s.x + dx * ch.t, s.y + dy * ch.t, s.z + dz * ch.t, dx, dz, head);
         s.hit = { unit: ch.unit, head };
       }

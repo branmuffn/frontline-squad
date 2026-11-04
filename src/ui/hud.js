@@ -278,6 +278,8 @@ function updateTags() {
       const uh = rayUnits(c.x, c.y, c.z, dx, dy, dz, wh ? wh.t : 90, (u) => u === P);
       if (uh) name = (isEnemy(P, uh.unit) ? '' : '◆ ') + uh.unit.name;
       $('aimName').className = uh && !isEnemy(P, uh.unit) ? 'ally' : 'foe';
+      const v = !uh && wh && wh.col && wh.col.vehicle; // a crewed enemy vehicle under the crosshair: its health
+      if (v && v.alive && !P.vehicle) { const crew = v.seats.find((q) => q); if (crew && isEnemy(P, crew)) { const k = Math.max(0, v.hp / v.spec.hp); name = `${v.type === 'heli' ? 'HELICOPTER' : 'JEEP'} ${'▮'.repeat(Math.ceil(k * 8))}${'▯'.repeat(8 - Math.ceil(k * 8))} ${Math.round(k * 100)}%`; } }
     }
     set('aimName', 'text', name);
   }
