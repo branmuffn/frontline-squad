@@ -288,7 +288,6 @@ function refreshSettings() {
 
 // ---------- career ----------
 function refreshCareer() {
-  { const md = G.profile.career.medals || {}; $('medalCase').innerHTML = '<div>' + Object.entries(MEDALS).map(([k, n]) => `<span class="medal ${md[k] ? '' : 'none'}"><b>${md[k] || 0}</b>${esc(n)}</span>`).join('') + '</div>'; }
   const pr = G.profile, c = pr.career, rp = rankProgress(pr.xp);
   const kd = (c.kills / Math.max(1, c.deaths)).toFixed(2), acc = c.shots ? Math.round(c.hits / c.shots * 100) + '%' : '—';
   const hrs = c.seconds >= 3600 ? `${Math.floor(c.seconds / 3600)}h ${Math.floor(c.seconds % 3600 / 60)}m` : `${Math.floor(c.seconds / 60)}m`;
@@ -297,6 +296,7 @@ function refreshCareer() {
     ['Best FFA', pr.best.ffa + ' kills'], ['Best TDM', pr.best.tdm + ' kills'], ['Best survival', Math.max(...Object.values(pr.best.survival)).toLocaleString() + ' pts'], ['Furthest wave', pr.best.wave]];
   $('careerStats').innerHTML = tiles.map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join('');
   $('rankLadder').innerHTML = RANKS.map((r) => `<div class="rung ${r.i === rp.rank ? 'cur' : r.i < rp.rank ? 'done' : ''}">${badgeSVG(r.i, 30)}<span>${esc(r.name)}</span><small>${r.xp.toLocaleString()} XP</small></div>`).join('');
+  { const md = G.profile.career.medals || {}; $('rankLadder').insertAdjacentHTML('afterbegin', '<div class="medal-case"><span class="flabel">Medal case</span><div>' + Object.entries(MEDALS).map(([k, n]) => `<span class="medal ${md[k] ? '' : 'none'}"><b>${md[k] || 0}</b>${esc(n)}</span>`).join('') + '</div></div>'); }
   setTimeout(() => { const cur = $('rankLadder').querySelector('.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); }, 0);
 }
 
