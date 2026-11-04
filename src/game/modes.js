@@ -1,3 +1,4 @@
+import { restyleSoldier } from '../entities/soldier.js';
 import { RANGE_TARGETS, RANGE_MOVERS } from '../world/maps/firingrange.js';
 // Phase 5 modes as hooks on top of the shared match flow (match.js calls these when present).
 // Hook fields: setup, weapons(u), onSpawn(u), onKill, onDamage, modDamage, update, result, score, botGoal, interact, prompting
@@ -23,15 +24,19 @@ export const GG_LADDER = ['m4', 'ak47', 'm249', 'mp5', 'spas12', 'm870', 'mk14',
 function ggArm(u) {
   const id = GG_LADDER[Math.min(u.gg, GG_LADDER.length - 1)];
   if (u.isPlayer) { delete u.ammo[id]; giveWeapons(id === 'knife' ? ['knife'] : [id, 'knife']); }
+  else if (u.remote) { u.weapon = id; G.mp.toRemote(u, { t: 'mode', gg: u.gg }); } // a joiner: their game arms them
   else { u.brain.guns = [id]; setBotWeapon(u, id, false); }
 }
 const gungame = {
   noDrops: true, noStreaks: true,
   setup() { for (const u of G.units) u.gg = 0; },
   weapons(u) { const id = GG_LADDER[u.gg || 0]; return id === 'knife' ? ['knife'] : [id, 'knife']; },
-  onSpawn(u) { if (!u.isPlayer) ggArm(u); },
+  onSpawn(u) { if (!u.isPlayer && !u.remote) ggArm(u); },
+  netState() { return G.units.map((u) => [u.id, u.gg || 0]); },
+  netApply(s, find) { for (const [id, g] of s) { const u = find(id); if (u) u.gg = g; } },
+  netMsg(m) { const P = G.player; if (m.gg == null) return; const up = m.gg > (P.gg || 0); P.gg = m.gg; ggArm(P); if (up) { hud.center(`${P.gg + 1} / ${GG_LADDER.length}`, 0.9); play('streak', null, { important: true }); } else if (m.demoted) hud.banner('Demoted', `Back to ${WEAPONS[GG_LADDER[P.gg]].name}`); },
   onKill(c, v, info) {
-    if (info.weapon === 'knife' && v.gg > 0 && c) { v.gg--; if (v.isPlayer) hud.banner('Demoted', `Back to ${WEAPONS[GG_LADDER[v.gg]].name}`); }
+    if (info.weapon === 'knife' && v.gg > 0 && c) { v.gg--; if (v.isPlayer) hud.banner('Demoted', `Back to ${WEAPONS[GG_LADDER[v.gg]].name}`); if (v.remote) G.mp.toRemote(v, { t: 'mode', gg: v.gg, demoted: 1 }); }
     if (!c || c === v) return;
     const cur = GG_LADDER[c.gg];
     if (info.weapon !== cur && info.weapon !== 'knife') return; // only your tier weapon (or a knife) counts
@@ -58,6 +63,7 @@ export const INF_TEAMS = [{ name: 'SURVIVORS', color: '#7fb3d9' }, { name: 'INFE
 function infect(u) {
   u.team = 1;
   if (u.isPlayer) { u.speedMul = 1.25; return; }
+  if (u.remote) { G.mp.toRemote(u, { t: 'mode', inf: 1 }); if (u.soldier) restyleSoldier(u.soldier, 'infected', u.look && u.look.accent); return; }
   convertBot(u, 'infected', 'knife');
 }
 const infection = {
@@ -65,10 +71,12 @@ const infection = {
   setup(m) {
     for (const u of G.units) u.team = 0;
     m.teams = true;
+    if (G.mp && G.mp.live && G.mp.client) return; // the host picks patient zero
     const first = pick(G.units.filter((u) => !u.isPlayer).concat(chance(1 / G.units.length) ? [G.player] : []));
     infect(first); m.firstInfected = first;
   },
   weapons(u) { return u.team === 1 ? ['knife'] : null; },
+  netMsg(m) { const P = G.player; if (!m.inf) return; P.team = 1; P.speedMul = 1.25; giveWeapons(['knife']); hud.notice('You’ve been infected. Hunt the survivors.'); play('radio'); },
   onSpawn(u) { if (u.isPlayer) u.speedMul = u.team === 1 ? 1.25 : 1; if (u.team === 1 && !u.isPlayer) u.brain.alwaysHunt = true; },
   onKill(c, v) {
     if (v.team === 0 && (!c || c.team === 1)) {
@@ -122,8 +130,11 @@ const ctf = {
       hud.notice(`${ctfName(f.team)} flag dropped`);
     }
   },
+  netState() { return flags.map((f) => [f.state === 'home' ? 0 : f.state === 'carried' ? 1 : 2, f.carrier ? f.carrier.id : 0, Math.round(f.x * 50) / 50, Math.round(f.y * 50) / 50, Math.round(f.z * 50) / 50]); },
+  netApply(s, find) { s.forEach(([st, cid, x, y, z], i) => { const f = flags[i]; if (!f) return; const was = f.state; f.state = st === 0 ? 'home' : st === 1 ? 'carried' : 'dropped'; f.carrier = cid ? find(cid) : null; f.x = x; f.y = y; f.z = z; if (was !== f.state && f.state === 'carried' && f.carrier) hud.notice(f.carrier === G.player ? 'You have the flag! Bring it home.' : `${f.carrier.name} has the ${ctfName(f.team).toLowerCase()} flag`); }); },
   update() {
     const m = G.match;
+    if (G.mp && G.mp.live && G.mp.client) { for (const f of flags) { if (f.state === 'carried' && f.carrier) { f.x = f.carrier.x; f.y = f.carrier.y + 0.6; f.z = f.carrier.z; } f.mesh.position.set(f.x, f.y, f.z); f.cloth.rotation.y = Math.sin(G.realTime * 3 + f.team) * 0.25; } return; }
     for (const f of flags) {
       if (f.state === 'carried') { const c = f.carrier; if (!c.alive) { flagHome(f); continue; } f.x = c.x; f.y = c.y + 0.6; f.z = c.z; }
       if (f.state === 'dropped' && G.now - f.dropAt > 30) { flagHome(f); hud.notice(`${ctfName(f.team)} flag returned`); }

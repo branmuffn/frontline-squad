@@ -5,7 +5,7 @@
 import { G } from '../core/state.js';
 import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook, OPERATORS, operatorLook } from '../core/config.js';
 import { makeUnit, isEnemy, noise, damage } from '../entities/units.js';
-import { makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
+import { restyleSoldier, makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
 import { spawnPlayer, onPlayerDeath, refillAmmo, pickupAmmo, takeWeapon, pickupSlot } from '../entities/player.js';
 import { throwGrenade } from '../entities/grenades.js';
 import { fireRocket } from '../entities/projectiles.js';
@@ -27,7 +27,7 @@ import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak, remoteOpenCrate, remoteChopperDamage, grantStreak, refillPlayer } from '../entities/streaks.js';
 
 export const MAX_PLAYERS = 8;
-export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm'];
+export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'infection'];
 export const COOP = (mode) => mode === 'survival' || mode === 'zombies';
 export const BUILD = (typeof window !== 'undefined' && window.__BUILD) || 'dev build';
 const VER = 1, SNAP_DT = 1 / 30, INTERP = 0.1;
@@ -168,7 +168,7 @@ export const notReady = () => joined().filter((r) => !r.ready && !r.spec).map((r
 export const canStart = () => S.host && joined().length > 0 && !notReady().length && MP_MODES.includes(S.cfg.mode);
 // teams are dealt when the match starts: TDM alternates by join order (host first), so sides stay even
 function dealTeams(mode) {
-  joined().sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) ? 0 : mode === 'tdm' ? (S.cfg.sameTeam ? 0 : (i + 1) % 2) : 100 + r.slot; });
+  joined().filter((r) => !r.spec).sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) || mode === 'infection' ? 0 : mode === 'tdm' || mode === 'ctf' ? (S.cfg.sameTeam && mode === 'tdm' ? 0 : (i + 1) % 2) : 100 + r.slot; });
 }
 export function lookFor(team, slot, mode, skin) {
   const k = skin ? skinLook(skin) : null;
@@ -182,7 +182,7 @@ function lateJoin(r) {
   const cfg = S.liveCfg, mode = cfg.mode;
   if (r.spec) { r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
   const back = S.dropped[r.name];
-  if (COOP(mode)) r.team = 0; else if (mode === 'tdm') { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
+  if (COOP(mode)) r.team = 0; else if (mode === 'infection') r.team = 0; else if (mode === 'tdm' || mode === 'ctf') { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
   const [u] = makeRemoteUnits(mode, [r]);
   if (back) { u.kills = back.kills; u.deaths = back.deaths; delete S.dropped[r.name]; }
   spawnRemote(u, S.cb.pickSpawn(u), false);
@@ -210,7 +210,7 @@ export function makeRemoteUnits(mode, only) {
     if (!r.hello || r.spec) continue;
     const team = r.team, look = lookFor(team, r.slot, mode, r.skin);
     const u = makeUnit({ name: r.name, team, remote: true, human: true, maxHealth: 100, health: 100 });
-    u.look = look; u.weapon = 'm4'; u.rec = r;
+    u.look = look; u.weapon = 'm4'; u.rec = r; u.gg = 0;
     u.soldier = makeSoldier({ ...look, weapon: 'm4', style: 'soldier' }); u.soldier.root.visible = false;
     r.unit = u; r.buf = []; G.units.push(u); out.push(u);
   }
@@ -382,6 +382,7 @@ function clientMsg(m) {
     case 'dr+': S.replay = true; dropWeapon(m.id, m.p[0], m.p[1], m.p[2]); drops[drops.length - 1].key = m.k; S.replay = false; break;
     case 'dr-': { const d = drops.find((x) => x.key === m.k); if (d) removeDrop(d); break; }
     case 'give': clientGive(m); break;
+    case 'mode': { const H = G.match && G.match.hook; if (H && H.netMsg) H.netMsg(m); break; }
     case 'deny': if (m.msg) { play('deny'); hud.notice(m.msg); } break;
     case 'pk': if (m.k === 'ammo') { pickupAmmo(); hud.notice('Ammo resupplied'); } else hud.notice(`Medkit +${m.a} HP`); play('pickup'); break;
     case 'resupply': { const P = G.player; if (P.alive) { refillAmmo(); P.grenades = Math.max(P.grenades, m.g || 2); hud.setAmmo(P); } break; }
@@ -476,7 +477,7 @@ export function update(dt) {
 const wOf = (u) => u.isPlayer ? u.weapons[u.slot] : u.brain ? u.brain.weapon : u.weapon || 'm4';
 function matchFields() {
   const m = G.match;
-  return { time: r2(m.time), ts: m.teamScores, pts: m.points, wave: m.wave, round: m.round || 0, rem: m.remaining || 0, lives: m.lives, ws: m.waveState, rs: m.roundState, insta: r2(m.insta || 0), dbl: r2(m.doubleUntil || 0), kt: m.killsTotal, ggw: 0 };
+  return { time: r2(m.time), ts: m.teamScores, pts: m.points, wave: m.wave, round: m.round || 0, rem: m.remaining || 0, lives: m.lives, ws: m.waveState, rs: m.roundState, insta: r2(m.insta || 0), dbl: r2(m.doubleUntil || 0), kt: m.killsTotal, ggw: 0, ms: m.hook && m.hook.netState ? m.hook.netState() : undefined };
 }
 function hostUpdate(dt) {
   const m = G.match;
@@ -506,10 +507,10 @@ function hostUpdate(dt) {
   if (S.snapAcc >= SNAP_DT) { S.snapAcc = Math.min(S.snapAcc - SNAP_DT, SNAP_DT); sendSnap(); }
 }
 function sendRoster(force) {
-  const key = G.units.map((u) => u.id).join(',');
+  const key = G.units.map((u) => `${u.id}:${u.team}:${u.soldier ? u.soldier.style : ''}`).join(',');
   if (!force && key === S.rosterKey) return;
   S.rosterKey = key;
-  bcast({ t: 'ro', u: G.units.map((u) => ({ id: u.id, n: u.isPlayer ? S.name : u.name, tm: u.team, l: u.isPlayer ? lookFor(u.team, 0, G.match.mode, S.skin) : u.look || {}, w: wOf(u), hp: u.maxHealth, hu: u.isPlayer || u.remote ? 1 : 0 })) });
+  bcast({ t: 'ro', u: G.units.map((u) => ({ id: u.id, n: u.isPlayer ? S.name : u.name, tm: u.team, l: u.isPlayer ? lookFor(u.team, 0, G.match.mode, S.skin) : u.look || {}, w: wOf(u), hp: u.maxHealth, hu: u.isPlayer || u.remote ? 1 : 0, sy: u.soldier ? u.soldier.style : 'soldier' })) });
 }
 // vehicles in the snapshot: moving / crewed / changed ones every time, parked ones on keyframes only
 function vehDelta(key) {
@@ -563,7 +564,7 @@ function syncRoster(list) {
   const seen = new Set();
   for (const o of list) {
     seen.add(o.id);
-    if (o.id === S.uid || S.proxies.has(o.id)) { const p = S.proxies.get(o.id); if (p) { p.name = o.n; p.team = o.tm; } continue; }
+    if (o.id === S.uid || S.proxies.has(o.id)) { const p = S.proxies.get(o.id); if (p) { p.name = o.n; p.team = o.tm; if (o.sy && p.soldier && p.soldier.style !== o.sy) restyleSoldier(p.soldier, o.sy, (o.l || {}).accent); } else if (o.id === S.uid && G.player) G.player.team = o.tm; continue; }
     const l = o.l || {}, zombie = l.style === 'zombie';
     const u = makeUnit({ name: o.n, team: o.tm, maxHealth: o.hp, health: o.hp, proxy: true, hid: o.id, human: !!o.hu });
     u.look = l; u.weapon = o.w; u.buf = [];
@@ -596,6 +597,7 @@ function onSnap(m) {
 }
 function applyMatch(f) {
   const m = G.match; if (!m || !f) return;
+  if (f.ms && m.hook && m.hook.netApply) m.hook.netApply(f.ms, (id) => (id === S.uid ? G.player : S.proxies.get(id)));
   m.time = f.time; m.teamScores = f.ts; m.points = f.pts; m.wave = f.wave; m.round = f.round; m.remaining = f.rem; m.lives = f.lives;
   m.waveState = f.ws; m.roundState = f.rs; m.insta = f.insta; m.doubleUntil = f.dbl; m.killsTotal = f.kt;
   const key = JSON.stringify([f.ts, f.pts, f.wave, f.round, f.rem, f.lives, f.insta > G.now, f.dbl > G.now]);
