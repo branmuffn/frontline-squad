@@ -464,7 +464,7 @@ function hostUpdate(dt) {
       const st = sample(r.buf, G.now - 0.05);
       if (st) {
         u.x = st.x; u.y = st.y; u.z = st.z; u.yaw = st.yaw; u.aimPitch = u.pitch = st.p; u.crouchT = st.c; u.moveSpeed = st.ms;
-        u.crouch = !!(st.f & 2); u.prone = !!(st.f & 4); u.grounded = !!(st.f & 8);
+        u.crouch = !!(st.f & 2); u.prone = !!(st.f & 4); u.grounded = !!(st.f & 8); u.adsT = st.f & 32 ? 1 : 0; u.zoomIdx = st.f & 64 ? 1 : 0;
         u.h = u.prone ? (PHYS.proneH || 0.6) : u.crouch ? PHYS.crouchH : PHYS.standH;
         const w = WIDS[st.w] || 'm4'; if (w !== u.weapon) { u.weapon = w; setSoldierGun(u.soldier, w); }
         if (u.vehicle && st.v) vehHostApply(u, st.v, dt);
@@ -494,7 +494,7 @@ function sendSnap() {
   for (const u of G.units) {
     const pitch = u.isPlayer ? u.pitch : u.aimPitch || 0;
     us.push([u.id, r2(u.x), r2(u.y), r2(u.z), r3(u.yaw), r3(pitch), r2(u.crouchT || 0), r2(u.moveSpeed || 0),
-      (u.alive ? 1 : 0) | (u.crouch ? 2 : 0) | (u.prone ? 4 : 0) | (u.grounded ? 8 : 0) | (u.protectUntil > G.now ? 16 : 0),
+      (u.alive ? 1 : 0) | (u.crouch ? 2 : 0) | (u.prone ? 4 : 0) | (u.grounded ? 8 : 0) | (u.protectUntil > G.now ? 16 : 0) | ((u.isPlayer ? u.adsT > 0.6 : u.adsT > 0.6) ? 32 : 0) | ((u.zoomIdx || 0) > 0 ? 64 : 0),
       Math.max(0, Math.ceil(u.health)), u.kills, u.deaths, WIDS.indexOf(wOf(u)), u.vehicle ? 1 : 0]);
   }
   const w = G.world;
@@ -553,7 +553,7 @@ function onSnap(m) {
     const [id, x, y, z, yaw, p, c, ms, f, hp, k, d, wi] = a;
     if (id === S.uid) { const P = G.player; if (P.alive && f & 1) P.health = hp; P.kills = k; P.deaths = d; continue; }
     const u = S.proxies.get(id); if (!u) continue;
-    u.kills = k; u.deaths = d; u.health = hp; u.protectUntil = f & 16 ? G.now + 0.2 : 0;
+    u.kills = k; u.deaths = d; u.health = hp; u.protectUntil = f & 16 ? G.now + 0.2 : 0; u.adsT = f & 32 ? 1 : 0; u.zoomIdx = f & 64 ? 1 : 0;
     u.buf.push({ n: m.n, x, y, z, yaw, p, c, ms, f, w: wi });
     if (u.buf.length > 30) u.buf.shift();
     if (!(f & 1) && u.alive) proxyDie(u, null);
@@ -593,7 +593,7 @@ function clientUpdate(dt) {
       if (!u.soldier.root.visible && alive) u.soldier.root.visible = true;
       if (u.alive) {
         u.x = st.x; u.y = st.y; u.z = st.z; u.yaw = st.yaw; u.aimPitch = st.p; u.crouchT = st.c; u.moveSpeed = st.ms;
-        u.crouch = !!(st.f & 2); u.prone = !!(st.f & 4); u.grounded = !!(st.f & 8);
+        u.crouch = !!(st.f & 2); u.prone = !!(st.f & 4); u.grounded = !!(st.f & 8); u.adsT = st.f & 32 ? 1 : 0; u.zoomIdx = st.f & 64 ? 1 : 0;
         u.h = u.prone ? (PHYS.proneH || 0.6) : u.crouch ? PHYS.crouchH : PHYS.standH;
         const w = WIDS[st.w]; if (w && w !== u.weapon && u.look.style !== 'zombie') { u.weapon = w; setSoldierGun(u.soldier, w); }
       }
@@ -609,7 +609,7 @@ function clientUpdate(dt) {
   if (S.sendAcc >= SNAP_DT && P && P.alive) {
     S.sendAcc = Math.min(S.sendAcc - SNAP_DT, SNAP_DT);
     S.link.sendFast({ t: 'st', q: S.seq, n: r3(G.now), x: r2(P.x), y: r2(P.y), z: r2(P.z), yaw: r3(P.yaw), p: r3(P.pitch), c: r2(P.crouchT || 0), ms: r2(P.moveSpeed || 0),
-      f: (P.crouch ? 2 : 0) | (P.prone ? 4 : 0) | (P.grounded ? 8 : 0), w: WIDS.indexOf(P.weapons[P.slot]), v: P.vehicle ? vehLocal() : undefined });
+      f: (P.crouch ? 2 : 0) | (P.prone ? 4 : 0) | (P.grounded ? 8 : 0) | (P.adsT > 0.6 ? 32 : 0) | ((P.zoomIdx || 0) > 0 ? 64 : 0), w: WIDS.indexOf(P.weapons[P.slot]), v: P.vehicle ? vehLocal() : undefined });
   }
   S.pingAcc += dt;
   if (S.pingAcc > 1) { S.pingAcc = 0; S.link.send({ t: 'pi', c: now() }); }

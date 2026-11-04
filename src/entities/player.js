@@ -54,6 +54,7 @@ export function spawnPlayer(x, y, z, yaw) {
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
     pumpStart: -1, boltStart: -1, grenades: GRENADE.perLife, protectUntil: G.now + 2.2, streak: 0, eye: PHYS.eyeStand, semiReady: true,
   });
+  input.aim = false; P.zoomIdx = 0; // toggle-aim: never spawn scoped
   P.weapons = startingWeapons();
   refillAmmo();
   applyGear(P, G.profile.loadout || {});

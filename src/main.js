@@ -31,6 +31,7 @@ import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
 import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
 import { finishFinale } from './game/match.js';
+import { unitFoley } from './entities/units.js';
 import { updateGear, useEquipment } from './entities/gear.js';
 import { updateDoors, doorInteract } from './world/doors.js';
 import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
@@ -257,7 +258,7 @@ function loop(t) {
     updateMatch(dt);
     if (isLive()) {
       updatePlayer(dt);
-      updateBots(dt);
+      updateBots(dt); unitFoley(dt);
       if (G.mp) net.update(dt);
       separateUnits();
       for (const u of G.units) {

@@ -13,7 +13,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `hitbox.mjs [tol] [maps]` — static audit: every bullet-blocking box must hug visible geometry (hull colliders are exact).
 - `profile.mjs` — Export/Import profile round trip (download, file import, bad input).
 - `fit.mjs [shots]` — every screen at 1024×640/1280×720/1366×768/1920×1080: no page scroll, main button on screen, only `.scroll-list` may scroll (panel body too at 1024).
-- `killcam.mjs [shots]` — AFK player dies in FFA: replay shows, killer hidden, key skips, free-look drift, respawn still 3 s.
+- `killcam.mjs` (stubbed renderer; pass `shots` for real-render screenshots, which can crash SwiftShader on long runs) — [shots]` — AFK player dies in FFA: replay shows, killer hidden, key skips, free-look drift, respawn still 3 s.
 - `scope.mjs [shots]` — L96 4×/8× via wheel and Z (true optical FOV), Mk 14 fixed 2×, scope label.
 - `lineup.mjs` — screenshots a line-up of soldiers (every gun), a zombie and an infected, standing and running (/tmp/lineup_*.png).
 - `vm.mjs [ids]` — first-person gun screenshots (/tmp/vm_<id>.png).
@@ -29,7 +29,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `uishot.mjs [w] [h]` — screenshots of the main menu (bot rules card open) and the MP lobby (/tmp/ui_*.png).
 - `mp3.mjs [mode] [map] [secs]` — host + 2 joiners: ready gate, unique names, chat relay (lobby + HUD), TDM team dealing, skins, pings on the scoreboard, joiner-vs-joiner hits, kick.
 - `mpstreaks.mjs` — joiner earns UAV/mortar/sentry from the host, deploys them through the host; strikes, sentries and sentry bursts mirrored.
-- `kcshot.mjs [gun|mortar]` — kill cam screenshot during the slow-motion final blow (/tmp/kc_*.png): killer's eyes or orbit view.
+- `kcshot.mjs [gun|snipe|mortar]` — kill cam screenshots at the killing shot (/tmp/kc_*.png): killer's eyes + slug, sniper bullet-follow camera, orbit view.
 - `vehcrew.mjs` — shots to kill a jeep driver / helicopter pilot through the hull, frag hurts a crew, hull damage.
 - `mpveh.mjs` — vehicles in MP on Gorge: same vehicles, joiner boards via the host and drives (host follows), seats mirrored, exit, joiner hits hull + crew, wreck and respawn mirrored.
 - `rev3a.mjs` — match limits (no limit / custom), pickups toggle, Standard slots (rifle into the sidearm slot).

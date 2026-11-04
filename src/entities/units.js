@@ -1,6 +1,6 @@
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, SOURCE_NAMES } from '../core/config.js';
-import { moveBody, inWater } from '../world/physics.js';
+import { moveBody, inWater, stepSound, surfaceAt } from '../world/physics.js';
 import { startDeath, setFlash } from './soldier.js';
 import { play } from '../engine/audio.js';
 import * as hud from '../ui/hud.js';
@@ -149,4 +149,25 @@ export function applyFall(u) {
   if (h <= PHYS.fallSafe || !u.alive || inWater(u)) return 0;
   const dmg = h >= PHYS.fallLethal ? 999 : (h - PHYS.fallSafe) / (PHYS.fallLethal - PHYS.fallSafe) * u.maxHealth;
   return damage(u, dmg, null, { weapon: 'fall' });
+}
+
+// Movement sounds for everyone except you (bots already make their own footsteps in ai.js): other players' footsteps
+// (sprint louder, crouch softer, prone a quiet crawl), ladder rungs, landings. Positional: quieter with distance,
+// muffled behind walls (audio.js range/ref/occlude).
+export function unitFoley(dt) {
+  for (const u of G.units) {
+    if (u.isPlayer || !u.alive || u.vehicle) { u._fx = undefined; continue; }
+    const f = u._fx || (u._fx = { x: u.x, y: u.y, z: u.z, acc: 0, air: 0, peak: u.y });
+    const d = Math.hypot(u.x - f.x, u.z - f.z), dy = u.y - f.y, pos = { x: u.x, y: u.y, z: u.z };
+    if (d > 4) { f.x = u.x; f.y = u.y; f.z = u.z; continue; } // teleport / respawn
+    if (u.onLadder) { f.acc += Math.abs(dy); if (f.acc > 0.55) { f.acc = 0; play('stepMetal', pos, { gain: 0.7, range: 24, ref: 4, occlude: true }); } }
+    else if (!u.brain) { // other players (bots step in ai.js)
+      const v = d / Math.max(dt, 1e-3), step = u.prone ? 1.4 : u.crouch ? 2.6 : v > 6 ? 2.0 : 2.3, gain = u.prone ? 0.3 : u.crouch ? 0.55 : v > 6 ? 1.25 : 0.95;
+      f.acc += d; if (f.acc > step && v > 0.6) { f.acc = 0; play(u.prone ? 'cloth' : inWater(u) ? 'stepWater' : stepSound(surfaceAt(u.x, u.z, u.y)), pos, { gain, range: 30, ref: 4, occlude: true }); }
+    }
+    const grounded = u.grounded !== false && Math.abs(dy) < 0.02; // proxies have no flag: use vertical motion
+    if (!grounded && !u.onLadder) { f.air += dt; f.peak = Math.max(f.peak, u.y); }
+    else { if (f.air > 0.25 && f.peak - u.y > 0.6) play('land', pos, { gain: Math.min(1.2, 0.4 + (f.peak - u.y) * 0.25), range: 30, ref: 4, occlude: true }); f.air = 0; f.peak = u.y; }
+    f.x = u.x; f.y = u.y; f.z = u.z;
+  }
 }

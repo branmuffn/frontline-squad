@@ -9,7 +9,8 @@ import { damp, clamp, lerp } from '../core/util.js';
 import { down } from '../core/input.js';
 import { losClear } from '../world/physics.js';
 import { makeSoldier, setSoldierGun, poseSoldier, setFlash } from '../entities/soldier.js';
-import { tracer } from '../engine/fx.js';
+import * as THREE from 'three';
+import { tracer, blood } from '../engine/fx.js';
 import { play, setListener } from '../engine/audio.js';
 import { updateViewmodel, vmFire } from '../entities/viewmodel.js';
 
@@ -47,6 +48,13 @@ export const finaleActive = () => !!(cam && cam.finale);
 
 export function resetKillcam() { frames = []; shots = []; nextSample = 0; endReplay(); cam = null; }
 
+// how zoomed the unit's view was: [fov factor, scoped?] (player: real ADS/zoom; joiners: their aim flags; sniper bots: aiming)
+function aimView(u, id) {
+  const w = WEAPONS[id]; if (!w || w.melee) return [1, 0];
+  const ads = u.isPlayer ? (u.adsT || 0) : u.brain ? (w.scope && u.brain.visible && u.brain.target ? 1 : 0) : (u.adsT || 0);
+  const mag = w.mags ? w.mags[Math.min(u.zoomIdx || 0, w.mags.length - 1)] : 0, zoom = mag ? 1 / mag : (w.adsZoom || 1);
+  return [Math.round(lerp(1, zoom, ads * ads) * 100) / 100, w.scope && ads > 0.9 ? 1 : 0];
+}
 const weaponOf = (u) => u.isPlayer ? (u.weapons ? u.weapons[u.slot] : null) : (u.brain ? u.brain.weapon : u.weapon || null);
 
 // called once per live frame, after all updates
@@ -54,7 +62,7 @@ export function recordFrame() {
   if (G.now < nextSample) return;
   nextSample = G.now + RATE;
   const us = [];
-  for (const u of G.units) us.push({ u, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w: weaponOf(u), v: u.vehicle ? 1 : 0 });
+  for (const u of G.units) { const w = weaponOf(u), [fk, sc] = aimView(u, w); us.push({ u, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w, v: u.vehicle ? 1 : 0, fk, sc }); }
   frames.push({ t: G.now, us });
   while (frames.length && frames[0].t < G.now - KEEP) frames.shift();
   while (shots.length && shots[0].t < G.now - KEEP) shots.shift();
@@ -75,7 +83,7 @@ function sample(u, t) {
   const k = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
   const dy = Math.atan2(Math.sin(eb.yaw - ea.yaw), Math.cos(eb.yaw - ea.yaw));
   return { x: lerp(ea.x, eb.x, k), y: lerp(ea.y, eb.y, k), z: lerp(ea.z, eb.z, k), yaw: ea.yaw + dy * k, pitch: lerp(ea.pitch, eb.pitch, k),
-    alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w, v: ea.v };
+    alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w, v: ea.v, fk: lerp(ea.fk || 1, eb.fk || 1, k), sc: k < 0.5 ? ea.sc : eb.sc };
 }
 
 function ensureBody(P) {
@@ -111,6 +119,9 @@ function startReplay() {
   // remember the corpse poses so dead soldiers look the same afterwards
   r.saved = G.units.filter((u) => u.soldier).map((u) => ({ u, snap: snapPose(u.soldier) }));
   r.shotI = shots.findIndex((e) => e.t >= r.start); if (r.shotI < 0) r.shotI = shots.length;
+  // the round that did it: shown as a glowing slug (slow motion while it flies; long shots get a bullet-follow camera)
+  const kill = cam.killer && !ORBIT.has((cam.info || {}).weapon) ? shots.filter((e) => e.s.shooter === cam.killer && e.s.k === 0 && e.t <= cam.deathAt + 0.06 && e.t >= r.start).pop() : null;
+  if (kill) { const d = Math.hypot(kill.s.x - kill.x0, kill.s.y - kill.y0, kill.s.z - kill.z0); r.kill = kill; r.flight = Math.max(0.16, d / 140); r.bulletCam = d > 22; r.end = Math.max(r.end, kill.t + r.flight + 0.45); }
   ensureBody(G.player);
   showTag(true);
 }
@@ -119,6 +130,8 @@ function endReplay() {
   const r = cam.replay;
   for (const { u, snap } of r.saved || []) if (u.soldier) { restorePose(u.soldier, snap); u.soldier.root.visible = true; if (u === cam.victim) setFlash(u.soldier, 0); }
   if (body) { body.s.root.visible = false; setFlash(body.s, 0); }
+  if (slug) slug.visible = false;
+  G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix(); document.getElementById('scope').classList.remove('on');
   showTag(false);
   cam.replay = null;
 }
@@ -160,7 +173,7 @@ export function updateDeathCam(dt, P, mdx, mdy) {
 
 function replayStep(dt, P) {
   const r = cam.replay;
-  const q = r.slow, inSlow = !!q && r.t >= cam.deathAt - q.pre && r.t < cam.deathAt + q.post;
+  const q = r.slow, inSlow = !!q && r.t >= cam.deathAt - q.pre && r.t < Math.max(cam.deathAt + q.post, r.kill ? r.kill.t + r.flight + 0.05 : 0);
   r.t += dt * (inSlow ? q.k : r.speed);
   document.getElementById('killcam').classList.toggle('slow', !!inSlow);
   if (r.t >= r.end) { endReplay(); cam.phase = 'free'; cam.t = 0; return false; }
@@ -196,7 +209,15 @@ function replayStep(dt, P) {
     G.camera.position.set(m.x, m.y, m.z);
     G.camera.rotation.set(m.pitch, m.yaw, 0);
     const w = WEAPONS[ks.w] ? ks.w : 'm4';
-    if (Math.abs(G.camera.fov - G.profile.settings.fov) > 0.1) { G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix(); }
+    const fov = G.profile.settings.fov * (ks.fk || 1); // their zoom: iron sights, 2x, 4x or 8x scope
+    const flying = slugStep(r), bcam = flying && r.bulletCam;
+    if (bcam) { // follow the round
+      const e = r.kill, dx = e.s.x - e.x0, dy = e.s.y - e.y0, dz = e.s.z - e.z0, L = Math.hypot(dx, dy, dz) || 1;
+      G.camera.position.set(slug.position.x - dx / L * 1.3, slug.position.y - dy / L * 1.3 + 0.12, slug.position.z - dz / L * 1.3);
+      G.camera.lookAt(e.s.x, e.s.y, e.s.z);
+    }
+    const f2 = bcam ? G.profile.settings.fov * 0.8 : fov; if (Math.abs(G.camera.fov - f2) > 0.1) { G.camera.fov = f2; G.camera.updateProjectionMatrix(); }
+    document.getElementById('scope').classList.toggle('on', !!ks.sc && !bcam);
     setListener(ks.x, ks.y + eye, ks.z, ks.yaw);
     // replay shots that happened up to now in the footage
     while (r.shotI < shots.length && shots[r.shotI].t <= r.t) {
@@ -207,7 +228,7 @@ function replayStep(dt, P) {
       if (s.k === 0 && s.w && s.w.sound) play(s.w.sound, mine ? null : { x: e.x0, y: e.y0, z: e.z0 }, { gain: mine ? 0.7 : 0.5 });
     }
     updateViewmodel(dt, { weapon: w, visible: !WEAPONS[w].melee, loaded: true, adsT: 0, sprintT: 0, bob: 0, bobAmp: 0, mdx: 0, mdy: 0, reload: -1, switchT: 1, melee: -1, meleeHeavy: false, throwT: -1, cooking: false, crouchT: ks.crouchT, pump: -1, bolt: -1 });
-    return !WEAPONS[w].melee;
+    return !WEAPONS[w].melee && !(ks.sc && !bcam) && !bcam;
   }
   return false;
 }
@@ -228,6 +249,18 @@ function orbitStep(dt, P, r, sp) {
     if (s.k === 0 && s.w && s.w.sound) play(s.w.sound, { x: e.x0, y: e.y0, z: e.z0 }, { gain: 0.5 });
   }
   return false;
+}
+
+// the killing round: a bright slug that flies (in replay time) from the muzzle to the hit, then a burst of blood
+let slug = null;
+function slugStep(r) {
+  const e = r.kill; if (!e || r.t < e.t) { if (slug) slug.visible = false; return false; }
+  const k = (r.t - e.t) / r.flight;
+  if (!slug) { slug = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.02, 1, 6).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false })); G.scene.add(slug); }
+  if (k >= 1) { if (slug.visible) { slug.visible = false; const dx = e.s.x - e.x0, dz = e.s.z - e.z0, L = Math.hypot(dx, dz) || 1; blood(e.s.x, e.s.y, e.s.z, dx / L, dz / L, !!(cam.info && cam.info.headshot)); blood(e.s.x, e.s.y, e.s.z, dx / L, dz / L, true); } return false; }
+  const x = e.x0 + (e.s.x - e.x0) * k, y = e.y0 + (e.s.y - e.y0) * k, z = e.z0 + (e.s.z - e.z0) * k;
+  slug.visible = true; slug.position.set(x, y, z); slug.lookAt(e.s.x, e.s.y, e.s.z); slug.scale.set(1, 1, Math.min(0.9, 0.25 + k * 2));
+  return true;
 }
 
 function freeLook(dt, P, mdx, mdy) {
