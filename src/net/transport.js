@@ -1,3 +1,4 @@
+import { encodeSn, encodeSt, decode } from './codec.js';
 // WebRTC transport. Two ways to connect, both ending in a Link (reliable channel + unreliable "fast" channel):
 //  1. Room code: a free public signaling broker (PeerJS cloud, library bundled) introduces the peers, then all
 //     game traffic flows peer to peer. Google public STUN finds a direct route.
@@ -43,16 +44,20 @@ export class Link {
   constructor(sendRel, relOpen, pc, fast) {
     this._sendRel = sendRel; this._relOpen = relOpen; this.pc = pc; this.fast = fast;
     this.onmsg = null; this.onclose = null; this.closed = false; this.rtt = 0;
-    if (fast) fast.onmessage = (e) => this._recv(e.data);
+    if (fast) { fast.binaryType = 'arraybuffer'; fast.onmessage = (e) => this._recv(e.data); }
+    this.bytesOut = 0; this.bytesJson = 0; // traffic counters (binary vs what JSON would have cost)
     if (pc) pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this._end(); });
   }
-  _recv(data) { if (this.closed || !this.onmsg) return; let m; try { m = JSON.parse(data); } catch { return; } try { this.onmsg(m); } catch (e) { console.error(e); } }
+  _recv(data) { if (this.closed || !this.onmsg) return; let m; try { m = typeof data === 'string' ? JSON.parse(data) : decode(data); } catch { return; } if (!m) return; try { this.onmsg(m); } catch (e) { console.error(e); } }
   _end() { if (this.closed) return; this.closed = true; if (this.onclose) this.onclose(); }
   send(o) { if (!this.closed && this._relOpen()) this._sendRel(JSON.stringify(o)); }
   sendFast(o) {
     const f = this.fast;
-    if (f && f.readyState === 'open') { if (f.bufferedAmount < 65536) f.send(JSON.stringify(o)); }
-    else this.send(o);
+    if (f && f.readyState === 'open') {
+      if (f.bufferedAmount >= 65536) return;
+      const bin = o.t === 'sn' ? encodeSn(o) : o.t === 'st' ? encodeSt(o) : null; // the 30 Hz traffic goes binary
+      if (bin) { f.send(bin); this.bytesOut += bin.byteLength; if (this.measure) this.bytesJson += JSON.stringify(o).length; } else f.send(JSON.stringify(o));
+    } else this.send(o);
   }
   close() { try { this._close && this._close(); } catch {} try { this.pc && this.pc.close(); } catch {} this._end(); }
 }

@@ -42,6 +42,7 @@ const reply = await C.evaluate((c) => window.__frontline.net.joinManual('BRAVO',
 await H.evaluate((r) => window.__frontline.net.hostAccept(r), reply);
 for (let i = 0; i < 60 && !(await C.evaluate(() => !!window.__frontline.net.session.link)); i++) await sleep(50);
 await C.evaluate(() => window.__frontline.net.setReady(true));
+await H.evaluate(() => { const r = window.__frontline.net.session.remotes[0]; r.link.measure = true; });
 for (let i = 0; i < 100 && !(await H.evaluate(() => window.__frontline.net.canStart())); i++) await sleep(50);
 if (SHOT) { await H.evaluate(() => window.__frontline.openMp()); await H.evaluate(() => { document.getElementById('mpRoomCode').textContent = 'K7QXP'; }); await H.screenshot({ path: '/tmp/mp_lobby.png' }); }
 check('connect', await H.evaluate(() => window.__frontline.net.canStart()), { invite: invite.length, reply: reply.length });
@@ -148,6 +149,7 @@ await run(20); s = await st(); out.finale = fin.join('/');
 check('end', s.c.state === 'ended', s.c.state);
 const endTxt = await C.evaluate(() => document.getElementById('endTitle').textContent + ' / ' + document.getElementById('again').textContent);
 out.endClient = endTxt;
+{ const b = await H.evaluate(() => { const L = window.__frontline.net.session.remotes[0].link; return [L.bytesOut, L.bytesJson]; }); out.snapBytes = b[1] ? `${b[0]} B binary vs ${b[1]} B JSON (${Math.round(100 - b[0] / b[1] * 100)}% less)` : 'n/a'; check('binary snapshots', b[1] > 0 && b[0] < b[1] * 0.5, b); }
 if (mode === 'tdm') { const r = await C.evaluate(() => { const G = window.__frontline.G, t = G.player.team, ts = G.match.teamScores; return [t, ts[t], ts[1 - t], document.getElementById('endTitle').textContent]; });
   check('tdm result side', r[3] === (r[1] > r[2] ? 'Victory' : r[1] < r[2] ? 'Defeat' : 'Draw'), r); }
 // rematch from the end screen

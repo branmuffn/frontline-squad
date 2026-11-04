@@ -492,6 +492,12 @@ function sendRoster(force) {
   S.rosterKey = key;
   bcast({ t: 'ro', u: G.units.map((u) => ({ id: u.id, n: u.isPlayer ? S.name : u.name, tm: u.team, l: u.isPlayer ? lookFor(u.team, 0, G.match.mode, S.skin) : u.look || {}, w: wOf(u), hp: u.maxHealth, hu: u.isPlayer || u.remote ? 1 : 0 })) });
 }
+// vehicles in the snapshot: moving / crewed / changed ones every time, parked ones on keyframes only
+function vehDelta(key) {
+  const all = vehSnap(), out = []; S.lastVh = S.lastVh || {};
+  for (const a of all) { const k = a.join(','); if (key || S.lastVh[a[0]] !== k || a[14] || a[15] || Math.abs(a[8]) > 0.05 || a[12] > 0.05) out.push(a); S.lastVh[a[0]] = k; }
+  return out;
+}
 function sendSnap() {
   const us = [];
   for (const u of G.units) {
@@ -501,9 +507,10 @@ function sendSnap() {
       Math.max(0, Math.ceil(u.health)), u.kills, u.deaths, WIDS.indexOf(wOf(u)), u.vehicle ? 1 : 0]);
   }
   const w = G.world;
-  const snap = { t: 'sn', n: r3(G.now), u: us, m: matchFields(),
-    dr: (w.doors || []).map((d) => d.target), br: (w.barrelCols || []).map((c) => (c.dead ? 1 : 0)).join(''),
-    pk: pickups.map((p) => (p.available ? 1 : 0)).join(''), vh: vehicles.length ? vehSnap() : undefined };
+  const dr = (w.doors || []).map((d) => d.target), br = (w.barrelCols || []).map((c) => (c.dead ? 1 : 0)).join(''), pk = pickups.map((p) => (p.available ? 1 : 0)).join('');
+  const key = (S.snapN = (S.snapN || 0) + 1) % 10 === 0, ws = dr.join(',') + '|' + br + '|' + pk, changed = key || ws !== S.lastWorld; S.lastWorld = ws; // world bits: on change + keyframes
+  const mf = matchFields(), mk = JSON.stringify({ ...mf, time: 0 }), mSend = key || mk !== S.lastMf; S.lastMf = mk; // match state: on change + keyframes
+  const snap = { t: 'sn', n: r3(G.now), u: us, m: mSend ? mf : undefined, dr: changed ? dr : undefined, br: changed ? br : undefined, pk: changed ? pk : undefined, vh: vehicles.length ? vehDelta(key) : undefined };
   for (const r of S.remotes) {
     if (!r.hello || !r.unit) continue;
     snap.sh = S.shots.filter((s) => s[0] !== r.unit.id);
@@ -551,7 +558,7 @@ function onSnap(m) {
   const lt = now(), off = m.n - lt;
   if (!S.haveClock || Math.abs(off - S.offset) > 0.5) { S.offset = off; S.haveClock = true; }
   else S.offset = off > S.offset ? S.offset + (off - S.offset) * 0.1 : S.offset + (off - S.offset) * 0.02; // late packets don't drag the clock back
-  applyMatch(m.m);
+  if (m.m) applyMatch(m.m);
   for (const a of m.u) {
     const [id, x, y, z, yaw, p, c, ms, f, hp, k, d, wi] = a;
     if (id === S.uid) { const P = G.player; if (P.alive && f & 1) P.health = hp; P.kills = k; P.deaths = d; continue; }
