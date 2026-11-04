@@ -1,3 +1,4 @@
+import { botVehicle } from './vehicles.js';
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
@@ -311,7 +312,8 @@ function think(u, cfg) {
     if (best) { b.target = best; b.lastSeen = G.now - 2; b.lastKnown = { x: best.x, y: best.y, z: best.z }; }
   }
 
-  if (b.state === 'patrol' && (!b.goal || !b.path || b.pathI >= b.path.length || prev !== 'patrol')) {
+  if (b.state === 'patrol' && b.board) { const v = b.board; setGoal(u, v.x, v.y, v.z); } // walking to a vehicle seat (vehicles.js crew)
+  else if (b.state === 'patrol' && (!b.goal || !b.path || b.pathI >= b.path.length || prev !== 'patrol')) {
     let n;
     if (G.match.teams && chance(0.6)) {
       // drift toward the enemy side so the squads actually meet
@@ -412,6 +414,7 @@ export function updateBots(dt) {
     const s = u.soldier, b = u.brain;
     if (!u.alive) { animateSoldier(s, u, dt); if (u.laser) u.laser.visible = false; continue; }
     if (frozen) { u.moveSpeed = 0; animateSoldier(s, u, dt); continue; }
+    if (u.vehicle) { botVehicle(u, dt, cfg); u.moveSpeed = 0; if (u.laser) u.laser.visible = false; animateSoldier(s, u, dt); continue; }
     if (G.now >= b.thinkAt) { b.thinkAt = G.now + rand(0.2, 0.32); think(u, cfg); chooseGun(u); }
     if (b.reloadUntil && G.now >= b.reloadUntil) { b.reloadUntil = 0; b.mag = b.magMax; }
     const t = b.target;

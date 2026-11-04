@@ -7,7 +7,7 @@ import { G } from '../core/state.js';
 import { WEAPONS } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down } from '../core/input.js';
-import { blocked, supportHeight, rayWorld } from '../world/physics.js';
+import { blocked, supportHeight, rayWorld, losClear } from '../world/physics.js';
 import { Builder, rbox, cyl, sphere, makeSoldier, poseSoldier, setSoldierGun } from './soldier.js';
 import { damage, kill, isEnemy } from './units.js';
 import { newShot, traceSegment } from './ballistics.js';
@@ -330,12 +330,12 @@ function runOver(v, driver) {
 }
 
 // ---------- mounted gun ----------
-function fireMG(v, u, dirx, diry, dirz, ox, oy, oz) {
+function fireMG(v, u, dirx, diry, dirz, ox, oy, oz, spread = 0.02) {
   if (v.overheated || G.now < v.fireAt) return;
   const w = WEAPONS.m2;
-  v.fireAt = G.now + w.rate; v.heat = Math.min(1, v.heat + 0.032);
+  v.fireAt = G.now + w.rate; v.heat = Math.min(1, v.heat + 0.032); G.mgShots = (G.mgShots || 0) + (u.isPlayer ? 0 : 1);
   if (v.heat >= 1) { v.overheated = true; play('dry', null, { gain: 0.8 }); }
-  const d = { x: 0, y: 0, z: 0 }; coneDir(dirx, diry, dirz, u.isPlayer ? 0.008 : 0.02, d);
+  const d = { x: 0, y: 0, z: 0 }; coneDir(dirx, diry, dirz, u.isPlayer ? 0.008 : spread, d);
   const s = newShot(u, 'm2', ox, oy, oz, 1, 0); G.ignoreDyn = v.dyn; traceSegment(s, d.x, d.y, d.z, w.range); G.ignoreDyn = null;
   const mx = ox + dirx * 1.3, my = oy + diry * 1.3, mz = oz + dirz * 1.3;
   tracer(mx, my, mz, s.x, s.y, s.z, 0xffd080, 520);
@@ -434,6 +434,7 @@ export function updateVehicles(dt) {
     syncMesh(v, dt);
     engineSound(v);
   }
+  if (G.state === 'playing' && G.now >= crewAt) { crewAt = G.now + 1; assignCrews(); }
   // prompt to get in
   if (P && P.alive && !P.vehicle && G.state === 'playing') {
     const v = nearestVehicle(P);
@@ -510,4 +511,103 @@ export function obbRay(d, ox, oy, oz, dx, dy, dz, tmax) {
   let nx = 0, ny = 0, nz = 0;
   if (ax === 0) { const sx = ldx > 0 ? -1 : 1; nx = sx * c; nz = -sx * s; } else if (ax === 2) { const sz = ldz > 0 ? -1 : 1; nx = sz * s; nz = sz * c; } else ny = dy > 0 ? -1 : 1;
   return [t0, nx, ny, nz];
+}
+
+// ---------- bots (6c) ----------
+let crewAt = 0;
+const BOT_SPREAD = { easy: 0.05, normal: 0.03, hard: 0.018 };
+// idle bots walk to empty seats (one bot per seat), board when close; give up if the seat is taken or the jeep is gone
+function assignCrews() {
+  for (const u of G.bots) {
+    const b = u.brain; if (!u.alive || u.vehicle || !b.board) continue;
+    const v = b.board;
+    if (!v.alive || v.seats[b.boardSeat] || (b.target && b.state !== 'patrol')) { b.board = null; continue; }
+    if (nearestVehicle(u, 3.2) === v) { enterVehicle(u, v, b.boardSeat); b.board = null; u.vRoute = pickRoute(v); u.vWp = 0; }
+  }
+  for (const v of vehicles) {
+    if (!v.alive) continue;
+    for (let seat = 0; seat < 2; seat++) {
+      if (v.seats[seat] || G.bots.some((u) => u.brain.board === v && u.brain.boardSeat === seat)) continue;
+      if (seat === 1 && !v.seats[0]) continue; // a driver first
+      let best = null, bd = 32;
+      for (const u of G.bots) {
+        const b = u.brain;
+        if (!u.alive || u.vehicle || b.board || b.state !== 'patrol' || b.melee || b.weapon === 'knife') continue;
+        if (v.seats[0] && isEnemy(v.seats[0], u)) continue;
+        const d = Math.hypot(u.x - v.x, u.z - v.z) + Math.abs(u.y - v.y) * 3; if (d < bd) { bd = d; best = u; }
+      }
+      if (best) { best.brain.board = v; best.brain.boardSeat = seat; }
+    }
+  }
+}
+function pickRoute(v) {
+  const routes = (G.world.def.vehicleRoutes || []).filter((r) => r.type === v.type);
+  let best = null, bd = Infinity;
+  for (const r of routes) for (const p of r.pts) { const d = Math.hypot(p[0] - v.x, p[1] - v.z); if (d < bd) { bd = d; best = r; } }
+  return best;
+}
+function findTarget(u, v, ox, oy, oz, range) {
+  let best = null, bd = range;
+  G.ignoreDyn = v.dyn;
+  for (const t of G.units) {
+    if (!t.alive || t === u || !isEnemy(u, t) || t.vehicle === v) continue;
+    const d = Math.hypot(t.x - ox, t.y + 1 - oy, t.z - oz);
+    if (d < bd && losClear(ox, oy, oz, t.x, t.y + (t.h || 1.6) * 0.6, t.z)) { bd = d; best = t; }
+  }
+  G.ignoreDyn = null;
+  return best;
+}
+const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+export function botVehicle(u, dt) {
+  const v = u.vehicle; if (!v || !v.alive) return;
+  const heli = v.type === 'heli';
+  if (G.now >= (u.vtAt || 0)) {
+    u.vtAt = G.now + 0.45;
+    const GP = v.spec.gunPivot, [gx, gz] = world(v, u.seat === 1 ? GP.x : 0, u.seat === 1 ? GP.z : -2.4);
+    u.vTarget = findTarget(u, v, gx, v.y + (u.seat === 1 ? GP.y : heli ? 0.9 : 1.6), gz, heli ? 140 : 110);
+  }
+  const t = u.vTarget && u.vTarget.alive ? u.vTarget : null;
+  if (u.seat === 1) return botGunner(u, v, dt, t);
+  if (heli) botPilot(u, v, dt, t); else botDriver(u, v, dt, t);
+}
+function botGunner(u, v, dt, t) {
+  if (!t) { v.gunPitch = damp(v.gunPitch, 0, 2, dt); return; }
+  const GP = v.spec.gunPivot, [px, pz] = world(v, GP.x, GP.z), py = v.y + GP.y;
+  const tx = t.x + (t.vx || 0) * 0.15, tz = t.z + (t.vz || 0) * 0.15, ty = t.y + (t.h || 1.6) * 0.6;
+  const wantYaw = Math.atan2(-(tx - px), -(tz - pz)), wantPitch = Math.atan2(ty - py, Math.hypot(tx - px, tz - pz));
+  const cur = v.yaw + v.gunYaw, dy = wrapA(wantYaw - cur), turn = 2.6 * dt;
+  const a = aimGun(v, cur + clamp(dy, -turn, turn), v.gunPitch + clamp(wantPitch - v.gunPitch, -turn, turn));
+  if (Math.abs(dy) < 0.09 && Math.abs(wantPitch - v.gunPitch) < 0.09) fireMG(v, u, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9, BOT_SPREAD[G.match.difficulty] || 0.03);
+}
+function botDriver(u, v, dt, t) {
+  const r = u.vRoute; if (!r) { drive(v, dt, 0, 0, true); return; }
+  // stuck: back up with the wheel turned the other way
+  if (Math.abs(v.speed) < 0.8) u.vStuck = (u.vStuck || 0) + dt; else u.vStuck = 0;
+  if (u.vStuck > 1.4) { u.vReverseUntil = G.now + 1.2; u.vStuck = 0; }
+  const wp = r.pts[u.vWp % r.pts.length], dx = wp[0] - v.x, dz = wp[1] - v.z;
+  if (Math.hypot(dx, dz) < 5) u.vWp++;
+  const diff = wrapA(Math.atan2(-dx, -dz) - v.yaw), steer = clamp(diff * 2.2, -1, 1);
+  if (G.now < (u.vReverseUntil || 0)) { drive(v, dt, -1, -steer, false); return; }
+  const gunnerBusy = t && v.seats[1] && Math.hypot(t.x - v.x, t.z - v.z) < 45;
+  const thr = gunnerBusy ? (Math.abs(v.speed) > 3 ? -1 : 0) : Math.abs(diff) > 1.1 && v.speed > 7 ? -1 : 1;
+  drive(v, dt, thr, steer, false);
+  runOver(v, u);
+}
+function botPilot(u, v, dt, t) {
+  const r = u.vRoute, g = supportHeight(v.x, v.z, 1, v.y + 0.5);
+  let wantYaw = v.yaw, fwd = 0;
+  if (t) { // hover-turn toward the target and use the nose gun
+    wantYaw = Math.atan2(-(t.x - v.x), -(t.z - v.z));
+    const d = Math.hypot(t.x - v.x, t.z - v.z); fwd = d > 60 ? 0.6 : d < 25 ? -0.4 : 0;
+    if (Math.abs(wrapA(wantYaw - v.yaw)) < 0.12 && v.y > g + 4) {
+      const [nx, nz] = world(v, 0, -2.5), ny = v.y + 0.75, tx = t.x - nx, ty = t.y + 1 - ny, tz = t.z - nz, l = Math.hypot(tx, ty, tz) || 1;
+      fireMG(v, u, tx / l, ty / l, tz / l, nx, ny, nz, (BOT_SPREAD[G.match.difficulty] || 0.03) * 1.3);
+    }
+  } else if (r) {
+    const wp = r.pts[u.vWp % r.pts.length], dx = wp[0] - v.x, dz = wp[1] - v.z;
+    if (Math.hypot(dx, dz) < 8) u.vWp++;
+    wantYaw = Math.atan2(-dx, -dz); fwd = Math.abs(wrapA(wantYaw - v.yaw)) < 0.6 ? 1 : 0.25;
+  }
+  const alt = Math.max(g + 12, (r && r.alt) || 0), lift = clamp((alt - v.y) / 3, -1, 1);
+  fly(v, dt, v.y > g + 3 ? fwd : 0, 0, lift, wantYaw, true);
 }
