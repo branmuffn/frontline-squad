@@ -184,21 +184,21 @@ function build() {
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   // ---- AK-47 ----
   g = new THREE.Group();
-  b(g, M.camo, 0.058, 0.085, 0.36, 0, 0, -0.12);
+  b(g, M.camo, 0.054, 0.07, 0.36, 0, -0.008, -0.12); // receiver (top kept well below the sight line)
   b(g, M.wood, 0.066, 0.07, 0.24, 0, -0.008, -0.42);
   cyl(g, M.black, 0.011, 0.26, 0, 0.01, -0.66);
   b(g, M.black, 0.026, 0.022, 0.2, 0, 0.045, -0.42);
   b(g, M.black, 0.007, 0.03, 0.01, 0, 0.07, -0.62);
-  b(g, M.black, 0.007, 0.02, 0.02, -0.011, 0.068, -0.06); b(g, M.black, 0.007, 0.02, 0.02, 0.011, 0.068, -0.06);
+  b(g, M.black, 0.03, 0.012, 0.03, 0, 0.05, -0.2); b(g, M.black, 0.009, 0.026, 0.012, -0.009, 0.068, -0.2); b(g, M.black, 0.009, 0.026, 0.012, 0.009, 0.068, -0.2); // rear sight leaf with a notch (ADS looks through it)
   b(g, M.wood, 0.05, 0.09, 0.26, 0, -0.03, 0.18, -0.1);
   b(g, M.wood, 0.04, 0.1, 0.05, 0, -0.09, 0.0, 0.3);
   mag = b(g, M.black, 0.045, 0.18, 0.075, 0, -0.13, -0.2, 0.35);
   b(mag, M.black, 0.044, 0.09, 0.075, 0, -0.112, -0.019, 0.35); // lower curve of the banana mag (was sized in metres: a 1 m slab under the gun)
-  for (let i = 0; i < 5; i++) b(g, M.black, 0.06, 0.006, 0.01, 0, 0.044, -0.25 + i * 0.05);
+  for (let i = 0; i < 4; i++) b(g, M.black, 0.03, 0.004, 0.008, 0, 0.029, -0.06 + i * 0.05); // dust-cover ribs, flush with the receiver
   b(g, M.port, 0.004, 0.022, 0.08, 0.03, 0.015, -0.1); b(g, M.black, 0.03, 0.035, 0.03, 0, 0.045, -0.62);
   trigger(g, -0.035, -0.050);
   hands(g, [0, -0.09, 0.0], [0, -0.04, -0.42]);
-  models.ak47 = { g, mag, sight: V(0, 0.085, -0.62), muzzle: V(0, 0.01, -0.8), port: V(0.035, 0.015, -0.08), hip: V(0.19, -0.215, -0.4), adsDist: 0.66 };
+  models.ak47 = { g, mag, sight: V(0, 0.088, -0.62), muzzle: V(0, 0.01, -0.8), port: V(0.035, 0.015, -0.08), hip: V(0.19, -0.215, -0.4), adsDist: 0.66 };
 
   // ---- M249 ----
   g = new THREE.Group();
