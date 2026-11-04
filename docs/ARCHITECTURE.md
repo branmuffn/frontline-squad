@@ -1,6 +1,6 @@
 # Frontline: Solo Ops — Architecture and Status
 
-Status as of 2026-11-03: Rounds A and B, Phases 1–6 and extras X1–X2 are built and tested. Phase 7a (co-op Survival/Zombies) and 7b (FFA/TDM between players) are built; 7c (4–8 players, chat, skins, ready-up, kick) is next. Decisions in `PLAN.md`.
+Status as of 2026-11-04: Rounds A and B, Phases 1–7 (7a co-op, 7b versus, 7c up to 8 players with ready-up, kick, chat, skins, ping) and extras are built and tested, plus bot skill 1–10 and bot rules, joiner killstreaks, joiner kill cam with slow-mo, killable vehicle crews and vehicles in multiplayer. Decisions in `PLAN.md`; roadmap in `docs/ONE_PAGER.md`.
 
 ## How a frame flows
 
@@ -28,6 +28,8 @@ flowchart TB
 
 - `transport.js`: `Link` = reliable channel (events) + unreliable `fast` channel (snapshots, states). Room codes through the PeerJS cloud broker (bundled) + Google STUN; manual copy-paste offer/answer codes (deflate + base64) need no server.
 - `net.js`: session `G.mp`. Host runs everything; each joiner is a `remote` unit (soldier, no brain) driven by its 30 Hz state. Clients run their own player locally, render other units as `proxy` units interpolated 100 ms back, and claim their own non-explosive hits (`G.mp.clientDamage`); the host applies claims (`info.claim`) and ignores mirrored shots. Explosives, pickups, barrels, doors, drops, deaths, respawns and Zombies purchases are host-decided. Hooks in game code are guarded by `G.mp && G.mp.live`.
+- `netveh.js`: vehicles in MP (joiner-driven pose streaming, host-assigned seats, interpolation, hull-hit claims).
+- Relay: PeerJS's free TURN relay is always offered after Google STUN, plus an optional own relay (localStorage `frontline_mp_v1.turn`).
 - `lobby.js`: Multiplayer screen. Test: `tests/mp.mjs` (two pages, manual codes, fake clock).
 
 ## Build, outputs, document control

@@ -2,7 +2,7 @@
 
 A single-player browser FPS inspired by classic Combat Arms. Three.js r128, no backend, no accounts.
 
-See `docs/ARCHITECTURE.md` for the architecture diagram, status and build/output pipeline.
+See `docs/frontline_overview.png` (one-page infographic), `docs/ONE_PAGER.md` (decisions, insights, roadmap) and `docs/ARCHITECTURE.md` (architecture, status, build/output pipeline).
 
 ## Run it
 
@@ -15,17 +15,17 @@ npm run build:standalone  # one self-contained HTML file in dist-standalone/
 
 `dist-standalone/frontline_solo_ops.html` is already built. Open it in any modern desktop browser; it runs fully offline (multiplayer room codes are the only network use).
 
-## Multiplayer (2 players)
+## Multiplayer (up to 8 players)
 
-Co-op Survival and Zombies, or Free for All and Team Deathmatch head to head; bots fill the rest. Peer to peer (WebRTC), no account, no server of ours. Use the downloaded HTML file (the claude.ai preview may block WebRTC); both players need the same file.
+Co-op Survival and Zombies, or Free for All and Team Deathmatch; bots optional (skill 1–10, rules for what they may do). Peer to peer (WebRTC), no account, no server of ours. Works across different Wi-Fi networks: a direct route is tried first, then a free relay. Use the downloaded HTML file (the claude.ai preview may block WebRTC); everyone needs the same file.
 
 1. Both open `frontline_solo_ops.html`, click **Multiplayer**, type a name.
 2. Host clicks **Host a game** and shares the 5-letter room code; picks mode, map, difficulty and bots.
-3. Friend types the code and clicks **Join**. When they show in the list, the host clicks **Start match**. After a match the host can **Play again**; the connection stays up.
+3. Friends type the code, click **Join**, then **Ready**. When everyone is ready the host clicks **Start match**. Chat in the lobby, or press T / Enter in a match. The host can Kick (button or `/kick NAME`). Pick your look (uniform, pattern, helmet) as you rank up. After a match the host can **Play again**; the connection stays up.
 4. If the code can't reach the matchmaking server (or you're offline on one LAN): open *No room code? Use copy-paste codes*. Host: **1 · Make invite code** and send it. Friend: paste it, **2 · Make reply code**, send it back. Host: paste it, **3 · Connect**.
 5. If your networks block direct connections (~1 in 6), install free Tailscale or ZeroTier on both PCs and use the copy-paste codes.
 
-Lag: your own movement and shooting are instant (local), your hits count where you aimed (shooter-favoured), others are drawn ~100 ms behind for smoothness. Points and lives are shared in co-op. Not yet: more than 2 players, joiner killstreaks, vehicles in multiplayer.
+Lag: your own movement, shooting and driving are instant (local), your hits count where you aimed (shooter-favoured), others are drawn ~100 ms behind for smoothness. Points and lives are shared in co-op. Everyone earns killstreaks and gets the kill cam. Vehicles (Cascade Gorge) can be switched On in the lobby. The lobby shows each player's ping and whether the link is Direct, LAN or Relayed.
 
 ## What's in the game
 

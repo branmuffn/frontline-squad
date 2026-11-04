@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;background:#0f1316;color:#e6e2d6;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;width:1600px}
+.w{padding:44px 52px}h1{margin:0;font-size:64px;letter-spacing:.04em;font-weight:900}h1 span{color:#d9a441;font-size:30px;margin-left:14px;letter-spacing:.02em}
+.sub{color:#a9b0ad;font-size:21px;margin:6px 0 26px}h2{margin:0 0 12px;font-size:22px;letter-spacing:.12em;text-transform:uppercase;color:#d9a441}
+.g{display:grid;gap:22px}.c{background:#161c20;border:1px solid #2c363b;border-radius:10px;padding:20px 22px}
+.stats{grid-template-columns:repeat(8,1fr);margin-bottom:22px}.st{background:#161c20;border:1px solid #2c363b;border-radius:10px;padding:14px;text-align:center}
+.st b{display:block;font-size:34px;color:#fff}.st small{color:#a9b0ad;font-size:15px}
+.box{border-radius:8px;padding:10px 12px;font-size:16px;line-height:1.35}.box b{display:block;font-size:17px;margin-bottom:3px}
+.b1{background:#22303a;border:1px solid #3e5a6c}.b2{background:#2e2a1d;border:1px solid #6b5a2e}.b3{background:#23301f;border:1px solid #47603e}.b4{background:#341f1f;border:1px solid #6b3a35}
+.arrow{color:#d9a441;font-size:26px;text-align:center;line-height:1}ul{margin:0;padding-left:20px;font-size:17px;line-height:1.5}li b{color:#fff}
+.flow{display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr;align-items:center;gap:6px}.tag{display:inline-block;background:#2c363b;border-radius:4px;padding:1px 7px;font-size:14px;margin:2px 3px 0 0}
+.foot{margin-top:22px;color:#7f8a87;font-size:15px;text-align:center}
+</style></head><body><div class="w">
+<h1>FRONTLINE <span>Solo Ops · how it works</span></h1>
+<div class="sub">A browser FPS in one offline HTML file. Single-player with smart bots, plus peer-to-peer multiplayer for up to 8 friends on any networks. No server, no account, no install.</div>
+<div class="g stats">
+<div class="st"><b>1.2 MB</b><small>one HTML file</small></div><div class="st"><b>100%</b><small>offline single-player</small></div><div class="st"><b>8</b><small>players (P2P)</small></div><div class="st"><b>8</b><small>game modes</small></div>
+<div class="st"><b>4</b><small>maps</small></div><div class="st"><b>12</b><small>guns + knife, frags</small></div><div class="st"><b>1–10</b><small>bot skill + 6 rules</small></div><div class="st"><b>25</b><small>headless test scripts</small></div></div>
+<div class="g" style="grid-template-columns:1.05fr 1fr">
+<div class="c"><h2>One frame (60 per second)</h2>
+<div class="g" style="grid-template-columns:repeat(4,1fr);gap:10px">
+<div class="box b1"><b>Input</b>mouse + keys, pointer lock, chat</div><div class="box b1"><b>Player</b>move, shoot, ballistics, vehicles</div>
+<div class="box b1"><b>Bots</b>perception → states → A* on a 2 m nav grid</div><div class="box b1"><b>World</b>physics, doors, barrels, pickups, streaks</div>
+<div class="box b2"><b>Match rules</b>modes plug in via hooks</div><div class="box b2"><b>Network</b>snapshots · claims · events</div>
+<div class="box b3"><b>HUD + audio</b>generated sound, radar, kill feed</div><div class="box b3"><b>Render</b>three.js r128, merged meshes</div></div>
+<div style="margin-top:14px;font-size:16px;color:#c9cfcd">Everything shares one state object <b style="color:#fff">G</b>. All tuning numbers live in <b style="color:#fff">config.js</b>.</div>
+<h2 style="margin-top:20px">Code map (src/)</h2>
+<ul><li><b>core</b> config, state, input, save data (localStorage + export/import)</li><li><b>world</b> maps → merged geometry + colliders, physics, nav graph</li>
+<li><b>entities</b> player, bots, soldiers, guns, bullets, vehicles, killstreaks</li><li><b>game</b> match flow, 8 modes, XP and ranks, kill cam</li>
+<li><b>engine / ui</b> renderer, Web Audio sound + music, effects, HUD, menus, chat</li><li><b>net</b> transport (WebRTC), session (host/joiner), lobby, vehicles</li></ul></div>
+<div class="c"><h2>Multiplayer: how two networks meet</h2>
+<div class="flow"><div class="box b2"><b>Host's browser</b>runs the real match: rules, bots, damage, vehicles</div><div class="arrow">⇄</div>
+<div class="box b4"><b>Room code</b>free PeerJS broker only introduces the peers</div><div class="arrow">⇄</div><div class="box b2"><b>Joiner's browser</b>moves and shoots locally (no input lag)</div></div>
+<div class="g" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+<div class="box b1"><b>1 · Direct</b>STUN finds a route through home routers (most cases)</div><div class="box b1"><b>2 · Relay</b>TURN server forwards traffic for strict NATs (hotspots, CGNAT)</div><div class="box b1"><b>3 · No internet</b>copy-paste codes on a LAN, or Tailscale</div></div>
+<ul style="margin-top:14px"><li><b>30 Hz snapshots</b> on an unreliable channel; events (kills, chat, buys) on a reliable one</li><li>Others drawn <b>100 ms behind</b>, interpolated, for smooth movement</li>
+<li><b>Shooter-favoured hits</b>: you claim what you hit, the host sanity-checks range and state</li><li>Host decides deaths, respawns, explosives, pickups, seats, streak rewards</li>
+<li>Lobby: ready-up, kick, chat, skins by rank, ping, Direct / LAN / Relayed shown</li></ul></div></div>
+<div class="g" style="grid-template-columns:1fr 1fr 1fr;margin-top:22px">
+<div class="c"><h2>Key decisions</h2><ul><li><b>One offline file</b>: three.js, font and code inlined; zero requests in single-player</li><li><b>Everything generated</b>: audio, music, camos, soldiers built in code</li>
+<li><b>Hybrid bullets</b>: hitscan with falloff + penetration; snipers fly with drop</li><li><b>Host-authoritative P2P</b>: free, no server to run, low lag</li><li><b>Respawn time never changes</b>: the kill cam fits inside it</li><li><b>Real gun names</b> by default, fictional toggle; original map and mode names</li></ul></div>
+<div class="c"><h2>Built &amp; tested this round</h2><ul><li>Up to <b>8 players</b>: ready-up, kick, chat, ping, skins</li><li><b>Relay fallback</b> so different Wi-Fi networks connect</li><li><b>Bot skill 1–10</b>, bot rules, no-bots option</li>
+<li>Joiner <b>killstreaks</b>; mortars and sentries visible to all</li><li><b>Kill cam</b> for joiners, slow-mo final blow, killer card, orbit view</li><li><b>Vehicle crews killable</b>; <b>vehicles in multiplayer</b></li></ul></div>
+<div class="c"><h2>Build &amp; quality loop</h2><ul><li><b>src/</b> (Vite project, git: one commit per item)</li><li>→ <b>build-standalone</b> (esbuild + inlining) → one HTML</li><li>→ headless Chromium tests: regression of every mode × map, multiplayer with 2–3 pages, fit at 4 screen sizes, screenshots reviewed</li>
+<li>→ ship: commit, copy HTML, zip with history</li><li>Target: <b>60 fps</b> on a typical laptop, fast load</li></ul></div></div>
+<div class="c" style="margin-top:22px"><h2>Next steps (suggested)</h2><div class="g" style="grid-template-columns:repeat(4,1fr);gap:16px">
+<ul><li><b>Netcode</b>: binary delta snapshots (~70% less data), host migration, rejoin a running match</li><li>MP for Gun Game, CTF, Infection</li><li>Spectate, push-to-talk voice</li></ul>
+<ul><li><b>Performance</b>: instanced props and effects, auto render scale, AI in a worker</li><li>Gamepad + touch controls</li><li>Installable PWA, GitHub Pages hosting</li></ul>
+<ul><li><b>Content</b>: 2–3 new maps (snowbound base, harbour, night town), map editor via JSON</li><li>Weapons: SCAR-H, Vector, crossbow, flash + smoke, claymore</li><li>Attachments: optics, suppressor, extended mag</li></ul>
+<ul><li><b>Modes</b>: Domination, Search &amp; Destroy, King of the Hill</li><li>Challenges, prestige, weapon levels</li><li>Weather, destructible cover, ragdolls, colour-blind and audio-cue accessibility</li></ul></div></div>
+<div class="foot">Frontline: Solo Ops · Three.js r128 · WebRTC (PeerJS) · Web Audio · Vite + esbuild · Playwright tests</div>
+</div></body></html>

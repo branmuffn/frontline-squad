@@ -1,7 +1,7 @@
 I'm continuing development of "Frontline: Solo Ops", a single-player browser FPS (Three.js r128) built over previous chats. The full project is attached as frontline-solo-ops-vite.zip: source (src/), PLAN.md (task list with every decision already made), README.md, scripts/build-standalone.mjs, the headless test harness (tests/), and git history (one commit per item).
 
 ## Status (update this line each session)
-Round A, Round B, Phases 1–6, X1/X2 and Phase 7a (co-op Survival/Zombies) + 7b (FFA/TDM between players) are DONE (src/net, tests/mp.mjs). Next: 7c (4–8 players, chat, skins, ready-up, kick, ping on scoreboard), plus joiner killstreaks and vehicles in MP. Architecture, status and build/output pipeline: docs/ARCHITECTURE.md. New tests since: hitbox, profile, fit, killcam, scope, lineup, vm, vehicles, heli, vehbots, doorways, prone, perf (see tests/README.md). Note: when publishing, copy the build to the artifact's container path (tests/ship.sh does this) and publish that path.
+Round A, Round B, Phases 1–7 (7a/7b/7c: up to 8 players, ready-up, kick, chat, skins, ping), bot skill 1–10 + bot rules, joiner killstreaks + kill cam (slow-mo, orbit view), killable vehicle crews, vehicles in MP, TURN relay for cross-network play are DONE. Next: pick from the roadmap in docs/ONE_PAGER.md. New tests: bots, mp3, mpstreaks, mpveh, vehcrew, kcshot, skins, uishot (see tests/README.md).
 
 ## Core working rules (most important)
 - I'm token-limited (5-hour session cap and a weekly cap). Be efficient: short replies (what changed, what was tested, what's next), brief reasoning, read files with targeted grep/sed instead of whole files, batch related edits into one python/sed call, don't re-read code you already know.

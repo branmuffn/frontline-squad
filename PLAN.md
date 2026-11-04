@@ -70,9 +70,13 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Kill cam: joiners get it (respawn time + footage of proxies + mirrored shots), killer card (weapon, headshot, distance, HP left), slow-motion final blow (0.35x, or 0.6x in short respawn windows), you highlighted red, smoothed killer view, orbit view for sentry/mortar/barrel/vehicle/roadkill kills and killers driving. tests/kcshot.mjs, mp.mjs 'joiner kill cam'.
 - [x] Vehicle crews killable: bullets that hit a hull go on into the crew (jeep x0.85, heli x0.6) and the hull takes half; blasts reach crews at 55% (hull blocks LOS); jeep 560 HP, heli 680 HP, rifles x0.5 / heavy x1.2 vs hulls; hit marker on vehicle hits. M4 kills a jeep driver in ~4 shots, a pilot in ~6. tests/vehcrew.mjs.
 - [x] Vehicles in multiplayer (lobby Vehicles On/Off, Gorge, FFA/TDM): host simulates; a joiner driving drives locally and streams the pose (host smooths it); others interpolate snapshot poses; seats requested from the host (`ven`/`vex`/`vsw` → `vok`), joiner hull hits claimed (`vdm`), roadkill claims, MG tracers mirrored, wreck + respawn mirrored. src/net/netveh.js, tests/mpveh.mjs.
+- [x] Docs: docs/frontline_overview.png (one-page infographic, rendered from docs/overview.html), docs/ONE_PAGER.md (decisions, insights, roadmap 1-17).
 - [x] Cross-network: PeerJS free TURN relay restored (was dropped by custom iceServers), optional own TURN, Direct/LAN/Relayed shown in lobby.
 - Order: 7a 2-player co-op Zombies and Survival; 7b FFA and TDM with lag compensation; 7c up to 4–8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard. Voice: optional later (push-to-talk over WebRTC); Discord is fine.
 - Note: may not work inside the claude.ai artifact preview; must work in the downloaded HTML.
+
+## Next: roadmap
+See docs/ONE_PAGER.md "Roadmap" (17 suggestions: netcode, performance, content, reach). Ask the user which to build first.
 
 ## Constraints
 - The single HTML file must keep working and, from B2 on, run fully offline (three.js r128 inlined; no external scripts, fonts or requests). Multiplayer signaling (Phase 7) is the only future exception, and play must still work offline.
