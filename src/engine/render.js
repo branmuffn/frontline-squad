@@ -38,7 +38,7 @@ export function initRenderer(container) {
 
 export function resize() {
   const w = window.innerWidth, h = window.innerHeight;
-  const scale = G.profile.settings.renderScale || 1;
+  const scale = (G.profile.settings.renderScale || 1) * (G.dynScale || 1); // dynScale: auto resolution
   G.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5) * scale);
   G.renderer.setSize(w, h);
   G.camera.aspect = w / h; G.camera.updateProjectionMatrix();

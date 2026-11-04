@@ -213,7 +213,12 @@ function removeRemoteUnit(r) {
   const i = G.units.indexOf(u); if (i >= 0) G.units.splice(i, 1);
 }
 // Host ends (endMatch hook) or quits: tell everyone
-export function hostEnded(reason) { if (S.host && S.live) { bcast({ t: 'end', reason, m: matchFields() }); S.live = false; } }
+export function hostEnded(reason) {
+  if (!S.host || !S.live) return;
+  const f = G.match && G.match.finalEvent;
+  bcast({ t: 'end', reason, m: matchFields(), fk: f && f.killer && f.victim ? { k: f.killer.id, v: f.victim.id, t: r3(f.at), w: f.weapon, h: f.headshot ? 1 : 0, l: f.label || '' } : null });
+  S.live = false;
+}
 export function hostAbort() { if (S.host && S.live) { bcast({ t: 'abort' }); S.live = false; for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); } }
 export function clientQuit() { if (S.client && S.live) { S.link && S.link.send({ t: 'quit' }); S.live = false; clearProxies(); } }
 S.cleanup = () => { for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); clearProxies(); };
@@ -359,7 +364,12 @@ function clientMsg(m) {
     case 'resupply': { const P = G.player; if (P.alive) { refillAmmo(); P.grenades = Math.max(P.grenades, m.g || 2); hud.setAmmo(P); } break; }
     case 'bn': hud.banner(m.a, m.b); if (m.s) play(m.s, null, { important: true }); break;
     case 'pu': { const H = G.match.hook; if (H && H.netPowerup) H.netPowerup(m); break; }
-    case 'end': applyMatch(m.m); S.live = false; endMatch(m.reason); break;
+    case 'end': {
+      applyMatch(m.m); S.live = false;
+      const f = m.fk, k = f && unitById(f.k), v = f && unitById(f.v);
+      G.match.finalEvent = k && v ? { killer: k, victim: v, at: f.t, weapon: f.w, headshot: !!f.h, label: f.l || '' } : null;
+      endMatch(m.reason); break;
+    }
   }
 }
 function clientStart(m) {

@@ -142,7 +142,9 @@ await run(secs * 60); s = await st();
 check('still running', ['playing', 'dead', 'ended'].includes(s.c.state) && s.c.n === s.h.n, [s.c.state, s.h.n, s.c.n]);
 // end of match reaches the client
 await H.evaluate(() => window.__frontline.endMatch('limit'));
-await run(20); s = await st();
+const fin = [await H.evaluate(() => window.__frontline.G.state), await C.evaluate(() => window.__frontline.G.state)];
+for (let i = 0; i < 30 && (await C.evaluate(() => window.__frontline.G.state)) === 'finale'; i++) await run(20); // the end-of-match replay plays first
+await run(20); s = await st(); out.finale = fin.join('/');
 check('end', s.c.state === 'ended', s.c.state);
 const endTxt = await C.evaluate(() => document.getElementById('endTitle').textContent + ' / ' + document.getElementById('again').textContent);
 out.endClient = endTxt;

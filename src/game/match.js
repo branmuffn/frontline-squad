@@ -20,7 +20,7 @@ import { play, startAmbience, stopAmbience } from '../engine/audio.js';
 import { resetMatchXp, award, finishMatch } from './progression.js';
 import * as hud from '../ui/hud.js';
 import { showEnd } from '../ui/menus.js';
-import { onDeathCam, resetKillcam } from './killcam.js';
+import { onDeathCam, resetKillcam, startFinale } from './killcam.js';
 import { resetVehicles, vehicles } from '../entities/vehicles.js';
 function resetVehiclesHard() { const keep = G.profile.lobby.vehicles; G.profile.lobby.vehicles = false; resetVehicles(); G.profile.lobby.vehicles = keep; }
 import { HOOKS } from './modes.js';
@@ -153,6 +153,7 @@ export function pickSpawn(u, opts = {}) {
 export function onKill(credited, victim, info) {
   const m = G.match; if (!m || m.ended) return;
   m.killsTotal++;
+  if (credited) m.finalEvent = { killer: credited, victim, at: G.now, weapon: info.weapon, headshot: !!info.headshot };
   if (credited && m.teams && !m.hook) m.teamScores[credited.team]++;
   const hookEnd = m.hook && m.hook.onKill ? m.hook.onKill(credited, victim, info) : null;
   if (victim.isPlayer) {
@@ -274,8 +275,16 @@ export function endMatch(reason) {
   const m = G.match; if (!m || m.ended) return;
   m.ended = true;
   if (G.mp && G.mp.host) G.mp.hostEnded(reason);
-  G.state = 'ended';
   clearInput();
+  // the play that ended it, replayed for everyone first (any key skips); then the end screen
+  if (m.finalEvent && startFinale(m.finalEvent)) { G.state = 'finale'; m.endReason = reason; hud.hideDeath(); toggleBoardOff(); return; }
+  finishEnd(reason);
+}
+const toggleBoardOff = () => { const b = document.getElementById('board'); if (b) b.classList.add('hidden'); };
+export function finishFinale() { const m = G.match; if (m && G.state === 'finale') finishEnd(m.endReason); }
+function finishEnd(reason) {
+  const m = G.match;
+  G.state = 'ended';
   const P = G.player;
   let result, title, detail;
   if (m.hook && m.hook.result) ({ result, title, detail } = m.hook.result());

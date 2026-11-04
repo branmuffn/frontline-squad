@@ -139,6 +139,7 @@ const ctf = {
       const c = f.carrier, own = c && flags[c.team];
       if (c && own.state === 'home' && Math.hypot(c.x - own.base.x, c.z - own.base.z) < 1.6 && Math.abs(c.y - own.base.y) < 1.6) {
         m.teamScores[c.team]++; flagHome(f);
+        m.finalEvent = { killer: c, victim: c, at: G.now, weapon: 'flag', label: 'Winning capture' };
         hud.banner(c.team === G.player.team ? 'Flag captured' : 'Enemy captured', `${TEAMS[0].name} ${m.teamScores[0]} : ${m.teamScores[1]} ${TEAMS[1].name}`);
         play(c.team === G.player.team ? 'streak' : 'deny', null, { important: true });
         if (c.isPlayer) c.capt = (c.capt || 0) + 1;

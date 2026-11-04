@@ -29,7 +29,8 @@ import { initMenus, showScreen, showPause, showArmory, showLoadout } from './ui/
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
-import { recordFrame, killcamActive, skipKillcam } from './game/killcam.js';
+import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
+import { finishFinale } from './game/match.js';
 import { updateDoors, doorInteract } from './world/doors.js';
 import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
 import { damage, kill } from './entities/units.js';
@@ -49,7 +50,7 @@ function boot() {
   applySetting('crosshair'); applySetting('showFps'); applySetting('scopeToggle'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'finale') { skipKillcam(); return; } if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
     onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
@@ -185,7 +186,9 @@ function onCanvasClick() {
   else if (isLive() && !isLocked() && !input.freeLook) requestLock();
 }
 
+let finaleVM = false;
 function onKeyDown(code, e) {
+  if (G.state === 'finale') { if (!e.repeat && code !== 'Tab') skipKillcam(); return; }
   if (!(isLive() || G.state === 'paused')) return;
   if (code === 'F9') { e.preventDefault(); toggleColliderDebug(); return; }
   if (G.state === 'dead' && !e.repeat && code !== 'Escape' && !matches('scoreboard', code) && skipKillcam()) return;
@@ -224,11 +227,27 @@ function onKeyUp(code) {
 }
 
 let prev = performance.now(), fpsAcc = 0, fpsN = 0, menuT = 0;
+// Frame pacing: optional frame-rate cap (Display = the monitor's own rate), and auto resolution that lowers the render
+// scale step by step when the frame rate stays below target in a match, and raises it again when there is headroom.
+let lastDraw = 0, arAcc = 0, arN = 0, arUp = 0;
+function autoRes(raw) {
+  const s = G.profile.settings;
+  if (!s.autoRes || !isLive()) { arAcc = arN = 0; return; }
+  arAcc += raw; arN++;
+  if (arAcc < 2) return;
+  const fps = arN / arAcc, target = (s.fpsCap || 60) * 0.9; arAcc = arN = 0;
+  const cur = G.dynScale || 1;
+  if (fps < target && cur > 0.55) { G.dynScale = Math.max(0.5, cur - 0.1); arUp = 0; resize(); }
+  else if (fps > target * 1.12 && cur < 1 && ++arUp >= 2) { G.dynScale = Math.min(1, cur + 0.1); arUp = 0; resize(); }
+}
 function loop(t) {
   requestAnimationFrame(loop);
+  const cap = G.profile && G.profile.settings.fpsCap;
+  if (cap && lastDraw && t - lastDraw < 1000 / cap - 1.5) return; // frame cap: skip this display refresh
+  if (cap) autoRes((t - lastDraw) / 1000); lastDraw = t;
   const raw = Math.max(0.0001, (t - prev) / 1000), dt = Math.min(0.05, raw); prev = t;
   G.realTime += dt;
-  fpsAcc += raw; fpsN++;
+  fpsAcc += raw; fpsN++; if (!cap) autoRes(raw);
   if (fpsAcc > 0.5) { G.fps = Math.round(fpsN / fpsAcc); setFps(G.fps); fpsAcc = 0; fpsN = 0; }
   if (isLive()) {
     G.now += dt;
@@ -257,6 +276,9 @@ function loop(t) {
       recordFrame();
       ambienceTick(dt, G.world.def.ambience);
     }
+  } else if (G.state === 'finale') { // end-of-match replay
+    finaleVM = finaleStep(dt);
+    if (!finaleVM) finishFinale();
   } else if (G.state === 'menu') {
     menuT += dt;
     const b = G.world.bounds, r = (b.maxX - b.minX) * 0.42, a = menuT * 0.05;
@@ -266,7 +288,7 @@ function loop(t) {
   }
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
   updateFx(dt);
-  render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive));
+  render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive) || (G.state === 'finale' && finaleVM === true));
 }
 
 try { boot(); } catch (err) {

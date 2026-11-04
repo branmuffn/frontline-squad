@@ -23,6 +23,28 @@ let frames = [], shots = [], nextSample = 0;
 let cam = null;     // active death camera state
 let body = null;    // the player's own third-person body, only shown in the kill cam
 
+// ---- end of match: replay the play that ended it (final kill, winning capture) for every player ----
+export function startFinale(ev) {
+  if (!G.profile.settings.killcam || !ev || !ev.killer || !ev.victim || G.now - ev.at > 6 || frames.length < 5) return false;
+  if (!frames.some((f) => f.us.some((e) => e.u === ev.killer))) return false;
+  const start = Math.max(frames[0].t, ev.at - 3.2), end = Math.min(frames[frames.length - 1].t, ev.at + 0.9);
+  if (end - start < 1.2) return false;
+  endReplay();
+  const k = ev.killer, v = ev.victim, ks = frames[frames.length - 1].us.find((e) => e.u === k);
+  cam = { t: 0, phase: 'replay', killer: k, victim: v, info: { weapon: ev.weapon, headshot: ev.headshot }, deathAt: ev.at, finale: ev.label || 'Final kill',
+    dist: k === v ? 0 : Math.round(Math.hypot(k.x - v.x, k.z - v.z)), khp: 0,
+    replay: { start, end, speed: 1, slow: SLOWS[0], shotI: 0, saved: null, orbit: ORBIT.has(ev.weapon) || k === v || !!(ks && ks.v && k.seat !== 1), oa: Math.atan2(v.x - k.x, v.z - k.z) || 0.6 } };
+  startReplay();
+  return true;
+}
+// per frame while the finale runs; false once it is over (or skipped)
+export function finaleStep(dt) {
+  if (!cam || !cam.finale) return false;
+  if (cam.phase === 'replay') { const vm = replayStep(dt, G.player); if (cam && cam.phase === 'replay') return vm || 1; }
+  cam = null; return false;
+}
+export const finaleActive = () => !!(cam && cam.finale);
+
 export function resetKillcam() { frames = []; shots = []; nextSample = 0; endReplay(); cam = null; }
 
 const weaponOf = (u) => u.isPlayer ? (u.weapons ? u.weapons[u.slot] : null) : (u.brain ? u.brain.weapon : u.weapon || null);
@@ -95,7 +117,7 @@ function startReplay() {
 function endReplay() {
   if (!cam || !cam.replay || cam.phase !== 'replay') { showTag(false); return; }
   const r = cam.replay;
-  for (const { u, snap } of r.saved || []) if (u.soldier) { restorePose(u.soldier, snap); u.soldier.root.visible = true; }
+  for (const { u, snap } of r.saved || []) if (u.soldier) { restorePose(u.soldier, snap); u.soldier.root.visible = true; if (u === cam.victim) setFlash(u.soldier, 0); }
   if (body) { body.s.root.visible = false; setFlash(body.s, 0); }
   showTag(false);
   cam.replay = null;
@@ -110,6 +132,7 @@ function showTag(on, name) {
   const el = document.getElementById('killcam'); if (!el) return;
   el.classList.toggle('hidden', !on);
   document.getElementById('hud').classList.toggle('kc-on', !!on);
+  const tagB = document.querySelector('#killcam .kc-tag b'); if (tagB) tagB.textContent = cam && cam.finale ? cam.finale : 'Kill cam';
   if (on && cam && cam.killer) {
     const i = cam.info || {}, wl = WEAPONS[i.weapon] ? WEAPONS[i.weapon].name : String(i.weapon || '').toUpperCase();
     document.getElementById('killcamName').textContent = cam.killer.name;
@@ -147,17 +170,18 @@ function replayStep(dt, P) {
     const st = sample(u, r.t);
     if (u.isPlayer) {
       const b = ensureBody(P);
-      if (!st || !st.alive) continue;
+      if (!st || !st.alive || (u === k && !r.orbit)) continue; // (finale: we may be looking through our own eyes)
       b.s.root.visible = true;
       if (st.w && st.w !== b.gun && WEAPONS[st.w] && !WEAPONS[st.w].melee) { setSoldierGun(b.s, st.w); b.gun = st.w; }
       Object.assign(b.ghost, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed, walkPhase: (b.ghost.walkPhase || 0) });
       poseSoldier(b.s, b.ghost, dt * sp);
-      setFlash(b.s, 0.4 + 0.15 * Math.sin(G.realTime * 8), 0xff3a28); // you, in red
+      setFlash(b.s, cam.victim === u ? 0.4 + 0.15 * Math.sin(G.realTime * 8) : 0, 0xff3a28); // the victim, in red
       continue;
     }
     if (!u.soldier || !st) continue;
     if (u === k && !r.orbit) { u.soldier.root.visible = false; continue; } // we are looking through the killer's eyes
     u.soldier.root.visible = st.alive;
+    if (u === cam.victim) setFlash(u.soldier, 0.4 + 0.15 * Math.sin(G.realTime * 8), 0xff3a28);
     if (st.alive) { u._kcGhost = Object.assign(u._kcGhost || {}, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed }); poseSoldier(u.soldier, u._kcGhost, dt * sp); }
   }
   if (r.orbit) return orbitStep(dt, P, r, sp);
@@ -190,7 +214,7 @@ function replayStep(dt, P) {
 
 // third-person view circling the victim (sentry, mortar, barrel and vehicle kills), walls pull the camera in
 function orbitStep(dt, P, r, sp) {
-  const v = sample(P, r.t) || { x: P.x, y: P.y, z: P.z };
+  const V = cam.victim || P, v = sample(V, r.t) || { x: V.x, y: V.y, z: V.z };
   r.oa += dt * sp * 0.35;
   const R = 7, cx = v.x + Math.sin(r.oa) * R, cz = v.z + Math.cos(r.oa) * R, cy = v.y + 4.2;
   let px = cx, py = cy, pz = cz;

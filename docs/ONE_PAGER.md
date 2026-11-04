@@ -36,7 +36,7 @@ A browser FPS delivered as one self-contained HTML file (~1.2 MB): three.js r128
 ## Rev 3 progress
 Done: Standard weapon slots (rifle + sniper via pickups), match limits per mode (SP + MP), health/ammo pickups toggle, scope toggle, "Use mouse lock again", Operator screen, team vs all chat, bot settings hidden with no bots, intentional ladders with blocking and bots giving way, invite links and hosting guide (docs/HOSTING.md).
 Gorge rework part 1 done: metal zig-zag stairs, slide chutes (walk backwards to brake; steep middle is lethal), staggered ledges, berms and bushes to hide in, bigger boxcar roof hatches, shorter train ladder.
-Also done: helicopters with an open cabin and see-through canopy (crew visible and shootable, full damage through the doors), tail-rotor weak spot, enemy vehicle health under the crosshair; version label on menu + lobby (warns when a friend is on another build), rolling ridges and ground texture on Gorge, AK viewmodel fix.
+Rev 3a complete: end-of-match replay for every player (final kill or winning capture, slow-mo, skippable), frame rate limit + auto resolution. Also done: helicopters with an open cabin and see-through canopy (crew visible and shootable, full damage through the doors), tail-rotor weak spot, enemy vehicle health under the crosshair; version label on menu + lobby (warns when a friend is on another build), rolling ridges and ground texture on Gorge, AK viewmodel fix.
 Next: viewmodel fix, helicopter targets, game-ending replay, frame-rate limit, then 3b loadout & gear (incl. female operators), 3c medals + adjustable killstreaks + practice range, 3d netcode, 3e modes & weapons, 3f maps, vehicles, performance.
 
 ## Roadmap: suggested improvements

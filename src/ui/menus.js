@@ -230,12 +230,13 @@ function refreshSettings() {
   const s = G.profile.settings;
   $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
   for (const [k, , , , , f] of SLIDERS) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
-  $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim (snipers: 4× → 8× → off)']]
+  $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim (snipers: 4× → 8× → off)'], ['autoRes', 'Auto resolution (drops render scale to hold the frame rate)']]
     .map(([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
-  for (const k of ['invertY', 'shadows', 'showFps', 'killcam', 'scopeToggle']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
+  for (const k of ['invertY', 'shadows', 'showFps', 'killcam', 'scopeToggle', 'autoRes']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
   seg($('namesSel'), [{ v: 'real', html: 'Real' }, { v: 'fictional', html: 'Fictional' }], s.names, (v) => { s.names = v; cb.onSetting('names'); saveProfile(); });
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Medium' }, { v: 1, html: 'Full' }], s.renderScale, (v) => { s.renderScale = Number(v); cb.onSetting('renderScale'); saveProfile(); });
+  seg($('fpsSel'), [{ v: 0, html: 'Display' }, { v: 30, html: '30' }, { v: 60, html: '60' }, { v: 120, html: '120' }, { v: 144, html: '144' }], s.fpsCap || 0, (v) => { s.fpsCap = Number(v); saveProfile(); });
   $('crossSel').innerHTML = CROSS.map((c) => `<button type="button" class="${s.crosshair === c ? 'sel' : ''}" data-v="${c}" style="--c:${c}" aria-label="Crosshair colour ${c}"></button>`).join('');
   $('crossSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { s.crosshair = bt.dataset.v; cb.onSetting('crosshair'); saveProfile(); refreshSettings(); }));
   $('binds').innerHTML = Object.keys(DEFAULT_KEYS).map((a) => `<div class="bind"><span>${KEY_LABELS[a]}</span><button type="button" data-a="${a}">${esc(codeName(s.keys[a]))}</button></div>`).join('');
