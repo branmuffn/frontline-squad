@@ -58,7 +58,7 @@ export function spawnPlayer(x, y, z, yaw) {
   P.weapons = startingWeapons();
   refillAmmo();
   applyGear(P, G.profile.loadout || {});
-  if (G.mp && G.mp.live && G.mp.client) G.mp.send({ t: 'gear', v: P.vest, b: P.belt });
+  if (G.mp && G.mp.live && G.mp.client) G.mp.send({ t: 'gear', v: P.vest, b: P.belt, pk: (G.profile.streaks || {}).picks });
   P.switchStart = G.now; P.switchDur = WEAPONS[cur()].draw * (P.belt === 'quickdraw' ? 0.65 : 1);
   P.damagers.clear();
   hud.setWeapon(P);

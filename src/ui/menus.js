@@ -229,11 +229,16 @@ function fillSkins() {
 // ---------- killstreaks ----------
 export const streakHow = (s) => s.how.replace('{streak}', keyName('streak'));
 function refreshStreaks() {
-  $('streakCards').innerHTML = STREAKS.map((s) => `<div class="streak-card"><div class="sk-kills"><b>${s.kills}</b><small>kills</small></div><div><h3>${esc(s.name)}</h3><p>${esc(streakHow(s))}</p></div></div>`).join('');
+  const st = G.profile.streaks, picks = st.picks;
+  $('streakCards').innerHTML = `<p class="small-note">Pick three (${picks.length}/3). Kill counts are yours to tune; in multiplayer the host's counts apply to everyone.</p>` + [...STREAKS].sort((a, b) => (st.kills[a.id] ?? a.kills) - (st.kills[b.id] ?? b.kills)).map((s) => { const on = picks.includes(s.id), k = st.kills[s.id] ?? s.kills;
+    return `<div class="streak-card ${on ? 'on' : ''}"><div class="sk-kills"><button type="button" class="sk-step" data-k="${s.id}" data-d="-1" aria-label="Fewer kills">−</button><b>${k}</b><button type="button" class="sk-step" data-k="${s.id}" data-d="1" aria-label="More kills">+</button><small>kills</small></div><div><h3>${esc(s.name)}</h3><p>${esc(streakHow(s))}</p></div><button type="button" class="sk-pick ${on ? 'on' : ''}" data-p="${s.id}">${on ? 'Equipped' : 'Equip'}</button></div>`; }).join('');
+  $('streakCards').querySelectorAll('.sk-step').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.k, def = STREAKS.find((s) => s.id === id); st.kills[id] = Math.max(2, Math.min(30, (st.kills[id] ?? def.kills) + Number(b.dataset.d))); saveProfile(); refreshStreaks(); }));
+  $('streakCards').querySelectorAll('.sk-pick').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.p, i = picks.indexOf(id); if (i >= 0) { if (picks.length > 1) picks.splice(i, 1); } else { if (picks.length >= 3) picks.shift(); picks.push(id); } saveProfile(); refreshStreaks(); }));
   $('streakRules').innerHTML = STREAK_RULES.map((r) => `<li>${esc(r)}</li>`).join('');
 }
 function streakSummary() {
-  return `<div class="sk-summary"><span class="flabel">Killstreaks</span>${STREAKS.map((s) => `<span title="${esc(s.desc)}"><b>${s.kills}</b> ${esc(s.name)}</span>`).join('')}</div>`;
+  const st = G.profile.streaks;
+  return `<div class="sk-summary"><span class="flabel">Killstreaks</span>${st.picks.map((id) => STREAKS.find((s) => s.id === id)).filter(Boolean).map((s) => `<span title="${esc(s.desc)}"><b>${st.kills[s.id] ?? s.kills}</b> ${esc(s.name)}</span>`).join('')}</div>`;
 }
 
 // prematch = shown after Deploy, before the match loads

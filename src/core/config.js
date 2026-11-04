@@ -344,13 +344,21 @@ export const STREAKS = [
     how: 'Look at the ground or a rooftop and press {streak}. Six shells land around that spot over a few seconds. Keep clear: they can hit you too.' },
   { kills: 7, id: 'sentry', name: 'SENTRY GUN', desc: 'Auto-turret that guards a position', duration: 35,
     how: 'Press {streak} to set a turret down just in front of you. It shoots any enemy it can see for 35 seconds.' },
+  { kills: 4, id: 'cuav', name: 'COUNTER-UAV', desc: 'Jams enemy radar', duration: 25, auto: true,
+    how: 'Starts on its own. For 25 seconds enemy players only see static on their radar.' },
+  { kills: 6, id: 'care', name: 'CARE PACKAGE', desc: 'Supply crate from the sky', how: 'Aim at open ground and press {streak}. A crate drops there; walk up and press E: a random reward (refill, armour, or another killstreak).' },
+  { kills: 9, id: 'chopper', name: 'ATTACK CHOPPER', desc: 'Gunship helicopter circles and hunts', duration: 40, how: 'Press {streak}. A helicopter circles the map for 40 seconds and shoots enemies it sees. It can be shot down.' },
+  { kills: 11, id: 'air', name: 'AIRSTRIKE', desc: 'Bombs in a line where you look', how: 'Look along the line you want hit and press {streak}. Jets drop six bombs along it.' },
+  { kills: 15, id: 'gunship', name: 'GUNSHIP', desc: 'Heavy cannon from above', duration: 30, how: 'Press {streak}. For 30 seconds a gunship fires heavy rounds at enemies out in the open.' },
 ];
+export const STREAK_PICKS = ['uav', 'mortar', 'sentry']; // default picks (bots always use these)
+export const streakDef = (id) => STREAKS.find((s) => s.id === id);
 
 export const STREAK_RULES = [
   'Killstreaks count kills in one life. Dying resets the count to zero.',
   'Kills made by your mortar or sentry don’t add to your streak.',
   'An earned reward waits until you use it, even if you die, until the match ends.',
-  'Bots earn and use the same killstreaks.',
+  'Bots earn and use Recon UAV, Mortar strike and Sentry gun.',
 ];
 
 export const PICKUP = { health: 50, respawn: 25 };

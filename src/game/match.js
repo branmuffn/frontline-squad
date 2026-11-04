@@ -42,7 +42,7 @@ export function startMatch(cfg) {
   cleanupMatch();
   const skill = cfg.skill >= 1 ? +cfg.skill : skillFor(cfg.difficulty);
   G.match = {
-    mode: cfg.mode, map: cfg.map, difficulty: skillBand(Math.round(skill)), skill, ai: botSkill(skill), bots: { ...botRulesDefault(), ...(cfg.bots || {}) }, count: cfg.count, def: mode,
+    streakKills: cfg.streakKills || null, mode: cfg.mode, map: cfg.map, difficulty: skillBand(Math.round(skill)), skill, ai: botSkill(skill), bots: { ...botRulesDefault(), ...(cfg.bots || {}) }, count: cfg.count, def: mode,
     time: mode.time || 0, timed: !!mode.time, pickupsOn: cfg.pickups !== false, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,

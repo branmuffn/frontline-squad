@@ -11,6 +11,7 @@ import { impact, blood, tracer } from '../engine/fx.js';
 import { play } from '../engine/audio.js';
 import { recordShot } from '../game/killcam.js';
 import { damageVehicle, crewMul, tailRotorHit } from './vehicles.js';
+import { chopperHit, damageChopper } from './streaks.js';
 
 export function falloff(w, d) {
   const [f0, f1, mn] = w.falloff;
@@ -64,6 +65,8 @@ export function traceSegment(s, dx, dy, dz, len) {
   whizCheck(s, dx, dy, dz, len);
   for (let guard = 0; guard < 6; guard++) {
     const wh = rayWorld(s.x, s.y, s.z, dx, dy, dz, len);
+    const ch = chopperHit(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len);
+    if (ch) { const t = ch.t; damageChopper(ch.c, w.damage * falloff(w, s.travelled + t) * s.mul * (w.pen === 'heavy' ? 2 : 1), s.shooter); impact(s.x + dx * t, s.y + dy * t, s.z + dz * t, -dx, -dy, -dz, 'metal'); s.x += dx * t; s.y += dy * t; s.z += dz * t; s.travelled += t; s.done = true; return true; }
     const tr = tailRotorHit(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len);
     if (tr && !tr.v.seats.includes(s.shooter)) { const t = tr.t, dist = s.travelled + t; damageVehicle(tr.v, w.damage * falloff(w, dist) * s.mul * s.mulPen * 3, s.shooter); if (isP) { play('impactMetal', { x: s.x + dx * t, y: s.y + dy * t, z: s.z + dz * t }, { gain: 0.6 }); } impact(s.x + dx * t, s.y + dy * t, s.z + dz * t, -dx, -dy, -dz, 'metal'); s.x += dx * t; s.y += dy * t; s.z += dz * t; s.travelled = dist; s.done = true; return true; }
     const uh = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len, (u) => u === s.shooter || !isEnemy(s.shooter, u));

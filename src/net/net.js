@@ -24,7 +24,7 @@ import { vehSnap, vehApplySnap, vehInterp, vehLocal, vehHostApply, vehHostMsg, v
 import { vehicles } from '../entities/vehicles.js';
 import { placeClaymore, netClaymore } from '../entities/gear.js';
 import { onDeathCam, recordNetShot } from '../game/killcam.js';
-import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entities/streaks.js';
+import { checkStreak, netStreak, netSentryShot, remoteUseStreak, remoteOpenCrate, remoteChopperDamage, grantStreak, refillPlayer } from '../entities/streaks.js';
 
 export const MAX_PLAYERS = 8;
 export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm'];
@@ -178,7 +178,7 @@ export function lookFor(team, slot, mode, skin) {
 }
 export function hostStart() {
   if (!canStart()) return false;
-  const cfg = { ...S.cfg };
+  const cfg = { ...S.cfg, streakKills: { ...((G.profile.streaks || {}).kills || {}) } }; // the host's killstreak kill counts apply to everyone
   dealTeams(cfg.mode);
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
@@ -321,7 +321,9 @@ function hostMsg(r, m) {
     case 'drop': { const w = WEAPONS[m.id]; if (w && !w.melee) dropWeapon(m.id, u.x, u.y + 0.02, u.z, m.ammo); break; }
     case 'use': remoteUseStreak(u, m); break;
     case 'clay': if (u.alive && m.p && Math.hypot(m.p[0] - u.x, m.p[2] - u.z) < 4) placeClaymore(u, m.p[0], m.p[1], m.p[2], m.p[3]); break;
-    case 'gear': u.vest = m.v; u.belt = m.b; break;
+    case 'gear': u.vest = m.v; u.belt = m.b; if (Array.isArray(m.pk)) u.picks = m.pk.filter((x) => typeof x === 'string').slice(0, 3); break;
+    case 'open': remoteOpenCrate(u, m.k); break;
+    case 'chd': remoteChopperDamage(u, m); break;
     case 'ven': case 'vex': case 'vsw': case 'vdm': vehHostMsg(r, m); break;
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
@@ -357,7 +359,8 @@ function clientMsg(m) {
     case 'vok': vehOk(m); break;
     case 'cl': netClaymore(m, m.o ? unitById(m.o) : null); break;
     case 'stk': G.player.streak = m.n; G.player.bestStreak = Math.max(G.player.bestStreak || 0, m.n); checkStreak(m.n); break;
-    case 'mor': case 'sen': netStreak(m, m.o ? unitById(m.o) : null); break;
+    case 'mor': case 'sen': case 'crate': case 'chp': case 'jam': netStreak(m, m.o ? unitById(m.o) : null); break;
+    case 'gift': if (m.r === 'refill') refillPlayer(); else { grantStreak(m.r); hud.banner('Care package', m.r.toUpperCase()); } break;
     case 'hm': hud.hitMarker(m.k); play('hit', null, { important: true }); break;
     case 'gr': case 'rk': replaySpawn(m, unitById(m.o)); break;
     case 'dr+': S.replay = true; dropWeapon(m.id, m.p[0], m.p[1], m.p[2]); drops[drops.length - 1].key = m.k; S.replay = false; break;

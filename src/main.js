@@ -33,6 +33,7 @@ import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/kill
 import { finishFinale } from './game/match.js';
 import { unitFoley } from './entities/units.js';
 import { updateGear, useEquipment } from './entities/gear.js';
+import { openCrate } from './entities/streaks.js';
 import { updateDoors, doorInteract } from './world/doors.js';
 import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
 import { damage, kill } from './entities/units.js';
@@ -222,7 +223,7 @@ function onKeyDown(code, e) {
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
   else if (matches('equip', code)) useEquipment(G.player);
-  else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !vehicleInteract(G.player) && !doorInteract(G.player)) tryPickup(); }
+  else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !openCrate(G.player) && !vehicleInteract(G.player) && !doorInteract(G.player)) tryPickup(); }
   else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
 function onKeyUp(code) {

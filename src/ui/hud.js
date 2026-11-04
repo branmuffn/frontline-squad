@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { WEAPONS, TEAMS, STREAKS, MODES } from '../core/config.js';
+import { myPicks, killsFor } from '../entities/streaks.js';
 import { $, esc, fmtTime, clamp } from '../core/util.js';
 import { binding } from '../core/input.js';
 import { rayUnits, rayWorld } from '../world/physics.js';
@@ -103,7 +104,8 @@ export function setAmmo(P) {
 }
 
 export function setStreaks(n, ready) {
-  STREAKS.forEach((s, i) => { const el = $('pip' + i); if (el) el.classList.toggle('on', n >= s.kills); });
+  const picks = myPicks();
+  picks.forEach((id, i) => { const el = $('pip' + i); if (!el) return; const k = killsFor(id); el.textContent = k; el.title = (STREAKS.find((s) => s.id === id) || {}).name || ''; el.classList.toggle('on', n >= k); });
   set('streakCount', 'text', n ? `${n} streak` : '');
   const r = ready ?? streakState.ready;
   set('streakReady', 'html', r.length ? `<kbd>${esc(keyName('streak'))}</kbd> ${esc(STREAKS.find((s) => s.id === r[0]).name)}${r.length > 1 ? ` <small>+${r.length - 1}</small>` : ''}` : '');
@@ -313,6 +315,10 @@ function drawRadar() {
     ctx.fillStyle = p.type === 'health' ? '#5fe08a' : '#e0b35a';
     ctx.fillRect(p.x - 0.6, p.z - 0.6, 1.2, 1.2);
   }
+  if (streakState.jamUntil > G.now) { // counter-UAV: static
+    for (let i = 0; i < 160; i++) { ctx.fillStyle = `rgba(200,210,200,${(Math.random() * 0.5).toFixed(2)})`; ctx.fillRect(P.x + (Math.random() - 0.5) * 60, P.z + (Math.random() - 0.5) * 60, 1.6, 1.6); }
+    ctx.restore(); return;
+  }
   const uav = streakState.uavUntil > G.now;
   const pings = new Map();
   for (const n of G.noise) if (G.now - n.t < 1.6 && n.r >= 25 && n.src && n.src !== P) pings.set(n.src, Math.max(pings.get(n.src) || 0, 1 - (G.now - n.t) / 1.6));
@@ -327,6 +333,8 @@ function drawRadar() {
   ctx.globalAlpha = 1;
   if (m.hook && m.hook.radar) m.hook.radar(ctx);
   for (const s of streakState.sentries) { ctx.fillStyle = isEnemy(s.owner, G.player) ? '#ff6b5a' : '#9fe0ff'; ctx.fillRect(s.x - 0.9, s.z - 0.9, 1.8, 1.8); }
+  for (const c of streakState.choppers) { ctx.fillStyle = c.owner && isEnemy(c.owner, G.player) ? '#ff6b5a' : '#9fe0ff'; ctx.beginPath(); ctx.arc(c.x, c.z, 2.2, 0, Math.PI * 2); ctx.fill(); }
+  for (const c of streakState.crates) if (c.owner === G.player) { ctx.fillStyle = '#e0b35a'; ctx.fillRect(c.x - 1, c.z - 1, 2, 2); }
   for (const s of streakState.shells) { ctx.strokeStyle = 'rgba(229,96,74,0.7)'; ctx.lineWidth = 0.4; ctx.beginPath(); ctx.arc(s.x, s.z, 2, 0, Math.PI * 2); ctx.stroke(); }
   ctx.restore();
   // player marker + view cone

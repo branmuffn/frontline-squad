@@ -286,7 +286,7 @@ function fly(v, dt, fwd, strafe, lift, wantYaw, powered) {
   if (!v.alive) { v.roll += dt * 1.5; }
 }
 
-function makeHeliMesh() {
+export function makeHeliMesh() {
   if (!jeepGeo) buildModels();
   if (!heliGeo) buildHeli();
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
