@@ -34,6 +34,7 @@
     <button id="deploy" class="btn-primary deploy" type="button">Deploy</button>
     <p id="bestLine" class="best"></p>
     <nav class="menu-nav">
+      <button id="openMp" type="button">Multiplayer</button>
       <button id="openLoadout" type="button">Loadout</button>
       <button id="openSettings" type="button">Settings</button>
       <button id="openStreaks" type="button">Killstreaks</button>
@@ -168,6 +169,55 @@
   </div>
 </section>
 
+<section id="mp" class="screen hidden">
+  <div class="panel wide fit" data-state="choose">
+    <h2>Multiplayer</h2>
+    <p class="lede small">Two players, peer to peer: co-op Survival or Zombies, or Free for All and Team Deathmatch against each other (bots fill the rest). No account. The host’s computer runs the match.</p>
+    <div class="pbody">
+      <div class="mp-top">
+        <label class="field mp-name"><span class="flabel">Your name</span><input id="mpName" maxlength="14" autocomplete="off" spellcheck="false"></label>
+        <div class="mp-choose">
+          <button id="mpHost" class="btn-primary" type="button">Host a game</button>
+          <div class="mp-join"><input id="mpCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="mpJoin" class="btn-ghost" type="button">Join</button></div>
+        </div>
+      </div>
+      <p id="mpStatus" class="mp-status"></p>
+      <div class="mp-room">
+        <div class="mp-codebox"><span class="flabel">Room code</span><b id="mpRoomCode">·····</b><button id="mpCopyCode" class="btn-ghost" type="button">Copy</button></div>
+        <div class="cols">
+          <div><span class="flabel">Players</span><ul id="mpPlayers" class="mp-players"></ul></div>
+          <div class="mp-settings">
+            <label class="field"><span class="flabel">Mode</span><select id="mpMode"></select></label>
+            <label class="field"><span class="flabel">Map</span><select id="mpMap"></select></label>
+            <label class="field"><span class="flabel">Difficulty</span><select id="mpDiff"></select></label>
+            <label class="field" id="mpCountRow"><span class="flabel" id="mpCountLabel">Bots</span><select id="mpCount"></select></label>
+            <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
+          </div>
+        </div>
+      </div>
+      <details class="mp-manual">
+        <summary>No room code? Connect with copy-paste codes (works offline on the same network)</summary>
+        <div class="cols">
+          <div class="mp-host-only">
+            <p class="flabel">Host: 1) make an invite and send it · 2) paste your friend’s reply · 3) Connect</p>
+            <button id="mpInvite" class="btn-ghost" type="button">Make invite code</button>
+            <textarea id="mpInviteOut" readonly rows="3" placeholder="Invite code appears here"></textarea>
+            <textarea id="mpReplyIn" rows="3" placeholder="Paste the reply code here"></textarea>
+            <button id="mpAccept" class="btn-ghost" type="button">Connect</button>
+          </div>
+          <div class="mp-join-only">
+            <p class="flabel">Joiner: 1) paste the host’s invite · 2) make a reply · 3) send it back</p>
+            <textarea id="mpInviteIn" rows="3" placeholder="Paste the invite code here"></textarea>
+            <button id="mpReply" class="btn-ghost" type="button">Make reply code</button>
+            <textarea id="mpReplyOut" readonly rows="3" placeholder="Reply code appears here"></textarea>
+          </div>
+        </div>
+      </details>
+    </div>
+    <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>
+  </div>
+</section>
+
 <section id="pause" class="screen hidden">
   <div class="panel narrow">
     <h2>Paused</h2>
@@ -199,6 +249,7 @@
 </section>
 
 <div id="hud">
+  <div id="netPing" class="net-ping hidden"></div>
   <div id="vignette"></div>
   <div id="dmgflash"></div>
   <div id="scope"><div class="reticle"></div><div id="scopeMag" class="scope-mag"></div></div>

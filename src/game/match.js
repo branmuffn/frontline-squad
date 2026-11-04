@@ -54,20 +54,24 @@ export function startMatch(cfg) {
   G.gravMul = m.rules && m.rules.lowGrav ? 0.4 : 1;
   resetMatchXp();
   G.now = 0; G.noise.length = 0;
-  const P = createPlayer(0);
+  const mpc = !!(G.mp && G.mp.live && G.mp.client), rt = G.mp && G.mp.live && G.mp.host ? G.mp.remoteTeams(cfg.mode) : [];
+  const P = createPlayer(mpc ? G.mp.team : 0);
   G.units = [P]; G.bots = [];
   const names = shuffle(BOT_NAMES.slice());
-  if (!m.teams && !waves) {
+  if (mpc) { /* the host runs every bot */ } else if (!m.teams && !waves) {
     for (let i = 0; i < cfg.count; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
   } else if (m.teams) {
     const squads = cfg.mode === 'tdm' || mode.teamSize;
-    const allies = squads ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies;
+    let allies = squads ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies;
+    allies = Math.max(0, allies - rt.filter((t) => t === 0).length); foes = Math.max(0, foes - rt.filter((t) => t === 1).length);
     for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
   if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
+  const remotes = rt.length ? G.mp.makeRemoteUnits(cfg.mode) : [];
   resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);
+  for (const u of remotes) G.mp.spawnRemote(u, pickSpawn(u), false);
   for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); hookSpawn(b); }
   G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix();
   G.state = 'deploy'; G.deployUntil = 3; deployBeep = 0;
@@ -106,6 +110,7 @@ G.spawnBot = (o) => { const b = addBot(o); const sp = pickSpawn(b); resetBotForS
 G.removeBot = (b) => { disposeBot(b); G.bots.splice(G.bots.indexOf(b), 1); G.units.splice(G.units.indexOf(b), 1); };
 
 export function cleanupMatch() {
+  if (G.mp) G.mp.cleanup();
   resetKillcam();
   resetVehiclesHard();
   for (const h of Object.values(HOOKS)) if (h.cleanup) h.cleanup();
@@ -157,6 +162,12 @@ export function onKill(credited, victim, info) {
     victim.respawnAt = G.now + (m.mode === 'survival' ? 5 : 3);
     hud.showDeath(credited, info, victim.respawnAt);
     onDeathCam(victim, credited);
+  } else if (victim.remote) { // another human player (multiplayer host)
+    if (m.mode === 'survival' || (m.hook && m.hook.waves)) {
+      m.lives--;
+      if (m.lives <= 0) { setTimeout(() => endMatch('time'), 1600); victim.respawnAt = -1; }
+      else victim.respawnAt = G.now + (m.mode === 'survival' ? 5 : 3);
+    } else victim.respawnAt = G.now + 3;
   } else {
     victim.respawnAt = G.now + 3; // same delay as the player
     if (m.mode === 'survival') m.alive = Math.max(0, (m.alive || 0) - 1);
@@ -179,7 +190,7 @@ function startWave(n) {
   const m = G.match;
   m.wave = n; m.waveState = 'fighting';
   m.toSpawn = Math.min(30, 4 + n * 2); m.waveTotal = m.toSpawn; m.nextSpawnAt = G.now + 0.5;
-  hud.banner(`Wave ${n}`, n === 1 ? 'Hostiles inbound. Hold the line.' : `${m.waveTotal} hostiles inbound`);
+  hud.banner(`Wave ${n}`, n === 1 ? 'Hostiles inbound. Hold the line.' : `${m.waveTotal} hostiles inbound`, 'wave');
   play('wave', null, { important: true });
   hud.scoreChanged();
 }
@@ -215,7 +226,8 @@ function updateSurvival() {
       if (m.wave % 5 === 0) { m.lives++; hud.notice('Reinforcements: +1 life'); }
       const p = G.player;
       if (p.alive) { p.health = p.maxHealth; refillAmmo(); p.grenades = Math.max(p.grenades, 2); hud.setAmmo(p); }
-      hud.banner(`Wave ${m.wave} cleared`, 'Resupplied. Next wave in 10 seconds.');
+      for (const u of G.units) if (u.remote && u.alive) { u.health = u.maxHealth; G.mp.toRemote(u, { t: 'resupply', g: 2 }); }
+      hud.banner(`Wave ${m.wave} cleared`, 'Resupplied. Next wave in 10 seconds.', 'streak');
       play('streak', null, { important: true });
     }
   } else if (m.waveState === 'intermission' && G.now >= m.nextWaveAt) startWave(m.wave + 1);
@@ -231,6 +243,7 @@ export function updateMatch(dt) {
     if (G.deployUntil <= 0) { G.state = 'playing'; play('go', null, { important: true }); hud.center(m.mode === 'survival' ? 'Survive' : 'Go', 0.8); }
     return;
   }
+  if (G.mp && G.mp.live && G.mp.client) { if (m.hook && m.hook.clientUpdate) m.hook.clientUpdate(dt); return; } // the host runs the rules
   m.elapsed += dt;
   if (m.def.time) {
     m.time -= dt;
@@ -250,13 +263,14 @@ export function updateMatch(dt) {
 }
 
 export function standings() {
-  return [...G.units].filter((u) => G.match.mode !== 'survival' || u.isPlayer || u.alive)
+  return [...G.units].filter((u) => G.match.mode !== 'survival' || u.isPlayer || u.human || u.alive)
     .sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
 }
 
 export function endMatch(reason) {
   const m = G.match; if (!m || m.ended) return;
   m.ended = true;
+  if (G.mp && G.mp.host) G.mp.hostEnded(reason);
   G.state = 'ended';
   clearInput();
   const P = G.player;

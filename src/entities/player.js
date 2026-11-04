@@ -189,7 +189,7 @@ function fireOnce() {
   if (P.prone) spread *= 0.55; else if (P.crouch) spread *= 0.75;
   aimDir(_d);
   const o = cam(), [mx, my, mz] = muzzleWorld();
-  let anyHit = false, hitHead = false;
+  let anyHit = false, hitHead = false, e0 = null;
   const dir = { x: 0, y: 0, z: 0 };
   if (w.projectile) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
@@ -197,10 +197,11 @@ function fireOnce() {
   }
   for (let k = 0; k < (w.projectile ? 0 : w.pellets); k++) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
-    if (w.velocity) { fireBullet(P, id, o.x, o.y, o.z, dir.x, dir.y, dir.z, 1, [mx, my, mz], 0xffe0a0); continue; }
+    if (w.velocity) { fireBullet(P, id, o.x, o.y, o.z, dir.x, dir.y, dir.z, 1, [mx, my, mz], 0xffe0a0); if (!e0) { const wh = rayWorld(o.x, o.y, o.z, dir.x, dir.y, dir.z, w.range), tt = wh ? wh.t : w.range; e0 = [o.x + dir.x * tt, o.y + dir.y * tt, o.z + dir.z * tt]; } continue; }
     const s = newShot(P, id, o.x, o.y, o.z, 1, k);
     traceSegment(s, dir.x, dir.y, dir.z, w.range);
     if (s.hit) { anyHit = true; hitHead = hitHead || s.hit.head; }
+    if (!e0) e0 = [s.x, s.y, s.z];
     if (Math.random() < w.tracer) tracer(mx, my, mz, s.x, s.y, s.z, 0xffe0a0, 420);
   }
   if (anyHit) G.match.stats.hits++;
@@ -222,6 +223,7 @@ function fireOnce() {
   if (w.pump) P.pumpStart = G.now + 0.14;
   if (w.bolt) { P.boltStart = G.now + 0.3; P.adsBlockUntil = G.now + 1.05; }
   if (a.mag === 0 && a.res > 0) P.autoReloadAt = G.now + (w.bolt ? 0.9 : 0.3);
+  if (G.mp && G.mp.live && e0) G.mp.shot(P, id, mx, my, mz, e0[0], e0[1], e0[2]);
   hud.setAmmo(P);
   return true;
 }
@@ -473,5 +475,5 @@ export function onPlayerDeath() {
   P.deathT = 0; P.cookStart = -1; P.reloadStart = -1; P.adsT = 0;
 }
 
-export function killPlayerSelf() { if (P.alive) kill(P, null, { weapon: 'fall' }); }
+export function killPlayerSelf() { if (!P.alive) return; if (G.mp && G.mp.live && G.mp.client) G.mp.send({ t: 'self', a: 999, w: 'fall' }); else kill(P, null, { weapon: 'fall' }); }
 export const getPlayer = () => P;

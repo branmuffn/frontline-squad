@@ -16,7 +16,7 @@ import * as worldprops from './entities/worldprops.js';
 const { updateWorldProps, tryPickup } = worldprops;
 import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
-import { updateGrenades } from './entities/grenades.js';
+import { updateGrenades, throwGrenade, grenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
 import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
 import { startMatch, updateMatch, abandonMatch, pickSpawn, endMatch } from './game/match.js';
@@ -30,6 +30,8 @@ import { recordFrame, killcamActive, skipKillcam } from './game/killcam.js';
 import { updateDoors, doorInteract } from './world/doors.js';
 import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
 import { damage, kill } from './entities/units.js';
+import * as net from './net/net.js';
+import { initLobby, openMp } from './net/lobby.js';
 
 let wantResume = false, lastCfg = null;
 
@@ -43,13 +45,15 @@ function boot() {
   initHud();
   applySetting('crosshair'); applySetting('showFps'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
-    inGame: () => isLive() || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
+    inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
+  initLobby({ showScreen });
+  net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); } });
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
-    onRestart: () => { if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
+    onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
   // music can only start after the first user gesture (browser autoplay rules)
@@ -61,7 +65,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { net, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');
@@ -81,10 +85,12 @@ function applySetting(k) {
 }
 
 function deploy(cfg) {
-  lastCfg = cfg;
+  lastCfg = cfg; G.netPaused = false;
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
+  const veh = G.profile.lobby.vehicles; if (G.mp) G.profile.lobby.vehicles = false; // no vehicles in multiplayer (yet)
   startMatch(cfg); syncColliderDebug();
+  G.profile.lobby.vehicles = veh;
   showScreen(null);
   wantResume = false;
   if (!input.freeLook) requestLock();
@@ -109,12 +115,23 @@ function onArmory(a) {
 
 function pause(lockError) {
   if (!isLive()) return;
+  if (G.mp && G.mp.live) { // multiplayer: the match keeps running behind the menu
+    if (G.netPaused) return;
+    G.netPaused = true; G.pausedFrom = G.state; clearInput(); toggleBoard(false);
+    if (G.player && G.player.cookStart >= 0) grenadeRelease();
+    showPause(lockError); return;
+  }
   G.pausedFrom = G.state; G.state = 'paused';
   clearInput(); toggleBoard(false);
   if (G.player && G.player.cookStart >= 0) grenadeRelease();
   showPause(lockError);
 }
 function resume() {
+  if (G.netPaused) {
+    if (!isLive()) { G.netPaused = false; return; }
+    if (input.freeLook || isLocked()) { G.netPaused = false; showScreen(null); return; }
+    wantResume = true; requestLock(); return;
+  }
   if (G.state !== 'paused') return;
   initAudio();
   if (input.freeLook || isLocked()) { G.state = G.pausedFrom; showScreen(null); return; }
@@ -131,7 +148,16 @@ function redeploy() {
   G.pausedFrom = G.state; G.state = 'paused';
   resume();
 }
+function leaveMpMatch() {
+  armoryOpen = false; G.netPaused = false;
+  abandonMatch(); exitLock(); input.freeLook = false;
+  setScene('menu');
+}
 function quit() {
+  if (G.mp) {
+    if (G.mp.live) { if (G.mp.host) net.hostAbort(); else net.clientQuit(); }
+    leaveMpMatch(); openMp(); return;
+  }
   armoryOpen = false;
   abandonMatch(); exitLock(); input.freeLook = false;
   showScreen('menu'); setScene('menu');
@@ -139,16 +165,17 @@ function quit() {
 
 function onLockChange(locked) {
   if (locked) {
-    if (G.state === 'paused' && wantResume) { G.state = G.pausedFrom; showScreen(null); }
+    if (G.netPaused && wantResume) { G.netPaused = false; showScreen(null); }
+    else if (G.state === 'paused' && wantResume) { G.state = G.pausedFrom; showScreen(null); }
     wantResume = false;
-  } else if (isLive() && !input.freeLook) pause(false);
+  } else if (isLive() && !input.freeLook && !G.netPaused) pause(false);
 }
 function onLockError() {
   wantResume = false;
-  if (isLive()) pause(true); else if (G.state === 'paused') showPause(true);
+  if (G.netPaused) showPause(true); else if (isLive()) pause(true); else if (G.state === 'paused') showPause(true);
 }
 function onCanvasClick() {
-  if (G.state === 'paused') resume();
+  if (G.state === 'paused' || G.netPaused) resume();
   else if (isLive() && !isLocked() && !input.freeLook) requestLock();
 }
 
@@ -159,7 +186,7 @@ function onKeyDown(code, e) {
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
-  if (!isLive()) return;
+  if (!isLive() || G.netPaused) return;
   if (matches('scoreboard', code)) toggleBoard(true);
   if (e.repeat) return;
   if (matches('jump', code)) onJumpPressed();
@@ -202,6 +229,7 @@ function loop(t) {
     if (isLive()) {
       updatePlayer(dt);
       updateBots(dt);
+      if (G.mp) net.update(dt);
       separateUnits();
       for (const u of G.units) {
         if (!u.alive) continue;

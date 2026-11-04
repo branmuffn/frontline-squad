@@ -48,10 +48,12 @@ function take(p, u) {
   if (p.type === 'health') {
     if (u.health >= u.maxHealth) return false;
     u.health = Math.min(u.maxHealth, u.health + PICKUP.health);
+    if (u.remote) G.mp.toRemote(u, { t: 'pk', k: 'health', a: PICKUP.health });
     if (u.isPlayer) { hud.notice(`Medkit +${PICKUP.health} HP`); }
   } else if (u.isPlayer) {
     pickupAmmo(); hud.notice('Ammo resupplied');
-  } else if (u.brain) u.brain.mag = u.brain.magMax;
+  } else if (u.remote) G.mp.toRemote(u, { t: 'pk', k: 'ammo' });
+  else if (u.brain) u.brain.mag = u.brain.magMax;
   p.available = false; p.g.visible = false; p.respawnAt = G.now + PICKUP.respawn;
   play('pickup', u.isPlayer ? null : { x: p.x, y: p.y, z: p.z }, { gain: u.isPlayer ? 1 : 0.5 });
   return true;
@@ -59,11 +61,13 @@ function take(p, u) {
 
 export function updatePickups(dt) {
   for (const p of pickups) {
-    if (!p.available) { if (G.now >= p.respawnAt) { p.available = true; p.g.visible = true; } continue; }
+    const mirror = G.mp && G.mp.live && G.mp.client; // availability comes from the host
+    if (!p.available) { if (!mirror && G.now >= p.respawnAt) { p.available = true; p.g.visible = true; } continue; }
     p.g.position.y = p.y + 0.06 + Math.sin(G.realTime * 2.2 + p.x) * 0.06;
     p.g.rotation.y += dt * 0.9;
+    if (mirror) continue;
     for (const u of G.units) {
-      if (!u.alive || Math.abs(u.y - p.y) > 1.2) continue;
+      if (!u.alive || u.proxy || Math.abs(u.y - p.y) > 1.2) continue;
       if (Math.hypot(u.x - p.x, u.z - p.z) < 1.15 && take(p, u)) break;
     }
   }

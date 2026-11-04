@@ -224,7 +224,7 @@ function think(u, cfg) {
     const vis = losClear(u.x, eye, u.z, t.x, t.y + t.h - 0.17, t.z) || losClear(u.x, eye, u.z, t.x, t.y + t.h * 0.5, t.z);
     if (!vis) continue;
     let s = 60 - d;
-    if (t.isPlayer) s += mode === 'survival' ? 25 : G.match.teams ? 4 : cfg.playerBias;
+    if (t.isPlayer || t.remote) s += mode === 'survival' ? 25 : G.match.teams ? 4 : cfg.playerBias;
     if (t === b.target) s += 14;
     if (hitBy) s += 25;
     if (t.health < 40) s += 6;
@@ -241,9 +241,11 @@ function think(u, cfg) {
     if (b.target && (!b.target.alive || G.now - b.lastSeen > (mode === 'survival' ? 99 : 7))) { b.target = null; b.lastKnown = null; }
   }
   // survival hunters always roughly know where you are
-  if (mode === 'survival' && G.player.alive && !b.visible && G.now > (b.huntPing || 0)) {
-    b.huntPing = G.now + 3; b.target = G.player; b.lastSeen = Math.max(b.lastSeen, G.now - 2);
-    b.lastKnown = { x: G.player.x + rand(-4, 4), y: G.player.y, z: G.player.z + rand(-4, 4) };
+  let hT = null;
+  if (mode === 'survival' && !b.visible && G.now > (b.huntPing || 0)) { let bd = Infinity; for (const t of G.units) if ((t.isPlayer || t.remote) && t.alive) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; hT = t; } } }
+  if (hT) {
+    b.huntPing = G.now + 3; b.target = hT; b.lastSeen = Math.max(b.lastSeen, G.now - 2);
+    b.lastKnown = { x: hT.x + rand(-4, 4), y: hT.y, z: hT.z + rand(-4, 4) };
   }
   // zombies and the infected always sense the nearest living enemy
   if (b.alwaysHunt && !b.visible && G.now > (b.huntPing || 0)) {
@@ -387,18 +389,19 @@ function fire(u, cfg) {
   err *= b.T.acc;
   if (G.match.mode === 'survival') err *= Math.max(0.7, 1 - (G.match.wave - 1) * 0.03);
   const dir = { x: 0, y: 0, z: 0 };
-  let anyEnd = null;
+  let anyEnd = null, e0 = null;
   const p = G.player;
   const mul = cfg.dmgMul * b.T.dmg;
   for (let k = 0; k < w.pellets; k++) {
     coneDir(dx, dy, dz, err + (w.pellets > 1 ? w.spread.hip * 0.9 : 0), dir);
-    if (w.velocity) { fireBullet(u, b.weapon, mx, my, mz, dir.x, dir.y, dir.z, mul, [mx, my, mz], 0xffb46a); anyEnd = 1; continue; }
+    if (w.velocity) { fireBullet(u, b.weapon, mx, my, mz, dir.x, dir.y, dir.z, mul, [mx, my, mz], 0xffb46a); anyEnd = 1; if (!e0) { const wh = rayWorld(mx, my, mz, dir.x, dir.y, dir.z, w.range), tt = wh ? wh.t : w.range; e0 = [mx + dir.x * tt, my + dir.y * tt, mz + dir.z * tt]; } continue; }
     const s = newShot(u, b.weapon, mx, my, mz, mul, k);
     traceSegment(s, dir.x, dir.y, dir.z, w.range);
     const end = Math.hypot(s.x - mx, s.y - my, s.z - mz);
     if (k === 0 || chance(0.3)) tracer(mx, my, mz, s.x, s.y, s.z, 0xffb46a, 420);
-    anyEnd = end;
+    anyEnd = end; if (!e0) e0 = [s.x, s.y, s.z];
   }
+  if (G.mp && G.mp.live && e0) G.mp.shot(u, b.weapon, mx, my, mz, e0[0], e0[1], e0[2]);
   enemyFlash(mx, my, mz);
   play(w.sound, { x: mx, y: my, z: mz }, { occlude: true, gain: 0.9 });
   noise(u.x, my, u.z, w.noise, u);

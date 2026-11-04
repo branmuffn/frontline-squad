@@ -144,7 +144,7 @@ export function xpPopup(label, amount) {
 let hintUntil = 0;
 export function hint(title, text, secs = 8) { const h = $('hint'); h.innerHTML = `<b>${esc(title)}</b>${esc(text)}`; h.classList.add('show'); hintUntil = G.realTime + secs; }
 export function notice(text) { if (!text) return; set('notice', 'text', text); $('notice').classList.add('show'); noticeUntil = G.realTime + 1.8; }
-export function banner(title, sub = '') { bannerQ.push({ title, sub }); if (bannerQ.length > 4) bannerQ.shift(); }
+export function banner(title, sub = '', share) { if (share && G.mp && G.mp.host && G.mp.live) G.mp.banner(title, sub, share); bannerQ.push({ title, sub }); if (bannerQ.length > 4) bannerQ.shift(); }
 export function center(text, dur = 0.95) { const c = $('center'); c.textContent = text; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); centerUntil = G.realTime + dur; }
 
 export function showDeath(killer, info, respawnAt) {

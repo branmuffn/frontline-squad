@@ -28,6 +28,10 @@ export function weaponLabel(src) { return WEAPONS[src] ? WEAPONS[src].name : SOU
 // info: { weapon, zone, headshot, sx, sz (source position), melee, explosive, noStreak, dist }
 export function damage(victim, amount, attacker, info = {}) {
   if (!victim.alive || !(G.state === 'playing' || G.state === 'dead' || G.state === 'intermission')) return 0;
+  if (G.mp && G.mp.live) { // multiplayer: clients claim their hits; the host ignores mirrored (cosmetic) remote shots
+    if (G.mp.client) return G.mp.clientDamage(victim, amount, attacker, info);
+    if (attacker && attacker.remote && !info.claim && !info.explosive) return 0;
+  }
   if (attacker && attacker !== victim && !isEnemy(attacker, victim)) return 0;
   if (victim.protectUntil > G.now && attacker !== victim) return 0;
   const R = G.match && G.match.rules;
@@ -60,6 +64,7 @@ export function damage(victim, amount, attacker, info = {}) {
   }
   if (victim.soldier) { victim.soldier.flinch = Math.min(1, victim.soldier.flinch + 0.5); victim.flashUntil = G.realTime + 0.09; }
   if (victim.brain && attacker) victim.brain.onDamaged(victim, attacker);
+  if (G.mp && G.mp.live && (victim.remote || (attacker && attacker.remote))) G.mp.hurt(victim, dmg, info, attacker);
   if (lethal) kill(victim, attacker, info);
   return dmg;
 }
@@ -89,7 +94,7 @@ export function kill(victim, attacker, info = {}) {
   if (victim.brain && !(G.match.rules && G.match.rules.knife) && !(G.match.hook && G.match.hook.noDrops)) dropWeapon(victim.brain.weapon, victim.x, victim.y + 0.02, victim.z);
   hud.killfeed(credited ? credited : victim, victim, info.weapon, !!info.headshot, !credited);
   const noStreaks = G.match.hook && G.match.hook.noStreaks;
-  if (credited && !credited.isPlayer && !info.noStreak && !noStreaks) botStreak(credited, credited.streak);
+  if (credited && !credited.isPlayer && !credited.remote && !info.noStreak && !noStreaks) botStreak(credited, credited.streak);
   if (credited && credited.isPlayer) {
     awardKill(victim, info, victimStreak);
     if (!info.noStreak && !noStreaks) checkStreak(credited.streak);
@@ -97,6 +102,7 @@ export function kill(victim, attacker, info = {}) {
   }
   if (victim.isPlayer) G.player.lastKiller = credited;
   matchOnKill(credited, victim, info);
+  if (G.mp && G.mp.live && G.mp.host) G.mp.onKill(credited, victim, info);
 }
 
 // Push overlapping bodies apart (bots never stack, player can't walk through them)

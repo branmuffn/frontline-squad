@@ -11,7 +11,7 @@ import { badgeSVG } from './badges.js';
 import { setScene, stinger } from '../engine/music.js';
 import { codeName, keyName } from './hud.js';
 
-const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory'];
+const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
 let cb = null, back = 'menu';
 
 export function showScreen(id) {
@@ -242,6 +242,9 @@ function refreshCareer() {
 export function showEnd(r) {
   stinger(r.result);
   setTimeout(() => { if (G.state === 'ended') setScene('end'); }, 2600);
+  const mp = G.mp;
+  $('endMenu').textContent = mp ? 'Back to lobby' : 'Main menu';
+  $('again').textContent = mp && !mp.host ? 'Waiting for host…' : 'Play again'; $('again').disabled = !!(mp && !mp.host);
   const P = G.player, m = G.match, st = m.stats;
   $('endTitle').textContent = r.title;
   $('end').dataset.result = r.result;
@@ -283,7 +286,9 @@ export function showArmory() {
 // ---------- pause ----------
 export function showPause(lockError) {
   $('lockMsg').classList.toggle('hidden', !lockError);
-  const P = G.player, canRedeploy = !!(P && P.alive && G.pausedFrom === 'playing');
+  const P = G.player, canRedeploy = !!(P && P.alive && G.pausedFrom === 'playing' && !G.mp);
+  $('restart').classList.toggle('hidden', !!G.mp);
+  $('quit').textContent = G.mp ? (G.mp.host ? 'End match for everyone' : 'Leave match') : 'Quit to main menu';
   $('redeploy').classList.toggle('hidden', !canRedeploy);
   const underFire = P && G.now - P.lastHitAt < 4;
   $('redeploy').disabled = underFire;

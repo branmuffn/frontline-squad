@@ -48,7 +48,7 @@ export function toggleDoor(d, open = d.target < 0.5) {
   play('doorSlide', { x: d.x, y: d.y + 1, z: d.z }, { gain: 0.9 });
 }
 // E: returns true when it handled the key
-export function doorInteract(u) { const d = nearestDoor(u); if (!d) return false; toggleDoor(d); return true; }
+export function doorInteract(u) { const d = nearestDoor(u); if (!d) return false; if (G.mp && G.mp.live && G.mp.client) G.mp.door(G.world.doors.indexOf(d)); else toggleDoor(d); return true; }
 
 export function updateDoors(dt) {
   const w = G.world; if (!w || !w.doors || !w.doors.length) return;

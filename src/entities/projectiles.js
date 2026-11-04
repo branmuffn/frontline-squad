@@ -10,6 +10,7 @@ export const rockets = [];
 let GEO = null, MAT = null;
 
 export function fireRocket(owner, x, y, z, dx, dy, dz, speed = 55) {
+  if (G.mp) G.mp.spawnEv('rk', owner, [x, y, z, dx, dy, dz, speed]);
   if (!GEO) {
     const body = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 8); body.rotateX(Math.PI / 2);
     GEO = body; MAT = new THREE.MeshStandardMaterial({ color: 0x4e5a36, roughness: 0.7 }); MAT.color.convertSRGBToLinear();

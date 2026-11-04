@@ -14,6 +14,7 @@ const MAT = new THREE.MeshStandardMaterial({ color: 0x4e5a36, roughness: 0.7 });
 MAT.color.convertSRGBToLinear();
 
 export function throwGrenade(owner, x, y, z, vx, vy, vz, fuse) {
+  if (G.mp) G.mp.spawnEv('gr', owner, [x, y, z, vx, vy, vz, fuse]);
   const mesh = new THREE.Mesh(GEO, MAT); mesh.castShadow = true;
   mesh.position.set(x, y, z); G.scene.add(mesh);
   grenades.push({ owner, x, y, z, vx, vy, vz, explodeAt: G.now + fuse, mesh, lastBounce: 0, rest: false });
@@ -76,7 +77,7 @@ export function explode(x, y, z, owner, kind = 'frag') {
     const dmg = maxD * Math.pow(1 - d / R, 1.15) + 8;
     damage(u, dmg, owner, { weapon: kind, explosive: true, sx: x, sz: z, noStreak: kind === 'mortar' });
   }
-  nearbyBarrels(x, y, z, R, (c, d) => damageBarrel(c, maxD * (1 - d / R) + 10, owner));
+  nearbyBarrels(x, y, z, R, (c, d) => damageBarrel(c, maxD * (1 - d / R) + 10, owner, true));
   explodeNearVehicles(x, y, z, R, maxD, owner);
   const p = G.player;
   if (p) { const d = Math.hypot(p.x - x, p.y + 1.6 - y, p.z - z); if (d < 30) G.shake = Math.min(0.09, (G.shake || 0) + 0.08 * (1 - d / 30)); }

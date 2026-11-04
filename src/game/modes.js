@@ -224,11 +224,23 @@ function zGive(id) {
 }
 function spend(n) { const m = G.match; if (m.points < n) { play('deny'); hud.notice('Not enough points'); return false; } m.points -= n; hud.scoreChanged(); return true; }
 function addPoints(n) { const m = G.match; m.points += n * (G.now < m.doubleUntil ? 2 : 1); hud.scoreChanged(); }
-function spawnPowerup(x, y, z) {
-  const [id, name, col] = pick(POWERUPS);
+let puKey = 0;
+function spawnPowerup(x, y, z, forced, key) {
+  const [id, name, col] = forced || pick(POWERUPS);
   const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), std(col, { e: col, ei: 1.4, m: 0.3 }));
   mesh.position.set(x, y + 0.8, z); G.scene.add(mesh);
-  powerups.push({ id, name, x, y, z, mesh, until: G.now + 25 });
+  const p = { id, name, x, y, z, mesh, until: G.now + 25, key: key || ++puKey };
+  powerups.push(p);
+  if (G.mp && G.mp.live && G.mp.host) G.mp.bcast({ t: 'pu', a: '+', k: p.key, id, x, y, z });
+}
+function dropPowerup(i) { const p = powerups[i]; G.scene.remove(p.mesh); powerups.splice(i, 1); if (G.mp && G.mp.live && G.mp.host) G.mp.bcast({ t: 'pu', a: '-', k: p.key }); }
+const coop = (u) => u && (u.isPlayer || u.remote);
+function spinPowerups() { for (const p of powerups) { p.mesh.rotation.y += 0.04; p.mesh.position.y = p.y + 0.8 + Math.sin(G.realTime * 3) * 0.12; } }
+function stationPrompt(P) {
+  const s = P.alive && nearStation();
+  if (!s) hud.prompt('');
+  else if (s.kind === 'box') hud.prompt(boxRoll ? 'The box is spinning…' : `<kbd>${keyE()}</kbd> Mystery box · ${Z.box}`);
+  else { const owned = P.weapons.includes(s.id); hud.prompt(`<kbd>${keyE()}</kbd> ${owned ? 'Ammo for' : 'Buy'} ${WEAPONS[s.id].name} · ${owned ? Math.round(s.cost / 2) : s.cost}`); }
 }
 function zombieName(r) { return r >= 8 && chance(0.2) ? 'BRUTE' : 'ZOMBIE'; }
 const zombies = {
@@ -236,16 +248,17 @@ const zombies = {
   setup(m) { m.points = 500; m.round = 0; m.wave = 0; m.roundState = 'none'; m.insta = 0; m.doubleUntil = 0; m.lives = 3; buildStations(); disposeAll(powerups); boxRoll = null; },
   cleanup() { disposeAll(stations); disposeAll(powerups); boxRoll = null; },
   weapons(u) { return u.isPlayer ? ['usp', 'knife'] : ['knife']; },
-  modDamage(v, a, amt) { return a && a.isPlayer && v.zombie && G.now < G.match.insta ? v.health + 1 : amt; },
-  onDamage(v, a, dmg, info) { if (a && a.isPlayer && v.zombie && v.alive) addPoints(Z.hit); },
+  modDamage(v, a, amt) { return coop(a) && v.zombie && G.now < G.match.insta ? v.health + 1 : amt; },
+  onDamage(v, a, dmg, info) { if (coop(a) && v.zombie && v.alive) addPoints(Z.hit); },
   onKill(c, v, info) {
     if (!v.zombie) return;
     G.match.alive = Math.max(0, (G.match.alive || 0) - 1);
-    if (c && c.isPlayer) addPoints(info.melee ? Z.knife : info.headshot ? Z.head : Z.kill);
+    if (coop(c)) addPoints(info.melee ? Z.knife : info.headshot ? Z.head : Z.kill);
     if (chance(0.035)) spawnPowerup(v.x, v.y, v.z);
   },
   interact() {
     const s = nearStation(); if (!s) return false;
+    if (G.mp && G.mp.live && G.mp.client) { G.mp.send({ t: 'buy', s: stations.indexOf(s), have: G.player.weapons }); return true; } // the host keeps the squad's points
     if (s.kind === 'wall') {
       const owned = G.player.weapons.includes(s.id), cost = owned ? Math.round(s.cost / 2) : s.cost;
       if (spend(cost)) { zGive(s.id); play('pickup'); hud.notice(owned ? `${WEAPONS[s.id].name} ammo` : `Bought ${WEAPONS[s.id].name}`); }
@@ -255,12 +268,30 @@ const zombies = {
     }
     return true;
   },
+  // multiplayer host: a remote player buys (points are shared by the squad)
+  netBuy(u, idx, have) {
+    const s = stations[idx], m = G.match, no = (msg) => G.mp.toRemote(u, { t: 'deny', msg });
+    if (!s || !u.alive || Math.hypot(s.x - u.x, s.z - u.z) > 2.6) return;
+    const cost = s.kind === 'box' ? Z.box : have.includes(s.id) ? Math.round(s.cost / 2) : s.cost;
+    if (s.kind === 'box' && boxRoll) return no('The box is spinning…');
+    if (m.points < cost) return no('Not enough points');
+    m.points -= cost; hud.scoreChanged();
+    if (s.kind === 'wall') G.mp.toRemote(u, { t: 'give', id: s.id, owned: have.includes(s.id) });
+    else { const pool = shuffle(ALL_GUNS.concat(['rpg']).filter((g) => !have.includes(g))); boxRoll = { s, id: pool[0], at: G.now + 2.2, u }; G.mp.toRemote(u, { t: 'deny', msg: 'The box is deciding…' }); }
+  },
+  // multiplayer client: the host's answers
+  netGive(m) { zGive(m.id); play('pickup'); hud.notice(m.box ? `The box gave you ${WEAPONS[m.id].name}` : m.owned ? `${WEAPONS[m.id].name} ammo` : `Bought ${WEAPONS[m.id].name}`); },
+  netPowerup(m) {
+    if (m.a === '+') spawnPowerup(m.x, m.y, m.z, POWERUPS.find((p) => p[0] === m.id), m.k);
+    else { const i = powerups.findIndex((p) => p.key === m.k); if (i >= 0) { G.scene.remove(powerups[i].mesh); powerups.splice(i, 1); } }
+  },
+  clientUpdate() { spinPowerups(); stationPrompt(G.player); },
   update() {
     const m = G.match, P = G.player;
     // rounds
     if (m.roundState === 'none' || (m.roundState === 'break' && G.now >= m.nextRoundAt)) {
       m.round++; m.wave = m.round; m.roundState = 'fighting'; m.toSpawn = Math.min(60, 6 + m.round * 3); m.nextSpawnAt = G.now + 1;
-      hud.banner(`Round ${m.round}`, m.round === 1 ? 'They’re coming. Buy weapons off the walls with points.' : `${m.toSpawn} undead`); play('wave', null, { important: true });
+      hud.banner(`Round ${m.round}`, m.round === 1 ? 'They’re coming. Buy weapons off the walls with points.' : `${m.toSpawn} undead`, 'wave'); play('wave', null, { important: true });
     }
     for (let i = G.bots.length - 1; i >= 0; i--) { const b = G.bots[i]; if (!b.alive && G.now > b.respawnAt + 0.8) G.removeBot(b); }
     const alive = G.bots.filter((b) => b.alive).length;
@@ -270,28 +301,30 @@ const zombies = {
         const name = zombieName(m.round), b = G.spawnBot({ name, team: 1, weapon: 'knife', type: 'zombie', uniform: pick([0x4a4a3c, 0x3d4436, 0x56493a]), accent: 0x2b2b26, skin: 0x7f8a66, noHelmet: true });
         b.zombie = true; b.maxHealth = b.health = Math.round(zHealth(m.round) * (name === 'BRUTE' ? 2 : 1)); b.brain.speedMul = zSpeed(m.round) * (name === 'BRUTE' ? 0.8 : 1); b.brain.alwaysHunt = true;
       }
-      if (m.toSpawn <= 0 && alive === 0) { m.roundState = 'break'; m.nextRoundAt = G.now + 8; hud.banner(`Round ${m.round} survived`, 'Next round in 8 seconds'); play('streak', null, { important: true }); }
+      if (m.toSpawn <= 0 && alive === 0) { m.roundState = 'break'; m.nextRoundAt = G.now + 8; hud.banner(`Round ${m.round} survived`, 'Next round in 8 seconds', 'streak'); play('streak', null, { important: true }); }
     }
     m.remaining = m.toSpawn + alive;
     // box roll
-    if (boxRoll && G.now >= boxRoll.at) { zGive(boxRoll.id); hud.notice(`The box gave you ${WEAPONS[boxRoll.id].name}`); play('pickup'); boxRoll = null; }
+    if (boxRoll && G.now >= boxRoll.at) {
+      if (boxRoll.u) { if (boxRoll.u.rec) G.mp.toRemote(boxRoll.u, { t: 'give', id: boxRoll.id, box: 1 }); }
+      else { zGive(boxRoll.id); hud.notice(`The box gave you ${WEAPONS[boxRoll.id].name}`); play('pickup'); }
+      boxRoll = null;
+    }
     // power-ups
+    spinPowerups();
     for (let i = powerups.length - 1; i >= 0; i--) {
-      const p = powerups[i]; p.mesh.rotation.y += 0.04; p.mesh.position.y = p.y + 0.8 + Math.sin(G.realTime * 3) * 0.12;
-      if (G.now > p.until) { G.scene.remove(p.mesh); powerups.splice(i, 1); continue; }
-      if (P.alive && Math.hypot(P.x - p.x, P.z - p.z) < 1.3 && Math.abs(P.y - p.y) < 1.6) {
-        if (p.id === 'maxammo') { refillAmmo(); P.grenades = Math.max(P.grenades, 3); hud.setAmmo(P); }
+      const p = powerups[i];
+      if (G.now > p.until) { dropPowerup(i); continue; }
+      const taker = G.units.find((u) => coop(u) && u.alive && Math.hypot(u.x - p.x, u.z - p.z) < 1.3 && Math.abs(u.y - p.y) < 1.6);
+      if (taker) {
+        if (p.id === 'maxammo') { if (P.alive) { refillAmmo(); P.grenades = Math.max(P.grenades, 3); hud.setAmmo(P); } for (const u of G.units) if (u.remote && u.alive) G.mp.toRemote(u, { t: 'resupply', g: 3 }); }
         if (p.id === 'insta') m.insta = G.now + 30;
         if (p.id === 'double') m.doubleUntil = G.now + 30;
-        hud.banner(p.name, p.id === 'maxammo' ? 'All weapons refilled' : '30 seconds'); play('streak', null, { important: true });
-        G.scene.remove(p.mesh); powerups.splice(i, 1);
+        hud.banner(p.name, p.id === 'maxammo' ? 'All weapons refilled' : '30 seconds', 'streak'); play('streak', null, { important: true });
+        dropPowerup(i);
       }
     }
-    // prompt for buy stations
-    const s = P.alive && nearStation();
-    if (!s) hud.prompt('');
-    else if (s.kind === 'box') hud.prompt(boxRoll ? 'The box is spinning…' : `<kbd>${keyE()}</kbd> Mystery box · ${Z.box}`);
-    else { const owned = P.weapons.includes(s.id); hud.prompt(`<kbd>${keyE()}</kbd> ${owned ? 'Ammo for' : 'Buy'} ${WEAPONS[s.id].name} · ${owned ? Math.round(s.cost / 2) : s.cost}`); }
+    stationPrompt(P);
   },
   score() {
     const m = G.match, fx = [G.now < m.insta ? 'Insta-kill' : '', G.now < m.doubleUntil ? 'Double points' : ''].filter(Boolean).join(' · ');
