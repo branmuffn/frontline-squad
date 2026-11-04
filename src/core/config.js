@@ -347,3 +347,18 @@ export const SANDBOX_RULES = [
   ['teams', 'Team play'], ['infAmmo', 'Infinite ammo'], ['god', 'God mode'], ['lowGrav', 'Low gravity'],
   ['oneShot', 'One-shot kills'], ['headshots', 'Headshots only'], ['knife', 'Knives only'], ['passive', 'Passive bots (target practice)'],
 ];
+
+// Multiplayer skins (Phase 7c), unlocked by rank index. Co-op and FFA show the full look; TDM keeps team uniforms (helmet only).
+export const SKINS = {
+  uniform: [['olive', 'Olive', 0x5f6a52, 0], ['slate', 'Slate', 0x66727b, 0], ['khaki', 'Khaki', 0x857b5f, 1], ['navy', 'Navy', 0x3b4a63, 3], ['urban', 'Urban grey', 0x6c7277, 5],
+    ['black', 'Black ops', 0x2a2e31, 7], ['arctic', 'Arctic', 0xb9c0c4, 10], ['crimson', 'Crimson', 0x6a2a26, 13], ['royal', 'Royal blue', 0x2f4f8a, 16]],
+  pattern: [['plain', 'Plain', null, 0], ['wood', 'Woodland', [0x2f3624, 0x6f6a45], 2], ['desert', 'Desert', [0xc4ad83, 0x7d6a4c], 4], ['city', 'Urban', [0x9aa0a4, 0x3d4245], 6],
+    ['tiger', 'Tiger stripe', [0x1f2218, 0x8a7a4a], 9], ['digital', 'Digital', [0x445566, 0x8899aa], 12], ['gold', 'Gold', [0xe0c06a, 0x8a6a24], 18]],
+  helmet: [['olive', 'Olive', 0x4a5340, 0], ['tan', 'Tan', 0x8a7a58, 2], ['black', 'Black', 0x1e2124, 4], ['white', 'White', 0xd8dcdc, 8], ['red', 'Red', 0x7a2a24, 11], ['gold', 'Gold', 0xb8913e, 17]],
+};
+// resolve a skin choice ({ uniform, pattern, helmet } ids) to soldier colours
+export function skinLook(sk) {
+  const f = (list, id) => list.find((e) => e[0] === id) || list[0];
+  sk = sk || {};
+  return { uniform: f(SKINS.uniform, sk.uniform)[2], pattern: f(SKINS.pattern, sk.pattern)[2] || null, helmet: f(SKINS.helmet, sk.helmet)[2] };
+}

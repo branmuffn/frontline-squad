@@ -58,6 +58,12 @@ export class Builder {
       v.applyMatrix4(m); this.pos.push(v.x, v.y, v.z);
       v.fromBufferAttribute(n, i).applyMatrix3(nm).normalize(); this.nor.push(v.x, v.y, v.z);
       let cr = c.r, cg = c.g, cb = c.b;
+      if (this.camo && hex === this.camo.base) { // smooth 3-D blotches in rest space, so the pattern flows across parts
+        const P = this.pos, L = P.length, px = P[L - 3], py = P[L - 2], pz = P[L - 1];
+        const q = Math.sin(px * 11.3 + Math.sin(py * 7.1) * 2.1) + Math.sin(py * 9.7 + pz * 6.2) + Math.sin((px - pz) * 8.3 + py * 4.4);
+        const cc = q > 0.9 ? this.camo.cols[0] : q < -1.0 && this.camo.cols[1] ? this.camo.cols[1] : null;
+        if (cc) { cr = cc.r; cg = cc.g; cb = cc.b; }
+      }
       if (o.tint) { const h = Math.sin(i * 12.9898 + bone * 78.233) * 43758.5453; if (h - Math.floor(h) < o.tint[0]) { const t2 = lin(o.tint[1]); cr = t2.r; cg = t2.g; cb = t2.b; } }
       this.col.push(cr * k, cg * k, cb * k);
       this.si.push(bone, 0, 0, 0); this.sw.push(1, 0, 0, 0);
@@ -81,6 +87,7 @@ export class Builder {
 // opts: uniform, accent, helmet, skin, noHelmet, style ('soldier' | 'zombie' | 'infected')
 function buildBody(o, hi) {
   const b = new Builder(), RS = hi ? 12 : 6, CS = hi ? 3 : 1;
+  if (o.pattern && o.pattern.length) b.camo = { base: o.uniform, cols: o.pattern.map(lin) }; // multiplayer skins: two-tone blotch camo on the uniform
   const zombie = o.style === 'zombie', infected = o.style === 'infected', human = !zombie && !infected;
   const uni = o.uniform, acc = o.accent, skin = o.skin ?? (zombie ? 0x7f8a66 : infected ? 0x9db38a : 0xb08c70);
   const gear = 0x262c2e, boot = 0x2a2520, glove = 0x2e2c27, helm = o.helmet ?? 0x34403d;
@@ -157,7 +164,7 @@ function buildBody(o, hi) {
 
 const cache = new Map();
 function bodyGeometry(o) {
-  const key = [o.uniform, o.accent, o.helmet, o.skin, !!o.noHelmet, o.style || 'soldier'].join('|');
+  const key = [o.uniform, o.accent, o.helmet, o.skin, !!o.noHelmet, o.style || 'soldier', (o.pattern || []).join(',')].join('|');
   let c = cache.get(key);
   if (!c) { c = { hi: buildBody(o, true), lo: buildBody(o, false) }; cache.set(key, c); }
   return c;

@@ -162,8 +162,10 @@ export function toggleBoard(open) { boardOpen = open; $('board').classList.toggl
 
 function drawBoard() {
   const m = G.match, P = G.player; if (!m) return;
-  const row = (u) => `<tr class="${u === P ? 'me' : ''}${u.alive ? '' : ' dead'}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists}</td><td>${u.streak}</td></tr>`;
-  const head = '<tr><th>Operator</th><th>K</th><th>D</th><th>A</th><th>Streak</th></tr>';
+  const net = !!(G.mp && G.mp.live), human = (u) => u.isPlayer || u.remote || u.human;
+  const ping = (u) => net ? `<td class="ping">${human(u) ? (u.ping != null ? u.ping + ' ms' : '–') : 'BOT'}</td>` : '';
+  const row = (u) => `<tr class="${u === P ? 'me' : ''}${u.alive ? '' : ' dead'}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists || 0}</td><td>${u.streak || 0}</td>${ping(u)}</tr>`;
+  const head = `<tr><th>Operator</th><th>K</th><th>D</th><th>A</th><th>Streak</th>${net ? '<th>Ping</th>' : ''}</tr>`;
   let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.mode === 'zombies' ? `Round ${m.round}` : m.def.time ? fmtTime(m.time) : ''}</span></div>`;
   if (m.teams) {
     for (const t of [0, 1]) {
@@ -173,6 +175,7 @@ function drawBoard() {
     }
   } else if (m.mode === 'survival' || m.mode === 'zombies') {
     html += `<div class="board-surv"><div><small>Points</small><b>${m.points.toLocaleString()}</b></div><div><small>Kills</small><b>${P.kills}</b></div><div><small>Lives</small><b>${m.lives}</b></div><div><small>Hostiles left</small><b>${m.remaining ?? 0}</b></div></div>`;
+    if (net) html += `<table>${head}${G.units.filter(human).sort((a, b) => b.kills - a.kills).map(row).join('')}</table>`;
   } else html += `<table>${head}${standings().map(row).join('')}</table>`;
   $('board').innerHTML = html;
 }

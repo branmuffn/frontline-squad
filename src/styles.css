@@ -477,3 +477,16 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .bot-pop { position: fixed; right: clamp(12px, 3vw, 40px); bottom: clamp(12px, 4vh, 40px); width: min(380px, 38vw); z-index: 5; padding: 14px 16px; background: rgba(16, 20, 23, 0.94); border: 1px solid var(--line); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
 .bot-pop .chips button { padding: 4px 8px; font-size: 14px; }
 .pop-x { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: #aab; font-size: 22px; line-height: 1; cursor: pointer; }
+.chatlog { position: absolute; left: 16px; bottom: 150px; width: min(380px, 40vw); display: flex; flex-direction: column; gap: 2px; font-size: 16px; opacity: 0; transition: opacity 0.6s; pointer-events: none; text-shadow: 0 1px 2px #000; }
+.chatlog.fresh { opacity: 1; transition: opacity 0.15s; } .chatlog.typing { background: rgba(10, 13, 15, 0.55); padding: 4px 6px; }
+.cl b { color: #ffe2a6; margin-right: 4px; } .cl.ally b { color: #8fc2ff; } .cl.me b { color: #b9e8a2; } .cl.sys { color: #c9cfd3; font-style: italic; }
+.chat-in { position: absolute; left: 16px; bottom: 118px; width: min(380px, 40vw); pointer-events: auto; padding: 6px 8px; font: inherit; font-size: 16px; background: rgba(10, 13, 15, 0.85); color: #eee; border: 1px solid var(--brass, #c9a25a); }
+.mp-players { max-height: 26vh; overflow-y: auto; } .mp-players li { padding: 3px 8px; margin-bottom: 4px; align-items: center; gap: 8px; }
+.mp-players li .rdy { color: #9fd08a; font-style: normal; } .mp-players li .nrdy { color: #f0b35a; font-style: normal; }
+.mp-players .kick { margin-left: 6px; padding: 1px 7px; font-size: 13px; border: 1px solid var(--line); background: none; color: #f0a090; cursor: pointer; }
+.mp-chat { margin-top: 8px; } .mp-chatlog { height: clamp(48px, 11vh, 110px); overflow-y: auto; border: 1px solid var(--line); padding: 4px 8px; font-size: 15px; background: rgba(10, 13, 15, 0.4); }
+.mp-chat input { width: 100%; margin-top: 4px; }
+.mp-look { grid-column: 1 / -1; } .mp-look-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; } .mp-look-row select { min-width: 0; }
+.mp-look .flabel i { color: var(--ink-faint); font-style: normal; text-transform: none; }
+[data-state=choose] .mp-chat, [data-state=choose] .mp-look, [data-state=choose] #mpReady, [data-state=host] #mpReady { display: none; }
+#mpReady.on { background: #5b7f45; }

@@ -173,7 +173,7 @@
 <section id="mp" class="screen hidden">
   <div class="panel wide fit" data-state="choose">
     <h2>Multiplayer</h2>
-    <p class="lede small">Two players, peer to peer, no account: co-op Survival or Zombies, or Free for All and Team Deathmatch head to head (bots fill the rest).</p>
+    <p class="lede small">Up to 8 players, peer to peer, no account, works across different networks: co-op Survival or Zombies, or Free for All and Team Deathmatch (bots optional).</p>
     <div class="pbody">
       <div class="mp-top">
         <label class="field mp-name"><span class="flabel">Your name</span><input id="mpName" maxlength="14" autocomplete="off" spellcheck="false"></label>
@@ -186,7 +186,8 @@
       <p id="mpStatus" class="mp-status"></p>
       <div class="mp-room">
         <div class="cols">
-          <div class="mp-left"><div class="mp-plist"><span class="flabel">Players</span><ul id="mpPlayers" class="mp-players"></ul></div>
+          <div class="mp-left"><div class="mp-plist"><span class="flabel">Players <i id="mpCount8"></i></span><ul id="mpPlayers" class="mp-players scroll-list"></ul></div>
+            <div class="mp-chat"><div id="mpChatLog" class="mp-chatlog scroll-list"></div><input id="mpChatIn" maxlength="120" placeholder="Chat with the room… (Enter sends)" autocomplete="off" spellcheck="false"></div>
             <details class="mp-manual">
         <summary>No room code? Use copy-paste codes (also works offline on a LAN)</summary>
         <div class="cols">
@@ -210,11 +211,12 @@
             <label class="field" id="mpCountRow"><span class="flabel" id="mpCountLabel">Bots</span><select id="mpCount"></select></label>
             <div class="field mp-botrules"><span class="flabel">Bots may</span><div id="mpBotRules" class="chips small"></div></div>
             <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
+            <div class="mp-look field"><span class="flabel">Your look <i>(more unlock as you rank up)</i></span><div class="mp-look-row"><select id="mpSkinU" title="Uniform"></select><select id="mpSkinP" title="Pattern"></select><select id="mpSkinH" title="Helmet"></select></div></div>
           </div>
         </div>
       </div>
     </div>
-    <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>
+    <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpReady" class="btn-primary" type="button">Ready</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>
   </div>
 </section>
 
@@ -256,6 +258,7 @@
   <div class="hud-tl"><canvas id="radar" width="180" height="180"></canvas><div id="mapLabel"></div></div>
   <div id="score" class="score"></div>
   <div id="killfeed"></div>
+  <div id="chatlog" class="chatlog"></div><input id="chatIn" class="chat-in hidden" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Say something… (Enter sends, Esc cancels)">
   <div id="crosshair"><i class="l"></i><i class="r"></i><i class="t"></i><i class="b"></i><b></b></div>
   <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
   <div id="arcs"></div>

@@ -1,3 +1,5 @@
+import * as chat from './ui/chat.js';
+import { initChat } from './ui/chat.js';
 import { G, isLive } from './core/state.js';
 import { loadProfile, saveProfile } from './core/storage.js';
 import { $ } from './core/util.js';
@@ -49,6 +51,7 @@ function boot() {
     onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
+  initChat();
   initLobby({ showScreen });
   net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); } });
   initMenus({
@@ -186,6 +189,7 @@ function onKeyDown(code, e) {
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
+  if (G.mp && G.mp.live && isLive() && !G.netPaused && !e.repeat && (code === 'Enter' || matches('chat', code))) { e.preventDefault(); clearInput(); toggleBoard(false); chat.open(net.sendChat); return; }
   if (!isLive() || G.netPaused) return;
   if (matches('scoreboard', code)) toggleBoard(true);
   if (e.repeat) return;

@@ -5,12 +5,12 @@ const KEY = 'frontline_solo_ops_v2';
 export const DEFAULT_KEYS = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', crouch: 'KeyC', crouchAlt: 'ControlLeft',
   sprint: 'ShiftLeft', reload: 'KeyR', primary: 'Digit1', secondary: 'Digit2', melee: 'Digit3', slot4: 'Digit4', grenade: 'KeyG',
-  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab', armory: 'KeyB', interact: 'KeyE', zoom: 'KeyZ', prone: 'KeyX',
+  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab', armory: 'KeyB', interact: 'KeyE', zoom: 'KeyZ', prone: 'KeyX', chat: 'KeyT',
 };
 export const KEY_LABELS = {
   forward: 'Move forward', back: 'Move back', left: 'Strafe left', right: 'Strafe right', jump: 'Jump', crouch: 'Crouch',
   crouchAlt: 'Crouch (alternate)', sprint: 'Sprint', reload: 'Reload', primary: 'Weapon 1', secondary: 'Weapon 2',
-  melee: 'Weapon 3 (knife unless Overkill)', slot4: 'Knife in Overkill (weapon 4)', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon (Q)', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon', zoom: 'Scope zoom (4× / 8×)', prone: 'Go prone / get up',
+  melee: 'Weapon 3 (knife unless Overkill)', slot4: 'Knife in Overkill (weapon 4)', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon (Q)', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon', zoom: 'Scope zoom (4× / 8×)', prone: 'Go prone / get up', chat: 'Chat (multiplayer; Enter also works)',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -31,6 +31,7 @@ function freshProfile() {
     ],
     lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', skill: 0, bots: { grenades: true, streaks: true, snipers: true, vehicles: true, loot: true, tactics: true }, vehicles: false, counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
       sandbox: { teams: false, infAmmo: true, god: false, lowGrav: false, oneShot: false, headshots: false, knife: false, passive: false } },
+    skin: { uniform: 'olive', pattern: 'plain', helmet: 'olive' },
     hints: {},
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0 },

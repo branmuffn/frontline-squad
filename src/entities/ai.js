@@ -36,7 +36,7 @@ const laserGeo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('p
 export function createBot(o) {
   const type = TYPES[o.type || 'soldier'];
   const u = makeUnit({ name: o.name, team: o.team, maxHealth: type.hp, health: type.hp });
-  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin, style: o.type === 'zombie' ? 'zombie' : o.type === 'infected' ? 'infected' : 'soldier' });
+  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin, pattern: o.pattern, style: o.type === 'zombie' ? 'zombie' : o.type === 'infected' ? 'infected' : 'soldier' });
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {

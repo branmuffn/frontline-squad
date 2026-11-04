@@ -40,6 +40,8 @@ await H.evaluate(() => window.__frontline.net.hostOpen('ALPHA', { mode: 'surviva
 const invite = await H.evaluate(() => window.__frontline.net.hostInvite());
 const reply = await C.evaluate((c) => window.__frontline.net.joinManual('BRAVO', c), invite);
 await H.evaluate((r) => window.__frontline.net.hostAccept(r), reply);
+for (let i = 0; i < 60 && !(await C.evaluate(() => !!window.__frontline.net.session.link)); i++) await sleep(50);
+await C.evaluate(() => window.__frontline.net.setReady(true));
 for (let i = 0; i < 100 && !(await H.evaluate(() => window.__frontline.net.canStart())); i++) await sleep(50);
 if (SHOT) { await H.evaluate(() => window.__frontline.openMp()); await H.evaluate(() => { document.getElementById('mpRoomCode').textContent = 'K7QXP'; }); await H.screenshot({ path: '/tmp/mp_lobby.png' }); }
 check('connect', await H.evaluate(() => window.__frontline.net.canStart()), { invite: invite.length, reply: reply.length });

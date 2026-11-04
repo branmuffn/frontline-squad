@@ -1,7 +1,9 @@
 // Multiplayer lobby screen: host / join by room code, manual copy-paste codes, match settings, start.
 import { G } from '../core/state.js';
 import { $ } from '../core/util.js';
-import { MODES, DIFFICULTY, skillBand, skillFor, BOT_RULES, botRulesDefault } from '../core/config.js';
+import { MODES, DIFFICULTY, skillBand, skillFor, BOT_RULES, botRulesDefault, SKINS, RANKS } from '../core/config.js';
+import { rankFor } from '../game/progression.js';
+import { saveProfile } from '../core/storage.js';
 import { MAPS } from '../world/maps/index.js';
 import * as net from './net.js';
 
@@ -50,7 +52,19 @@ function readSettings() {
   net.hostCfg({ ...c });
   updateStart();
 }
-function updateStart() { $('mpStart').disabled = !net.canStart(); }
+function updateStart() {
+  const ok = net.canStart(), wait = net.session.host ? net.notReady() : [];
+  $('mpStart').disabled = !ok;
+  $('mpStart').textContent = wait.length ? `Waiting: ${wait.length} not ready` : 'Start match';
+  $('mpReady').classList.toggle('on', !!net.session.ready); $('mpReady').textContent = net.session.ready ? 'Ready ✓' : 'Ready';
+}
+// skins: uniform / pattern / helmet, locked until the listed rank
+function fillSkins() {
+  const sk = G.profile.skin, rank = rankFor(G.profile.xp);
+  const fill = (id, list, cur, word) => { $(id).innerHTML = list.map((e) => { const lock = e[e.length - 1] > rank; return `<option value="${e[0]}"${e[0] === cur ? ' selected' : ''}${lock ? ' disabled' : ''}>${esc(e[1])}${lock ? ' · ' + esc(RANKS[e[e.length - 1]].name) : ''}</option>`; }).join(''); $(id).title = word; };
+  for (const [k, list] of [['uniform', SKINS.uniform], ['pattern', SKINS.pattern], ['helmet', SKINS.helmet]]) { const e = list.find((x) => x[0] === sk[k]); if (!e || e[e.length - 1] > rank) sk[k] = list[0][0]; }
+  fill('mpSkinU', SKINS.uniform, sk.uniform, 'Uniform'); fill('mpSkinP', SKINS.pattern, sk.pattern, 'Pattern'); fill('mpSkinH', SKINS.helmet, sk.helmet, 'Helmet');
+}
 const status = (msg, kind = '') => { const s = $('mpStatus'); s.textContent = msg || ''; s.className = 'mp-status ' + kind; };
 function copy(text, btn) {
   const done = () => { if (btn) { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1200); } };
@@ -66,8 +80,10 @@ export function initLobby(cb) {
     status,
     code: (c) => { $('mpRoomCode').textContent = c; },
     players: (list, cfg) => {
-      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : ''}</span><i>${p.host ? '' : p.ping ? p.ping + ' ms' : ''}</i></li>`).join('')
-        + (list.length < net.MAX_PLAYERS ? '<li><i>Waiting for a player…</i></li>' : '');
+      const host = net.session.host, route = { relay: 'relayed', lan: 'LAN', direct: 'direct' };
+      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
+        + (list.length < net.MAX_PLAYERS ? `<li><i>Waiting for players… (up to ${net.MAX_PLAYERS})</i></li>` : '');
+      $('mpCount8').textContent = `${list.length}/${net.MAX_PLAYERS}`;
       if (cfg && net.session.client) fillSettings(cfg);
       updateStart();
     },
@@ -76,13 +92,17 @@ export function initLobby(cb) {
   $('mpName').addEventListener('change', name);
   $('mpHost').addEventListener('click', () => {
     setState('host'); $('mpRoomCode').textContent = '·····';
-    fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }); updateStart();
+    fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }, G.profile.skin); updateStart();
   });
+  $('mpPlayers').addEventListener('click', (e) => { const b = e.target.closest('.kick'); if (b) net.kick(+b.dataset.slot); });
+  $('mpReady').addEventListener('click', () => { net.setReady(!net.session.ready); updateStart(); });
+  $('mpChatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { net.sendChat(e.target.value); e.target.value = ''; } });
+  for (const [id, k] of [['mpSkinU', 'uniform'], ['mpSkinP', 'pattern'], ['mpSkinH', 'helmet']]) $(id).addEventListener('change', (e) => { G.profile.skin[k] = e.target.value; saveProfile(); net.setSkin(G.profile.skin); });
   const join = () => {
     const code = $('mpCode').value.trim().toUpperCase();
     if (code.length < 5) { status('Type the 5-letter room code from the host.', 'warn'); return; }
     setState('client');
-    net.joinCode(name(), code).catch(() => setState('choose'));
+    net.joinCode(name(), code, G.profile.skin).catch(() => setState('choose'));
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
@@ -90,7 +110,7 @@ export function initLobby(cb) {
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {
-    if (!net.session.host) { setState('host'); fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }); }
+    if (!net.session.host) { setState('host'); fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }, G.profile.skin); }
     status('Making invite code…');
     try { const c = await net.hostInvite(); $('mpInviteOut').value = c; copy(c); status('Invite copied. Send it to your friend, then paste their reply below.', 'ok'); }
     catch (e) { status(e.message, 'warn'); }
@@ -105,12 +125,12 @@ export function initLobby(cb) {
     try {
       status('Making reply code…');
       setState('client');
-      const c = await net.joinManual(name(), $('mpInviteIn').value);
+      const c = await net.joinManual(name(), $('mpInviteIn').value, G.profile.skin);
       $('mpReplyOut').value = c; copy(c);
       status('Reply copied. Send it to the host; you connect as soon as they paste it.', 'ok');
     } catch (e) { status(e.message, 'warn'); setState('choose'); }
   });
-  $('mpStart').addEventListener('click', () => { if (!net.hostStart()) status('Wait for a player to join first.', 'warn'); });
+  $('mpStart').addEventListener('click', () => { if (!net.hostStart()) status(net.notReady().length ? 'Waiting for everyone to press Ready.' : 'Wait for a player to join first.', 'warn'); });
   $('mpBack').addEventListener('click', () => {
     if (panel().dataset.state === 'choose') { show('menu'); return; }
     net.leave(); setState('choose'); status('');
@@ -127,7 +147,7 @@ export function initLobby(cb) {
 }
 
 export function openMp(msg) {
-  $('mpName').value = saved.name;
+  $('mpName').value = saved.name; fillSkins();
   const s = net.session;
   setState(s.host ? 'host' : s.client ? 'client' : 'choose');
   if (s.host) fillSettings(saved.cfg);

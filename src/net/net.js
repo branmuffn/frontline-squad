@@ -3,7 +3,7 @@
 // render everyone else from 30 Hz snapshots interpolated 100 ms in the past. Explosives, pickups, doors, barrels,
 // drops, deaths and respawns are decided by the host.
 import { G } from '../core/state.js';
-import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS } from '../core/config.js';
+import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook } from '../core/config.js';
 import { makeUnit, isEnemy, noise, damage } from '../entities/units.js';
 import { makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
 import { spawnPlayer, onPlayerDeath, refillAmmo, pickupAmmo, takeWeapon, pickupSlot } from '../entities/player.js';
@@ -18,9 +18,10 @@ import { play } from '../engine/audio.js';
 import * as hud from '../ui/hud.js';
 import { awardKill } from '../game/progression.js';
 import { pickSpawn, endMatch } from '../game/match.js';
-import { hostRoom, joinRoom, manualInvite, manualReply } from './transport.js';
+import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transport.js';
+import * as chat from '../ui/chat.js';
 
-export const MAX_PLAYERS = 2;          // 7c raises this
+export const MAX_PLAYERS = 8;
 export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm'];
 export const COOP = (mode) => mode === 'survival' || mode === 'zombies';
 const VER = 1, SNAP_DT = 1 / 30, INTERP = 0.1;
@@ -30,7 +31,7 @@ const clean = (s) => String(s || '').replace(/[^\w \-.]/g, '').trim().slice(0, 1
 
 // session; G.mp points at it while a multiplayer lobby or match is open
 const S = {
-  role: null, host: false, client: false, live: false, name: 'PLAYER', cb: null, ui: null,
+  role: null, host: false, client: false, live: false, name: 'PLAYER', cb: null, ui: null, skin: null, ready: false, pgAcc: 0,
   remotes: [], nextSlot: 1, room: null, invite: null, link: null, cfg: null,
   // client side
   uid: 0, proxies: new Map(), offset: 0, haveClock: false, sendAcc: 0, pingAcc: 0, rtt: 0, seq: 0, mstr: '',
@@ -45,14 +46,17 @@ export function init(cb) { S.cb = cb; }
 export function setUi(ui) { S.ui = ui; }
 function status(msg, kind) { if (S.ui) S.ui.status(msg, kind); }
 function players() {
-  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true }].concat(S.remotes.map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000) })));
+  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true, ready: true }].concat(S.remotes.filter((r) => r.hello).map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000), ready: r.ready, route: r.route })));
   return S.lobby || [];
 }
 function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobbyCfg); }
 
-export function hostOpen(name, cfg) {
+const cleanSkin = (k) => { k = k || {}; const pick = (list, id) => (list.find((e) => e[0] === id) || list[0])[0]; return { uniform: pick(SKINS.uniform, k.uniform), pattern: pick(SKINS.pattern, k.pattern), helmet: pick(SKINS.helmet, k.helmet) }; };
+export function setSkin(k) { S.skin = cleanSkin(k); if (S.client && S.link) S.link.send({ t: 'skin', k: S.skin }); }
+export function hostOpen(name, cfg, skin) {
   leave(true);
-  Object.assign(S, { role: 'host', host: true, client: false, name: clean(name), cfg, remotes: [], nextSlot: 1 });
+  Object.assign(S, { role: 'host', host: true, client: false, name: clean(name), cfg, remotes: [], nextSlot: 1, skin: cleanSkin(skin || S.skin) });
+  chat.reset();
   G.mp = S;
   status('Opening room…');
   if ((window.__NET_OPTS || {}).nobroker) { status('Room ready (manual codes only).', 'ok'); refreshUi(); return; }
@@ -76,7 +80,8 @@ export async function hostAccept(reply) {
 }
 function addLink(L) {
   if (!S.host || S.remotes.length >= MAX_PLAYERS - 1 || S.live) { L.send({ t: 'full', why: S.live ? 'Match in progress. Try again when it ends.' : 'Room is full.' }); setTimeout(() => L.close(), 500); return; }
-  const r = { link: L, slot: S.nextSlot++, name: 'PLAYER', rtt: 0, buf: [], unit: null, seq: 0, hello: false };
+  const r = { link: L, slot: S.nextSlot++, name: 'PLAYER', rtt: 0, buf: [], unit: null, seq: 0, hello: false, ready: false, skin: cleanSkin(null), route: '', chatT: -9, team: 0 };
+  if (L.pc) setTimeout(() => routeOf(L.pc).then((k) => { r.route = k; refreshUi(); bcast({ t: 'lobby', p: players(), cfg: S.cfg }); }), 1500);
   S.remotes.push(r);
   L.onmsg = (m) => hostMsg(r, m);
   L.onclose = () => dropRemote(r, 'left');
@@ -86,7 +91,7 @@ function dropRemote(r, why) {
   const i = S.remotes.indexOf(r); if (i < 0) return;
   S.remotes.splice(i, 1); clearInterval(r.pingT);
   if (r.unit) removeRemoteUnit(r);
-  hud.notice(`${r.name} ${why === 'left' ? 'left the game' : 'was disconnected'}`);
+  if (r.hello) { const msg = `${r.name} ${why === 'left' ? 'left the game' : why === 'kicked' ? 'was removed by the host' : 'was disconnected'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }); }
   status(`${r.name} left.`, 'warn');
   bcast({ t: 'lobby', p: players(), cfg: S.cfg });
   refreshUi();
@@ -94,17 +99,32 @@ function dropRemote(r, why) {
 function bcast(o, except) { for (const r of S.remotes) if (r !== except && r.hello) r.link.send(o); }
 function bcastFast(o) { for (const r of S.remotes) if (r.hello) r.link.sendFast(o); }
 
-export async function joinCode(name, code) {
+// host: remove a player from the room
+export function kick(slot) {
+  const r = S.remotes.find((x) => x.slot === slot); if (!S.host || !r) return;
+  r.link.send({ t: 'kicked' }); dropRemote(r, 'kicked'); setTimeout(() => r.link.close(), 300);
+}
+// joiner: ready toggle (the host starts once everyone is ready)
+export function setReady(on) { S.ready = !!on; if (S.client && S.link) S.link.send({ t: 'ready', on: S.ready }); }
+// chat: everyone sees every message (lobby and in match). The host relays and rate-limits.
+export function sendChat(text) {
+  const m = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!m || !S.role) return;
+  if (S.host) {
+    const k = /^\/kick\s+(.+)$/i.exec(m); if (k) { const r = S.remotes.find((x) => x.name === clean(k[1])); if (r) kick(r.slot); else chat.add('', 'No player called ' + clean(k[1]), 'sys'); return; }
+    chat.add(S.name, m, 'me'); bcast({ t: 'chat', n: S.name, m, tm: G.player ? G.player.team : 0 });
+  } else if (S.link) { chat.add(S.name, m, 'me'); S.link.send({ t: 'chat', m }); }
+}
+export async function joinCode(name, code, skin) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name) });
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false }); chat.reset();
   G.mp = S;
   status('Joining room ' + code.toUpperCase() + '…');
   const p = joinRoom(code); S.pending = p;
   try { attach(await p); } catch (e) { status(e.message, 'warn'); throw e; }
 }
-export async function joinManual(name, invite) {
+export async function joinManual(name, invite, skin) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name) });
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false }); chat.reset();
   G.mp = S;
   const r = await manualReply(invite); S.reply = r;
   r.link.then(attach).catch((e) => status(e.message, 'warn'));
@@ -115,7 +135,7 @@ function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
   L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
-  L.send({ t: 'hello', name: S.name, v: VER });
+  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin });
   status('Connected. Waiting for the host to start…', 'ok');
 }
 
@@ -135,19 +155,24 @@ export function leave(silent) {
 }
 
 // ---------------- match start / end ----------------
-export const canStart = () => S.host && S.remotes.some((r) => r.hello) && MP_MODES.includes(S.cfg.mode);
-export function teamFor(slot, mode, cfg = S.cfg) {
-  if (COOP(mode)) return 0;
-  if (mode === 'tdm') return cfg.sameTeam ? 0 : slot % 2;
-  return 100 + slot; // FFA: everyone is their own team
+const joined = () => S.remotes.filter((r) => r.hello);
+export const notReady = () => joined().filter((r) => !r.ready).map((r) => r.name);
+export const canStart = () => S.host && joined().length > 0 && !notReady().length && MP_MODES.includes(S.cfg.mode);
+// teams are dealt when the match starts: TDM alternates by join order (host first), so sides stay even
+function dealTeams(mode) {
+  joined().sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) ? 0 : mode === 'tdm' ? (S.cfg.sameTeam ? 0 : (i + 1) % 2) : 100 + r.slot; });
 }
-export function lookFor(team, slot, mode) {
-  if (mode === 'tdm' || COOP(mode)) return team === 0 ? { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 } : { uniform: 0x3a3f44, accent: TEAMS[1].hex, helmet: 0x26292b };
-  return { uniform: UNIFORMS[(slot + 3) % UNIFORMS.length], accent: ACCENTS[(slot + 2) % ACCENTS.length], helmet: 0x3b4034 };
+export function lookFor(team, slot, mode, skin) {
+  const k = skin ? skinLook(skin) : null;
+  if (mode === 'tdm') { const t = team === 0 ? { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 } : { uniform: 0x3a3f44, accent: TEAMS[1].hex, helmet: 0x26292b }; if (k) t.helmet = k.helmet; return t; }
+  if (COOP(mode)) return k ? { ...k, accent: TEAMS[0].hex } : { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 };
+  const base = { uniform: UNIFORMS[(slot + 3) % UNIFORMS.length], accent: ACCENTS[(slot + 2) % ACCENTS.length], helmet: 0x3b4034 };
+  return k ? { ...k, accent: base.accent } : base;
 }
 export function hostStart() {
   if (!canStart()) return false;
   const cfg = { ...S.cfg };
+  dealTeams(cfg.mode);
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
@@ -156,12 +181,12 @@ export function hostStart() {
 }
 const spawnOf = (u) => ({ x: u.x, y: u.y, z: u.z, yaw: u.yaw });
 // called by startMatch on the host: one unit per connected player (bots count is adjusted by match.js)
-export function remoteTeams(mode) { return S.remotes.filter((r) => r.hello).map((r) => teamFor(r.slot, mode)); }
+export function remoteTeams() { return joined().map((r) => r.team); }
 export function makeRemoteUnits(mode) {
   const out = [];
   for (const r of S.remotes) {
     if (!r.hello) continue;
-    const team = teamFor(r.slot, mode), look = lookFor(team, r.slot, mode);
+    const team = r.team, look = lookFor(team, r.slot, mode, r.skin);
     const u = makeUnit({ name: r.name, team, remote: true, human: true, maxHealth: 100, health: 100 });
     u.look = look; u.weapon = 'm4'; u.rec = r;
     u.soldier = makeSoldier({ ...look, weapon: 'm4', style: 'soldier' }); u.soldier.root.visible = false;
@@ -238,13 +263,21 @@ function hostMsg(r, m) {
   switch (m.t) {
     case 'hello':
       if (m.v !== VER) { r.link.send({ t: 'full', why: 'Version mismatch: both players need the same game file.' }); setTimeout(() => r.link.close(), 500); return; }
-      r.name = clean(m.name); r.hello = true;
+      r.name = clean(m.name); r.hello = true; r.skin = cleanSkin(m.k);
+      { let n = 2; const base = r.name; while ([S.name, ...S.remotes.filter((x) => x !== r && x.hello).map((x) => x.name)].includes(r.name)) r.name = (base.slice(0, 12) + n++); }
       r.link.send({ t: 'welcome', slot: r.slot });
       status(`${r.name} joined.`, 'ok'); play('pickup');
       bcast({ t: 'lobby', p: players(), cfg: S.cfg }); refreshUi(); return;
     case 'pi': r.link.send({ t: 'po', c: m.c }); return;
     case 'po': r.rtt = r.rtt ? r.rtt * 0.7 + (now() - m.c) * 0.3 : now() - m.c; return;
     case 'bye': dropRemote(r, 'left'); return;
+    case 'ready': r.ready = !!m.on; bcast({ t: 'lobby', p: players(), cfg: S.cfg }); refreshUi(); return;
+    case 'skin': r.skin = cleanSkin(m.k); return;
+    case 'chat': {
+      const t = now(); if (t - r.chatT < 0.4) return; r.chatT = t;
+      const msg = String(m.m || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!msg) return;
+      chat.add(r.name, msg, u && G.player && u.team === G.player.team && G.match && G.match.teams ? 'ally' : ''); bcast({ t: 'chat', n: r.name, m: msg, tm: u ? u.team : 0 }, r); return;
+    }
     case 'quit': if (u) { removeRemoteUnit(r); hud.notice(`${r.name} left the match`); } return;
   }
   if (!S.live || !u) return;
@@ -278,6 +311,8 @@ function clientMsg(m) {
   switch (m.t) {
     case 'welcome': S.slot = m.slot; return;
     case 'full': status(m.why, 'warn'); return;
+    case 'kicked': status('The host removed you from the room.', 'warn'); { const was = S.live; S.live = false; leave(true); if (was) S.cb.abort('The host removed you from the room.'); else refreshUi(); } return;
+    case 'chat': chat.add(m.n, m.m, m.k === 'sys' ? 'sys' : G.match && G.match.teams && G.player && m.tm === G.player.team ? 'ally' : ''); return;
     case 'lobby': S.lobby = m.p; S.lobbyCfg = m.cfg; refreshUi(); return;
     case 'pi': S.link.send({ t: 'po', c: m.c }); return;
     case 'po': S.rtt = S.rtt ? S.rtt * 0.7 + (now() - m.c) * 0.3 : now() - m.c; return;
@@ -289,6 +324,7 @@ function clientMsg(m) {
   switch (m.t) {
     case 'sn': onSnap(m); break;
     case 'ro': syncRoster(m.u); break;
+    case 'pg': for (const [id, ms] of m.p) { const u = id === S.uid ? G.player : S.proxies.get(id); if (u) u.ping = ms; } if (G.player) G.player.ping = Math.round(S.rtt * 1000); break;
     case 'spawn': clientSpawn(m); break;
     case 'kill': onKillEv(m); break;
     case 'hurt': {
@@ -403,6 +439,12 @@ function hostUpdate(dt) {
     animateSoldier(u.soldier, u, dt);
   }
   sendRoster(false);
+  S.pgAcc += dt;
+  if (S.pgAcc > 1) { // pings for the scoreboard
+    S.pgAcc = 0; const p = [[G.player.id, 0]]; G.player.ping = 0;
+    for (const r of S.remotes) if (r.unit) { r.unit.ping = Math.round(r.rtt * 1000); p.push([r.unit.id, r.unit.ping]); }
+    bcast({ t: 'pg', p });
+  }
   S.snapAcc += dt;
   if (S.snapAcc >= SNAP_DT) { S.snapAcc = Math.min(S.snapAcc - SNAP_DT, SNAP_DT); sendSnap(); }
 }
@@ -410,7 +452,7 @@ function sendRoster(force) {
   const key = G.units.map((u) => u.id).join(',');
   if (!force && key === S.rosterKey) return;
   S.rosterKey = key;
-  bcast({ t: 'ro', u: G.units.map((u) => ({ id: u.id, n: u.isPlayer ? S.name : u.name, tm: u.team, l: u.isPlayer ? lookFor(u.team, 0, G.match.mode) : u.look || {}, w: wOf(u), hp: u.maxHealth, hu: u.isPlayer || u.remote ? 1 : 0 })) });
+  bcast({ t: 'ro', u: G.units.map((u) => ({ id: u.id, n: u.isPlayer ? S.name : u.name, tm: u.team, l: u.isPlayer ? lookFor(u.team, 0, G.match.mode, S.skin) : u.look || {}, w: wOf(u), hp: u.maxHealth, hu: u.isPlayer || u.remote ? 1 : 0 })) });
 }
 function sendSnap() {
   const us = [];
@@ -536,5 +578,5 @@ function clientUpdate(dt) {
   S.pingAcc += dt;
   if (S.pingAcc > 1) { S.pingAcc = 0; S.link.send({ t: 'pi', c: now() }); }
 }
-export const pingMs = () => Math.round((S.host ? (S.remotes[0] ? S.remotes[0].rtt : 0) : S.rtt) * 1000);
+export const pingMs = () => Math.round((S.host ? Math.max(0, ...S.remotes.map((r) => r.rtt)) : S.rtt) * 1000);
 Object.assign(S, { remoteTeams, makeRemoteUnits, spawnRemote, hostEnded });
