@@ -40,7 +40,7 @@ export function buildPickups() {
 export function clearPickups() { for (const p of pickups) G.scene.remove(p.g); pickups.length = 0; }
 export function resetPickups() {
   if (built !== G.world.id) buildPickups();
-  const off = !!(G.match && G.match.hook && G.match.hook.noPickups); // Zombies uses these spots for buy stations
+  const off = !!(G.match && ((G.match.hook && G.match.hook.noPickups) || !G.match.pickupsOn)); // Zombies uses these spots for buy stations; lobby toggle
   for (const p of pickups) { p.available = !off; p.g.visible = !off; p.respawnAt = off ? Infinity : 0; }
 }
 

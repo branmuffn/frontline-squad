@@ -111,12 +111,13 @@ export function kick(slot) {
 // joiner: ready toggle (the host starts once everyone is ready)
 export function setReady(on) { S.ready = !!on; if (S.client && S.link) S.link.send({ t: 'ready', on: S.ready }); }
 // chat: everyone sees every message (lobby and in match). The host relays and rate-limits.
-export function sendChat(text) {
+export function sendChat(text, team) {
   const m = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!m || !S.role) return;
   if (S.host) {
     const k = /^\/kick\s+(.+)$/i.exec(m); if (k) { const r = S.remotes.find((x) => x.name === clean(k[1])); if (r) kick(r.slot); else chat.add('', 'No player called ' + clean(k[1]), 'sys'); return; }
-    chat.add(S.name, m, 'me'); bcast({ t: 'chat', n: S.name, m, tm: G.player ? G.player.team : 0 });
-  } else if (S.link) { chat.add(S.name, m, 'me'); S.link.send({ t: 'chat', m }); }
+    const tm = G.player ? G.player.team : 0;
+    chat.add(S.name, m, 'me', !!team); for (const r of S.remotes) if (r.hello && (!team || (r.unit && r.unit.team === tm))) r.link.send({ t: 'chat', n: S.name, m, tm, tt: team ? 1 : 0 });
+  } else if (S.link) { chat.add(S.name, m, 'me', !!team); S.link.send({ t: 'chat', m, tt: team ? 1 : 0 }); }
 }
 export async function joinCode(name, code, skin) {
   leave(true);
@@ -280,7 +281,10 @@ function hostMsg(r, m) {
     case 'chat': {
       const t = now(); if (t - r.chatT < 0.4) return; r.chatT = t;
       const msg = String(m.m || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!msg) return;
-      chat.add(r.name, msg, u && G.player && u.team === G.player.team && G.match && G.match.teams ? 'ally' : ''); bcast({ t: 'chat', n: r.name, m: msg, tm: u ? u.team : 0 }, r); return;
+      const team = !!m.tt && !!u && !!(G.match && G.match.teams), mate = u && G.player && u.team === G.player.team && G.match && G.match.teams;
+      if (!team || mate) chat.add(r.name, msg, mate ? 'ally' : '', team);
+      for (const o of S.remotes) if (o !== r && o.hello && (!team || (o.unit && o.unit.team === u.team))) o.link.send({ t: 'chat', n: r.name, m: msg, tm: u ? u.team : 0, tt: team ? 1 : 0 });
+      return;
     }
     case 'quit': if (u) { removeRemoteUnit(r); hud.notice(`${r.name} left the match`); } return;
   }
@@ -319,7 +323,7 @@ function clientMsg(m) {
     case 'welcome': S.slot = m.slot; return;
     case 'full': status(m.why, 'warn'); return;
     case 'kicked': status('The host removed you from the room.', 'warn'); { const was = S.live; S.live = false; leave(true); if (was) S.cb.abort('The host removed you from the room.'); else refreshUi(); } return;
-    case 'chat': chat.add(m.n, m.m, m.k === 'sys' ? 'sys' : G.match && G.match.teams && G.player && m.tm === G.player.team ? 'ally' : ''); return;
+    case 'chat': chat.add(m.n, m.m, m.k === 'sys' ? 'sys' : G.match && G.match.teams && G.player && m.tm === G.player.team ? 'ally' : '', !!m.tt); return;
     case 'lobby': S.lobby = m.p; S.lobbyCfg = m.cfg; refreshUi(); return;
     case 'pi': S.link.send({ t: 'po', c: m.c }); return;
     case 'po': S.rtt = S.rtt ? S.rtt * 0.7 + (now() - m.c) * 0.3 : now() - m.c; return;

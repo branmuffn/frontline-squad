@@ -43,7 +43,7 @@ export function startMatch() {
   bannerQ = []; bannerUntil = 0; deathInfo = null;
   $('death').classList.add('hidden'); $('board').classList.add('hidden'); boardOpen = false;
   $('banner').classList.remove('show');
-  const lim = m.mode === 'sandbox' ? 'Sandbox · press B for weapons' : m.mode === 'tdm' ? `First team to ${m.scoreLimit}` : m.mode === 'ffa' ? `First to ${m.scoreLimit}` : 'Three lives';
+  const lim = m.mode === 'sandbox' ? 'Sandbox · press B for weapons' : m.mode === 'tdm' ? (isFinite(m.scoreLimit) ? `First team to ${m.scoreLimit}` : 'No score limit') : m.mode === 'ffa' ? (isFinite(m.scoreLimit) ? `First to ${m.scoreLimit}` : 'No kill limit') : 'Three lives';
   $('score').className = 'score mode-' + (m.teams ? 'tdm' : m.mode === 'survival' ? 'survival' : 'ffa');
   $('score').innerHTML = m.mode === 'survival' || m.mode === 'zombies'
     ? `<div class="sc-side"><small id="scAn">Points</small><b id="scA">0</b></div><div class="sc-mid"><small>${m.mode === 'zombies' ? 'Round' : 'Wave'}</small><b id="scT">1</b></div><div class="sc-side"><small id="scBn">Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`
@@ -166,7 +166,7 @@ function drawBoard() {
   const ping = (u) => net ? `<td class="ping">${human(u) ? (u.ping != null ? u.ping + ' ms' : '–') : 'BOT'}</td>` : '';
   const row = (u) => `<tr class="${u === P ? 'me' : ''}${u.alive ? '' : ' dead'}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists || 0}</td><td>${u.streak || 0}</td>${ping(u)}</tr>`;
   const head = `<tr><th>Operator</th><th>K</th><th>D</th><th>A</th><th>Streak</th>${net ? '<th>Ping</th>' : ''}</tr>`;
-  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.mode === 'zombies' ? `Round ${m.round}` : m.def.time ? fmtTime(m.time) : ''}</span></div>`;
+  let html = `<div class="board-head"><b>${esc(MODES[m.mode].name)}</b><span>${esc(G.world.def.name)}</span><span>${m.mode === 'survival' ? `Wave ${m.wave}` : m.mode === 'zombies' ? `Round ${m.round}` : m.timed ? fmtTime(m.time) : ''}</span></div>`;
   if (m.teams) {
     for (const t of [0, 1]) {
       const us = G.units.filter((u) => u.team === t).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
@@ -210,7 +210,7 @@ export function updateHud(dt) {
   const m = G.match, P = G.player; if (!m || !P) return;
   const rt = G.realTime;
   if (m.mode === 'zombies') { if (rt > (cache.svT || 0)) { cache.svT = rt + 0.4; scoreChanged(); } }
-  else if (m.mode !== 'survival') set('scT', 'text', m.def.time ? fmtTime(m.time) : '∞');
+  else if (m.mode !== 'survival') set('scT', 'text', m.timed ? fmtTime(m.time) : '∞');
   else { set('scB', 'text', String(m.remaining ?? 0)); if (m.waveState === 'intermission') set('scSub', 'html', `Next wave in ${Math.ceil(m.nextWaveAt - G.now)} · Lives ${m.lives}`); else if (rt > (cache.svT || 0)) { cache.svT = rt + 0.5; scoreChanged(); } }
   if (m.mode !== 'survival' && m.mode !== 'zombies') { if (rt > (cache.scT2 || 0)) { cache.scT2 = rt + 0.4; scoreChanged(); } }
   // timers

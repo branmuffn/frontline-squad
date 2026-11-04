@@ -3,11 +3,11 @@ import { esc } from '../core/util.js';
 let lines = [], fade = 0, sendFn = null;
 const el = (id) => document.getElementById(id);
 export function reset() { lines = []; render(); }
-export function add(name, msg, kind = '') {
-  lines.push({ name, msg, kind }); if (lines.length > 60) lines.shift();
+export function add(name, msg, kind = '', team = false) {
+  lines.push({ name, msg, kind, team }); if (lines.length > 60) lines.shift();
   render(true);
 }
-const line = (l) => l.name ? `<div class="cl ${l.kind}"><b>${esc(l.name)}</b> ${esc(l.msg)}</div>` : `<div class="cl sys">${esc(l.msg)}</div>`;
+const line = (l) => l.name ? `<div class="cl ${l.kind}">${l.team ? '<i>[Team]</i> ' : ''}<b>${esc(l.name)}</b> ${esc(l.msg)}</div>` : `<div class="cl sys">${esc(l.msg)}</div>`;
 function render(fresh) {
   const lg = el('mpChatLog'); if (lg) { lg.innerHTML = lines.slice(-40).map(line).join(''); lg.scrollTop = lg.scrollHeight; }
   const h = el('chatlog'); if (!h) return;
@@ -16,9 +16,9 @@ function render(fresh) {
 }
 export const isOpen = () => { const i = el('chatIn'); return !!(i && !i.classList.contains('hidden')); };
 // in-match input; send(text) is net.sendChat
-export function open(send) {
+export function open(send, team) {
   const i = el('chatIn'); if (!i) return;
-  sendFn = send; i.value = ''; i.classList.remove('hidden'); el('chatlog').classList.add('fresh', 'typing'); i.focus();
+  sendFn = send; i.value = ''; i.placeholder = team ? 'Team only… (Enter sends, Esc cancels)' : 'Everyone… (Enter sends, Esc cancels)'; i.classList.toggle('team', !!team); i.classList.remove('hidden'); el('chatlog').classList.add('fresh', 'typing'); i.focus();
 }
 function close() { const i = el('chatIn'); i.classList.add('hidden'); i.blur(); el('chatlog').classList.remove('typing'); clearTimeout(fade); fade = setTimeout(() => el('chatlog').classList.remove('fresh'), 6000); }
 export function initChat() {

@@ -1,7 +1,7 @@
 // Multiplayer lobby screen: host / join by room code, manual copy-paste codes, match settings, start.
 import { G } from '../core/state.js';
 import { $ } from '../core/util.js';
-import { MODES, DIFFICULTY, skillBand, skillFor, BOT_RULES, botRulesDefault, SKINS, RANKS } from '../core/config.js';
+import { LIMITS, limitDefault, MODES, DIFFICULTY, skillBand, skillFor, BOT_RULES, botRulesDefault, SKINS, RANKS } from '../core/config.js';
 import { rankFor } from '../game/progression.js';
 import { saveProfile } from '../core/storage.js';
 import { MAPS } from '../world/maps/index.js';
@@ -39,7 +39,16 @@ function fillSettings(cfg) {
     $('mpCountLabel').textContent = cfg.mode === 'tdm' ? 'Team size (bots fill)' : 'Bots';
     $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
   }
-  const host = !!net.session.host;
+  const host = !!net.session.host, noBots = !!counts && +cfg.count === 0 && !net.COOP(cfg.mode);
+  $('mpDiff').closest('.field').classList.toggle('hidden', noBots); $('mpBotRules').closest('.field').classList.toggle('hidden', noBots);
+  const LM = LIMITS[cfg.mode] || {}; cfg.limits = cfg.limits || {}; const cur = cfg.limits[cfg.mode] = cfg.limits[cfg.mode] || {};
+  for (const [k, id] of [['score', 'mpScore'], ['time', 'mpTime']]) {
+    $(id + 'Row').classList.toggle('hidden', !LM[k]); if (!LM[k]) continue;
+    if (!LM[k].includes(+cur[k])) cur[k] = limitDefault(cfg.mode, k);
+    $(id).innerHTML = LM[k].map((v) => opt(v, k === 'score' ? (v === -1 ? 'Auto' : v === 0 ? 'No limit' : String(v)) : (v === 0 ? 'No limit' : v + ' min'), v === +cur[k])).join('');
+  }
+  $('mpScoreLabel').textContent = cfg.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
+  $('mpPick').value = cfg.pickups === false ? '0' : '1';
   $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
   $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
@@ -49,7 +58,8 @@ function fillSettings(cfg) {
 function readSettings() {
   const c = saved.cfg;
   c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.difficulty = skillBand(c.skill);
-  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1';
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.pickups = $('mpPick').value === '1';
+  c.limits = c.limits || {}; c.limits[c.mode] = { score: +$('mpScore').value, time: +$('mpTime').value };
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
   net.hostCfg({ ...c });
@@ -78,6 +88,13 @@ const name = () => { saved.name = $('mpName').value.trim() || saved.name; persis
 
 export function initLobby(cb) {
   show = cb.showScreen;
+  $('openOperator').addEventListener('click', () => { fillSkins(); show('operator'); });
+  $('operatorDone').addEventListener('click', () => show('menu'));
+  // invite link: hosted copies open straight into the host's lobby (#join=CODE)
+  $('mpCopyLink').addEventListener('click', (e) => copy(location.href.split('#')[0] + '#join=' + $('mpRoomCode').textContent.trim(), e.target));
+  $('mpCopyLink').classList.toggle('hidden', !/^https?:/.test(location.protocol));
+  const jm = /#join=([A-Z0-9]{5})/i.exec(location.hash);
+  if (jm) setTimeout(() => { history.replaceState(null, '', location.href.split('#')[0]); openMp(); $('mpCode').value = jm[1].toUpperCase(); if (localStorage.getItem(KEY)) $('mpJoin').click(); else status('Type your name, then press Join.', 'ok'); }, 300);
   load();
   net.setUi({
     status,
@@ -109,7 +126,7 @@ export function initLobby(cb) {
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams', 'mpVeh']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {
@@ -150,7 +167,7 @@ export function initLobby(cb) {
 }
 
 export function openMp(msg) {
-  $('mpName').value = saved.name; fillSkins();
+  $('mpName').value = saved.name;
   const s = net.session;
   setState(s.host ? 'host' : s.client ? 'client' : 'choose');
   if (s.host) fillSettings(saved.cfg);

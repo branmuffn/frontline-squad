@@ -75,6 +75,15 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - Order: 7a 2-player co-op Zombies and Survival; 7b FFA and TDM with lag compensation; 7c up to 4–8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard. Voice: optional later (push-to-talk over WebRTC); Discord is fine.
 - Note: may not work inside the claude.ai artifact preview; must work in the downloaded HTML.
 
+## Rev 3 (approved; build in order 3a → 3f; defaults from the planning chat)
+- [x] 3a-1: weapon slots Standard (pickups replace the gun in hand; Two-gun removed) + Overkill; scope Hold/Toggle setting (toggle: 4x → 8x → off); "Use mouse lock again" in pause; health/ammo pickups toggle; match limits per mode (score/time incl. no limit) in SP Match rules card and MP lobby; bot settings hidden with No bots; Operator screen (look moved out of MP lobby); team chat (Y) vs all (T/Enter); invite links (#join=CODE) on hosted copies. tests/rev3a.mjs, mp3 team chat.
+- [ ] 3a-2: ladders (face + push to grab, units block, bots yield), Gorge rework (train ladder, boxcar roof hatch, ledges left with bushes + sloped/bumpy ground, slide zones right with lethal middle, metal zig-zag stairs right of the train, both walls), AK viewmodel artifact, helicopter targets (open doors, visible crew, tail-rotor weak spot, vehicle HP bar), game-ending replay for everyone, hosting guide (Netlify drag-and-drop) + site zip, frame-rate limit + auto resolution.
+- [ ] 3b loadout & gear (tabs, carousels, gun renders, live 3D operator incl. female operators, grenades: frag/flash/smoke/sticky, claymore, vest/belt perks, free for now)
+- [ ] 3c medals (no-scope, quickscope, 360, Nutcracker, wallbang, collateral...), pick-3 killstreaks with adjustable kill counts (host sets in MP), practice range
+- [ ] 3d netcode (binary snapshots, late join/rejoin, spectator, MP for Gun Game/CTF/Infection, host migration)
+- [ ] 3e modes & weapons (Domination, S&D, KotH; SCAR-H, Vector, crossbow; power weapons RPG/GL/rail gun; attachments)
+- [ ] 3f performance, maps & vehicles (batching, auto-res, snowbound radar base, harbour, night Atomic Acres, Kestrel flyer, ATV, map editor, A* worker)
+
 ## Next: roadmap
 See docs/ONE_PAGER.md "Roadmap" (17 suggestions: netcode, performance, content, reach). Ask the user which to build first.
 

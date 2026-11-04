@@ -1,7 +1,7 @@
 import { G } from '../core/state.js';
 import { loadoutGuns, SLOT_MODES, ALL_GUNS } from '../core/config.js';
 import { rankFor } from './progression.js';
-import { MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY, botSkill, skillBand, skillFor, botRulesDefault } from '../core/config.js';
+import { LIMITS, MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY, botSkill, skillBand, skillFor, botRulesDefault } from '../core/config.js';
 import { rand, randInt, pick, shuffle, chance } from '../core/util.js';
 import { clearInput, exitLock } from '../core/input.js';
 import { loadMap } from '../world/maps/index.js';
@@ -42,12 +42,14 @@ export function startMatch(cfg) {
   const skill = cfg.skill >= 1 ? +cfg.skill : skillFor(cfg.difficulty);
   G.match = {
     mode: cfg.mode, map: cfg.map, difficulty: skillBand(Math.round(skill)), skill, ai: botSkill(skill), bots: { ...botRulesDefault(), ...(cfg.bots || {}) }, count: cfg.count, def: mode,
-    time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
+    time: mode.time || 0, timed: !!mode.time, pickupsOn: cfg.pickups !== false, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
     rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
   };
-  const m = G.match;
+  const m = G.match, lim = (cfg.limits && cfg.limits[cfg.mode]) || {}, LM = LIMITS[cfg.mode] || {};
+  if (LM.time && lim.time != null && LM.time.includes(+lim.time)) { m.time = +lim.time * 60; m.timed = +lim.time > 0; }
+  if (LM.score && lim.score != null && LM.score.includes(+lim.score) && +lim.score >= 0) m.scoreLimit = +lim.score || Infinity; // 0 = no limit
   m.teams = cfg.mode === 'tdm' || !!mode.teamSize || !!(m.rules && m.rules.teams);
   const waves = cfg.mode === 'survival' || (m.hook && m.hook.waves);
   m.slots = effectiveSlots(cfg.mode);
@@ -246,7 +248,7 @@ export function updateMatch(dt) {
   }
   if (G.mp && G.mp.live && G.mp.client) { if (m.hook && m.hook.clientUpdate) m.hook.clientUpdate(dt); return; } // the host runs the rules
   m.elapsed += dt;
-  if (m.def.time) {
+  if (m.timed) {
     m.time -= dt;
     if (m.time <= 0) { m.time = 0; endMatch('time'); return; }
   } else if (m.mode === 'survival') updateSurvival();

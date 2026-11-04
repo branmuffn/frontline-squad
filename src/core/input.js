@@ -48,12 +48,12 @@ export function initInput(canvas, handlers) {
   canvas.addEventListener('mousedown', (e) => {
     if (!lookActive()) { handlers.onCanvasClick && handlers.onCanvasClick(); return; }
     if (e.button === 0) input.fire = true;
-    if (e.button === 2) input.aim = true;
+    if (e.button === 2) { if (input.aimToggle && handlers.onAimToggle) handlers.onAimToggle(); else input.aim = true; }
     handlers.onMouseDown(e.button);
   });
   document.addEventListener('mouseup', (e) => {
     if (e.button === 0) input.fire = false;
-    if (e.button === 2) input.aim = false;
+    if (e.button === 2 && !input.aimToggle) input.aim = false;
     handlers.onMouseUp && handlers.onMouseUp(e.button);
   });
   canvas.addEventListener('wheel', (e) => { if (lookActive()) { e.preventDefault(); handlers.onWheel(Math.sign(e.deltaY)); } }, { passive: false });

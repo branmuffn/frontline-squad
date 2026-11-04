@@ -82,7 +82,7 @@ const TIER = { usp: 1, deagle: 1.6, mp5: 2, m870: 2.2, spas12: 2.3, m4: 3, ak47:
 function lootSlot(u, id) {
   const b = u.brain, have = b.guns.indexOf(id);
   if (have >= 0) return -1;
-  if (G.match.slots === 'classic' || b.guns.length < 2) return WEAPONS[id].slot === 1 ? Math.min(1, b.guns.length - 1) : 0;
+  if (b.guns.length < 2) return 0;
   return Math.max(0, b.guns.indexOf(b.weapon));
 }
 function considerLoot(u, b) {

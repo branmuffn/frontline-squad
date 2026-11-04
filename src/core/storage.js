@@ -5,16 +5,16 @@ const KEY = 'frontline_solo_ops_v2';
 export const DEFAULT_KEYS = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', crouch: 'KeyC', crouchAlt: 'ControlLeft',
   sprint: 'ShiftLeft', reload: 'KeyR', primary: 'Digit1', secondary: 'Digit2', melee: 'Digit3', slot4: 'Digit4', grenade: 'KeyG',
-  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab', armory: 'KeyB', interact: 'KeyE', zoom: 'KeyZ', prone: 'KeyX', chat: 'KeyT',
+  streak: 'KeyF', swap: 'KeyQ', scoreboard: 'Tab', armory: 'KeyB', interact: 'KeyE', zoom: 'KeyZ', prone: 'KeyX', chat: 'KeyT', teamChat: 'KeyY',
 };
 export const KEY_LABELS = {
   forward: 'Move forward', back: 'Move back', left: 'Strafe left', right: 'Strafe right', jump: 'Jump', crouch: 'Crouch',
   crouchAlt: 'Crouch (alternate)', sprint: 'Sprint', reload: 'Reload', primary: 'Weapon 1', secondary: 'Weapon 2',
-  melee: 'Weapon 3 (knife unless Overkill)', slot4: 'Knife in Overkill (weapon 4)', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon (Q)', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon', zoom: 'Scope zoom (4× / 8×)', prone: 'Go prone / get up', chat: 'Chat (multiplayer; Enter also works)',
+  melee: 'Weapon 3 (knife unless Overkill)', slot4: 'Knife in Overkill (weapon 4)', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon (Q)', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon', zoom: 'Scope zoom (4× / 8×)', prone: 'Go prone / get up', chat: 'Chat to everyone (multiplayer; Enter also works)', teamChat: 'Chat to your team only (team modes)',
 };
 
 export const DEFAULT_SETTINGS = {
-  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true,
+  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true, scopeToggle: false,
   crosshair: '#eaf2e4', slots: 'classic', names: 'real', keys: { ...DEFAULT_KEYS },
 };
 
@@ -29,7 +29,7 @@ function freshProfile() {
       { primary: 'ak47', secondary: 'deagle', third: 'm870', camo: 'std' },
       { primary: 'l96', secondary: 'usp', third: 'mp5', camo: 'std' },
     ],
-    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', skill: 0, bots: { grenades: true, streaks: true, snipers: true, vehicles: true, loot: true, tactics: true }, vehicles: false, counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
+    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', skill: 0, bots: { grenades: true, streaks: true, snipers: true, vehicles: true, loot: true, tactics: true }, vehicles: false, pickups: true, limits: { ffa: { score: 20, time: 8 }, tdm: { score: -1, time: 10 }, ctf: { score: 3, time: 10 }, gungame: { time: 10 }, infection: { time: 5 }, sandbox: { time: 0 } }, counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
       sandbox: { teams: false, infAmmo: true, god: false, lowGrav: false, oneShot: false, headshots: false, knife: false, passive: false } },
     skin: { uniform: 'olive', pattern: 'plain', helmet: 'olive' },
     hints: {},

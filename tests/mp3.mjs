@@ -79,6 +79,12 @@ await ev(C2, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: '
 await run(10); await sleep(200);
 const hlog = await ev(H, () => document.getElementById('chatlog').textContent);
 check('hud chat', hlog.includes('gg'), hlog);
+if (mode === 'tdm') { // team chat from C1 (team 1) must not reach the host or C2 (team 0)
+  await ev(C1, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyY' })); const i = document.getElementById('chatIn'); i.value = 'secret'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+  await run(10); await sleep(200);
+  const seen = await Promise.all([H, C2, C1].map((p) => ev(p, () => document.getElementById('mpChatLog').textContent.includes('secret'))));
+  check('team chat private', !seen[0] && !seen[1] && seen[2], seen);
+}
 await run(secs * 60);
 // kick C2
 const slot2 = await ev(H, () => window.__frontline.net.session.remotes[1].slot);

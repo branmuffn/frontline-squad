@@ -1,7 +1,7 @@
 import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -11,7 +11,7 @@ import { badgeSVG } from './badges.js';
 import { setScene, stinger } from '../engine/music.js';
 import { codeName, keyName } from './hud.js';
 
-const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
+const SCREENS = ['menu', 'operator', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
 let cb = null, back = 'menu';
 
 export function showScreen(id) {
@@ -54,10 +54,11 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkillVis(); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
   $('modeDesc').textContent = MODES[L.mode].desc;
-  refreshSkill();
-  if (!$('botRulesBtn').dataset.on) { $('botRulesBtn').dataset.on = '1'; $('botRulesBtn').addEventListener('click', () => { $('botOpts').classList.toggle('hidden'); refreshBotOpts(); }); $('botOptsX').addEventListener('click', () => $('botOpts').classList.add('hidden')); }
+  refreshSkill(); refreshSkillVis();
+  if (!$('matchRulesBtn').dataset.on) { $('matchRulesBtn').dataset.on = '1'; $('matchRulesBtn').addEventListener('click', () => { $('matchOpts').classList.toggle('hidden'); $('botOpts').classList.add('hidden'); refreshMatchOpts(); }); $('matchOptsX').addEventListener('click', () => $('matchOpts').classList.add('hidden')); }
+  if (!$('botRulesBtn').dataset.on) { $('botRulesBtn').dataset.on = '1'; $('botRulesBtn').addEventListener('click', () => { $('botOpts').classList.toggle('hidden'); $('matchOpts').classList.add('hidden'); refreshBotOpts(); }); $('botOptsX').addEventListener('click', () => $('botOpts').classList.add('hidden')); }
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
     mapSel.dataset.built = '1';
@@ -89,6 +90,19 @@ function refreshBotOpts() {
   $('botRuleSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { L.bots[bt.dataset.k] = !L.bots[bt.dataset.k]; saveProfile(); refreshBotOpts(); }));
   if (!$('skillRange').dataset.on) { $('skillRange').dataset.on = '1'; $('skillRange').addEventListener('input', (e) => { L.skill = +e.target.value; L.difficulty = skillBand(L.skill); saveProfile(); refreshSkill(); refreshBest(); refreshBotOpts(); }); }
 }
+// Match rules card: score and time limits per mode (where they apply) and the health/ammo pickups toggle
+const limText = (k, v) => k === 'score' ? (v === -1 ? 'Auto' : v === 0 ? 'No limit' : String(v)) : (v === 0 ? 'No limit' : v + ' min');
+function refreshMatchOpts() {
+  const L = G.profile.lobby, box = $('matchOpts'); if (box.classList.contains('hidden')) return;
+  const LM = LIMITS[L.mode] || {}, cur = L.limits[L.mode] || {};
+  for (const k of ['score', 'time']) {
+    $(k + 'LimRow').classList.toggle('hidden', !LM[k]);
+    if (LM[k]) seg($(k + 'LimSel'), LM[k].map((v) => ({ v, html: limText(k, v) })), cur[k] ?? LM[k][0], (v) => { L.limits[L.mode][k] = Number(v); saveProfile(); });
+  }
+  $('scoreLimLabel').textContent = L.mode === 'ctf' ? 'Captures to win' : L.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
+  $('limNone').classList.toggle('hidden', !!(LM.score || LM.time));
+  seg($('pickupSel'), [{ v: 'on', html: 'On' }, { v: 'off', html: 'Off' }], L.pickups ? 'on' : 'off', (v) => { L.pickups = v === 'on'; saveProfile(); });
+}
 function refreshSandbox() {
   const L = G.profile.lobby;
   $('sandboxOpts').classList.toggle('hidden', L.mode !== 'sandbox');
@@ -96,13 +110,15 @@ function refreshSandbox() {
   $('ruleSel').innerHTML = SANDBOX_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${L.sandbox[k] ? 'on' : ''}" aria-pressed="${!!L.sandbox[k]}">${label}</button>`).join('');
   $('ruleSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { L.sandbox[bt.dataset.k] = !L.sandbox[bt.dataset.k]; saveProfile(); refreshSandbox(); }));
 }
+// no bots (Sandbox 0): bot skill and rules don't apply
+function refreshSkillVis() { const L = G.profile.lobby, none = MODES[L.mode].counts && (L.counts[L.mode] ?? MODES[L.mode].defaultCount) === 0; $('diffSel').parentElement.classList.toggle('hidden', !!none); if (none) $('botOpts').classList.add('hidden'); }
 function refreshCounts() {
   const L = G.profile.lobby, m = MODES[L.mode];
   $('countRow').classList.toggle('hidden', !m.counts);
   if (!m.counts) return;
   $('countLabel').textContent = m.countLabel;
   const cur = L.counts[L.mode] ?? m.defaultCount;
-  seg($('countSel'), m.counts.map((n) => ({ v: n, html: L.mode === 'tdm' || m.teamSize ? `${n}v${n}` : String(n) })), cur, (v) => { L.counts[L.mode] = Number(v); saveProfile(); });
+  seg($('countSel'), m.counts.map((n) => ({ v: n, html: L.mode === 'tdm' || m.teamSize ? `${n}v${n}` : String(n) })), cur, (v) => { L.counts[L.mode] = Number(v); saveProfile(); refreshSkillVis(); });
 }
 function refreshBest() {
   const pr = G.profile, L = pr.lobby;
@@ -214,9 +230,9 @@ function refreshSettings() {
   const s = G.profile.settings;
   $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
   for (const [k, , , , , f] of SLIDERS) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
-  $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate'], ['killcam', 'Kill cam after death']]
+  $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim (snipers: 4× → 8× → off)']]
     .map(([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
-  for (const k of ['invertY', 'shadows', 'showFps', 'killcam']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
+  for (const k of ['invertY', 'shadows', 'showFps', 'killcam', 'scopeToggle']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
   seg($('namesSel'), [{ v: 'real', html: 'Real' }, { v: 'fictional', html: 'Fictional' }], s.names, (v) => { s.names = v; cb.onSetting('names'); saveProfile(); });
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Medium' }, { v: 1, html: 'Full' }], s.renderScale, (v) => { s.renderScale = Number(v); cb.onSetting('renderScale'); saveProfile(); });
@@ -303,6 +319,7 @@ export function showPause(lockError) {
   $('restart').classList.toggle('hidden', !!G.mp);
   $('quit').textContent = G.mp ? (G.mp.host ? 'End match for everyone' : 'Leave match') : 'Quit to main menu';
   $('redeploy').classList.toggle('hidden', !canRedeploy);
+  $('relock').classList.toggle('hidden', !input.freeLook);
   const underFire = P && G.now - P.lastHitAt < 4;
   $('redeploy').disabled = underFire;
   $('redeploy').textContent = underFire ? 'Redeploy (not while under fire)' : G.match && G.match.mode === 'survival' ? 'Redeploy (costs a life)' : 'Redeploy';
@@ -320,7 +337,7 @@ export function initMenus(callbacks) {
   $('loadoutDone').addEventListener('click', () => {
     if (!prematch) { showScreen('menu'); return; }
     const L = G.profile.lobby;
-    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, bots: { ...L.bots }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
+    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, bots: { ...L.bots }, pickups: L.pickups, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
   // export / import profile
@@ -347,6 +364,7 @@ export function initMenus(callbacks) {
   $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'music', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });
   $('resume').addEventListener('click', () => cb.onResume());
   $('freeLook').addEventListener('click', () => cb.onFreeLook());
+  $('relock').addEventListener('click', () => { input.freeLook = false; cb.onResume(); });
   $('pauseSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'pause'); });
   $('pauseControls').addEventListener('click', () => open('controls', 'pause'));
   $('restart').addEventListener('click', () => cb.onRestart());

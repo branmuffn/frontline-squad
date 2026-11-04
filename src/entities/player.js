@@ -81,8 +81,8 @@ export function giveWeapons(list, select) {
 export function pickupSlot(id) {
   const have = P.weapons.indexOf(id);
   if (have >= 0) return have;
-  if ((G.match && G.match.slots) === 'classic') return WEAPONS[id].slot === 1 ? 1 : 0;
-  return WEAPONS[cur()].melee ? 0 : P.slot;
+  if (WEAPONS[cur()].melee) return WEAPONS[id].slot === 1 && P.weapons.length > 1 ? 1 : 0; // holding the knife: by gun type
+  return P.slot; // otherwise the gun in your hands is swapped (a rifle can sit in the sidearm slot)
 }
 function switchTo(slot) {
   if (slot < 0 || slot >= P.weapons.length) return;

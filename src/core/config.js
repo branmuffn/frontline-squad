@@ -176,8 +176,7 @@ export const ALL_GUNS = [...PRIMARIES, ...SECONDARIES];
 
 // Weapon slot rules (A6). Bots follow the same rule as the player.
 export const SLOT_MODES = {
-  classic: { name: 'Classic', guns: 2, desc: 'Primary, sidearm and knife. A pickup replaces the weapon of the same type.' },
-  two: { name: 'Two-Gun', guns: 2, desc: 'Any two guns and a knife. A pickup replaces the gun in your hands.' },
+  classic: { name: 'Standard', guns: 2, desc: 'Primary, sidearm and knife. A pickup replaces the gun in your hands, so a rifle plus a sniper is possible.' },
   overkill: { name: 'Overkill', guns: 3, desc: 'Any three guns and a knife (key 4). A pickup replaces the gun in your hands.', rank: 5 },
 };
 // Guns a loadout preset gives under a slot mode (always valid, never duplicated)
@@ -258,6 +257,14 @@ export function botSkill(n) {
 export const BOT_RULES = [['grenades', 'Grenades'], ['streaks', 'Killstreaks'], ['snipers', 'Sniper rifles'], ['vehicles', 'Vehicles'], ['loot', 'Pick up guns'], ['tactics', 'Flank & cover']];
 export const botRulesDefault = () => Object.fromEntries(BOT_RULES.map(([k]) => [k, true]));
 
+// Match limits players can choose (score: kills / team score / captures, 0 = no limit, -1 = auto; time: minutes, 0 = no limit)
+export const LIMITS = {
+  ffa: { score: [10, 15, 20, 30, 50, 0], time: [5, 8, 10, 15, 20, 0] },
+  tdm: { score: [-1, 25, 50, 75, 100, 0], time: [5, 10, 15, 20, 0] },
+  ctf: { score: [1, 3, 5, 0], time: [5, 10, 15, 20, 0] },
+  gungame: { time: [5, 10, 15, 0] }, infection: { time: [3, 5, 8, 10] }, sandbox: { time: [0, 5, 10, 15] },
+};
+export const limitDefault = (mode, k) => k === 'score' ? (mode === 'tdm' ? -1 : MODES[mode].scoreLimit || 0) : Math.round((MODES[mode].time || 0) / 60);
 export const MODES = {
   ffa: {
     id: 'ffa', name: 'FREE FOR ALL', desc: 'Everyone is a target. First to 20 eliminations wins.',

@@ -46,10 +46,11 @@ function boot() {
   initViewmodel();
   loadMap(G.profile.lobby.map);
   initHud();
-  applySetting('crosshair'); applySetting('showFps'); setNameStyle(G.profile.settings.names);
+  applySetting('crosshair'); applySetting('showFps'); applySetting('scopeToggle'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
     onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
+    onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
   initChat();
@@ -83,6 +84,7 @@ function applySetting(k) {
   if (k === 'music') setMusicVolume(s.music);
   if (k === 'shadows') setShadows(s.shadows);
   if (k === 'renderScale') resize();
+  if (k === 'scopeToggle') { input.aimToggle = !!s.scopeToggle; input.aim = false; }
   if (k === 'showFps') $('fps').classList.toggle('hidden', !s.showFps);
   if (k === 'crosshair') document.documentElement.style.setProperty('--ch', s.crosshair);
   if (k === 'fov' && !isLive()) { G.camera.fov = s.fov; G.camera.updateProjectionMatrix(); }
@@ -190,7 +192,7 @@ function onKeyDown(code, e) {
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
-  if (G.mp && G.mp.live && isLive() && !G.netPaused && !e.repeat && (code === 'Enter' || matches('chat', code))) { e.preventDefault(); clearInput(); toggleBoard(false); chat.open(net.sendChat); return; }
+  if (G.mp && G.mp.live && isLive() && !G.netPaused && !e.repeat && (code === 'Enter' || matches('chat', code) || matches('teamChat', code))) { e.preventDefault(); clearInput(); toggleBoard(false); const team = matches('teamChat', code) && !!(G.match && G.match.teams); chat.open((t) => net.sendChat(t, team), team); return; }
   if (!isLive() || G.netPaused) return;
   if (matches('scoreboard', code)) toggleBoard(true);
   if (e.repeat) return;

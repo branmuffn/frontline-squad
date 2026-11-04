@@ -161,7 +161,7 @@ const ctf = {
     if ((u.id % 3) === 0) return { x: mine.base.x + rand(-5, 5), y: mine.base.y, z: mine.base.z + rand(-5, 5) }; // defenders
     return { x: theirs.x, y: theirs.y, z: theirs.z };
   },
-  score() { const m = G.match; return { an: TEAMS[0].name, a: String(m.teamScores[0]), bn: TEAMS[1].name, b: String(m.teamScores[1]), sub: `First to ${m.scoreLimit} captures · ${flagLine()}` }; },
+  score() { const m = G.match; return { an: TEAMS[0].name, a: String(m.teamScores[0]), bn: TEAMS[1].name, b: String(m.teamScores[1]), sub: `${isFinite(m.scoreLimit) ? 'First to ' + m.scoreLimit : 'No limit on'} captures · ${flagLine()}` }; },
   radar(ctx) { for (const f of flags) { ctx.fillStyle = TEAMS[f.team].color; ctx.fillRect(f.x - 1.4, f.z - 1.4, 2.8, 2.8); } },
   result() {
     const [a, b] = G.match.teamScores, me = G.player.team;
