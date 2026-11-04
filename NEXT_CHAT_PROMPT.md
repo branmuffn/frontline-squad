@@ -1,5 +1,8 @@
 I'm continuing development of "Frontline: Solo Ops", a single-player browser FPS (Three.js r128) built over previous chats. The full project is attached as frontline-solo-ops-vite.zip: source (src/), PLAN.md (task list with every decision already made), README.md, scripts/build-standalone.mjs, the headless test harness (tests/), and git history (one commit per item).
 
+## Status (update this line each session)
+Round A, Round B (B1–B6), Phases 1–6 and extras X1 (prone) / X2 (train cars + doors) are DONE. Next: Phase 7 multiplayer, only after the user approves (decisions in PLAN.md). Architecture, status and build/output pipeline: docs/ARCHITECTURE.md. New tests since: hitbox, profile, fit, killcam, scope, lineup, vm, vehicles, heli, vehbots, doorways, prone, perf (see tests/README.md). Note: when publishing, copy the build to the artifact's container path (tests/ship.sh does this) and publish that path.
+
 ## Core working rules (most important)
 - I'm token-limited (5-hour session cap and a weekly cap). Be efficient: short replies (what changed, what was tested, what's next), brief reasoning, read files with targeted grep/sed instead of whole files, batch related edits into one python/sed call, don't re-read code you already know.
 - Still build high-quality work: test it, screenshot visual changes and review them before calling something done.
