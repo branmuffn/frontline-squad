@@ -23,6 +23,19 @@ export function makeUnit(o) {
 
 export const isEnemy = (a, b) => a !== b && a.team !== b.team;
 
+// Ladders are one body wide: someone on the ladder above (climbing up) or below (climbing down) blocks you.
+export function ladderBlocked(u, L, up) {
+  for (const o of G.units) {
+    if (o === u || !o.alive || !o.onLadder) continue;
+    const dx = o.x - L.x, dz = o.z - L.z, along = dx * L.nx + dz * L.nz, lat = Math.abs(dx * -L.nz + dz * L.nx);
+    if (along < -0.3 || along > 1.2 || lat > 0.8) continue;
+    const dy = o.y - u.y;
+    if (up ? dy > -0.2 && dy < 1.9 : dy < 0.2 && dy > -1.9) return true;
+  }
+  return false;
+}
+export const ladderBusy = (u, L) => ladderBlocked(u, L, true) || ladderBlocked(u, L, false) || G.units.some((o) => o !== u && o.alive && o.onLadder && Math.hypot(o.x - L.x, o.z - L.z) < 1.3);
+
 export function weaponLabel(src) { return WEAPONS[src] ? WEAPONS[src].name : SOURCE_NAMES[src] || String(src || '').toUpperCase(); }
 
 // info: { weapon, zone, headshot, sx, sz (source position), melee, explosive, noStreak, dist }

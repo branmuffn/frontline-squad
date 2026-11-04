@@ -6,7 +6,7 @@ import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/
 import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
-import { makeUnit, damage, applyFall, isEnemy, noise } from './units.js';
+import { makeUnit, damage, applyFall, isEnemy, noise, ladderBlocked, ladderBusy } from './units.js';
 import { drops, dropWeapon, removeDrop } from './worldprops.js';
 import { botUseStreaks } from './streaks.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun, restyleSoldier } from './soldier.js';
@@ -68,6 +68,11 @@ function climbLadder(u, b, dt) {
   const c = b.climb, L = c.L;
   u.onLadder = true; u.vy = 0; u.grounded = false; u.airPeak = u.y; b.vx = 0; b.vz = 0;
   u.x += (L.x + L.nx * 0.55 - u.x) * Math.min(1, dt * 8); u.z += (L.z + L.nz * 0.55 - u.z) * Math.min(1, dt * 8);
+  if (ladderBlocked(u, L, c.up)) { // someone in the way: wait a moment, then give way (climb back and re-plan)
+    c.blockedT = (c.blockedT || 0) + dt;
+    if (c.blockedT > 0.8) { c.up = !c.up; c.blockedT = 0; c.exit = c.up ? [L.x - L.nx * 0.5, L.maxY, L.z - L.nz * 0.5] : [L.x + L.nx * 0.55, L.minY, L.z + L.nz * 0.55]; c.until = G.now + 6; b.path = null; }
+    return;
+  }
   u.y += (c.up ? 3.4 : -3.4) * dt;
   const done = c.up ? u.y >= L.maxY - 0.03 : u.y <= L.minY;
   if (done || G.now > c.until) {
@@ -183,7 +188,10 @@ function followPath(u) {
     const nx = b.path[b.pathI + 1];
     if (p.ladder && nx && nx.ladder === p.ladder && Math.abs(nx[1] - p[1]) > 1) {
       // reached a ladder end with the other end next: climb it
-      if (d < 0.7) { b.climb = { L: p.ladder, up: nx[1] > p[1], exit: nx, until: G.now + 8 }; b.pathI += 2; return null; }
+      if (d < 0.7) {
+        if (ladderBusy(u, p.ladder) && (b.ladderWait = (b.ladderWait || 0) + 1 / 60) < 5) return null; // wait for the ladder to clear
+        b.ladderWait = 0; b.climb = { L: p.ladder, up: nx[1] > p[1], exit: nx, until: G.now + 8 }; b.pathI += 2; return null;
+      }
       return [(p[0] - u.x) / d, (p[2] - u.z) / d, d];
     }
     if (d < (b.pathI < b.path.length - 1 ? 1.0 : 0.6)) { b.pathI++; continue; }

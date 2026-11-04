@@ -4,6 +4,7 @@ import { PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js'
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
+import { ladderBlocked } from './units.js';
 import { playerVehicle, exitVehicle } from './vehicles.js';
 import { moveBody, updateVertical, canStand, canCrouch, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
@@ -348,14 +349,16 @@ export function updatePlayer(dt) {
     if (along > -0.1 && along < 0.8 && lat < 0.5 && P.y > L.minY - 0.15 && P.y < L.maxY - 0.02) { ladder = L; break; }
   }
   if (ladder && !frozen) {
-    P.airPeak = P.y;
     const facing = -Math.sin(P.yaw) * -ladder.nx + -Math.cos(P.yaw) * -ladder.nz;
     const up = f > 0 && facing > 0.2, dn = f < 0 || (f > 0 && facing < -0.2);
-    if (up || dn || !P.grounded) {
+    // only climb on purpose: face the ladder and push toward it, or step back onto it from the top; never by brushing past
+    const grab = P.onLadder || (f > 0 && facing > 0.55 && P.grounded) || (!P.grounded && P.vy <= 0.5 && f !== 0 && P.y > ladder.maxY - 1.6);
+    if (grab && (up || dn || P.onLadder)) {
+      P.airPeak = P.y;
       if (G.now - P.jumpRequest < 0.15) { P.vy = 3; P.x += ladder.nx * 0.5; P.z += ladder.nz * 0.5; P.jumpRequest = -10; }
       else {
         P.vx = 0; P.vz = 0; P.vy = 0; P.grounded = false; P.onLadder = true;
-        P.y += (up ? 3.4 : dn ? -3.4 : 0) * dt;
+        if (!(up && ladderBlocked(P, ladder, true)) && !(dn && ladderBlocked(P, ladder, false))) P.y += (up ? 3.4 : dn ? -3.4 : 0) * dt; // someone in the way: wait or let go
         P.x += (ladder.x + ladder.nx * 0.55 - P.x) * Math.min(1, dt * 8); P.z += (ladder.z + ladder.nz * 0.55 - P.z) * Math.min(1, dt * 8);
         if (P.y >= ladder.maxY - 0.03) { P.y = ladder.maxY; P.x -= ladder.nx * 1.05; P.z -= ladder.nz * 1.05; P.grounded = true; P.onLadder = false; }
         else if (P.y <= ladder.minY) { P.y = ladder.minY; P.grounded = true; P.onLadder = false; }

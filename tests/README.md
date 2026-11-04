@@ -33,6 +33,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `vehcrew.mjs` — shots to kill a jeep driver / helicopter pilot through the hull, frag hurts a crew, hull damage.
 - `mpveh.mjs` — vehicles in MP on Gorge: same vehicles, joiner boards via the host and drives (host follows), seats mirrored, exit, joiner hits hull + crew, wreck and respawn mirrored.
 - `rev3a.mjs` — match limits (no limit / custom), pickups toggle, Standard slots (rifle into the sidearm slot).
+- `ladder.mjs [map]` — no accidental grabs (brushing past, backing into it), deliberate climb, unit above blocks, bot gives way (maps with ladders).
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).
