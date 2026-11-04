@@ -15,8 +15,9 @@ performance.now=function(){return window.__t;}; window.__NET_OPTS={nostun:true,n
 const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-features=WebRtcHideLocalIpsWithMdns', '--allow-loopback-in-peer-connection'] });
 const html = fs.readFileSync(path.join(HERE, '../dist-standalone/frontline_solo_ops.html'), 'utf8');
 const errors = [];
-async function mk(tag) {
-  const page = await browser.newPage({ viewport: { width: 320, height: 240 } });
+const SHOT = !!process.env.SHOT;
+async function mk(tag, real) {
+  const page = await browser.newPage({ viewport: real ? { width: 640, height: 360 } : SHOT ? { width: 1024, height: 640 } : { width: 320, height: 240 } });
   page.on('request', (q) => { const u = q.url(); if (!u.startsWith('http://game.local/') && !u.startsWith('data:') && !u.startsWith('blob:')) errors.push(tag + ' EXTERNAL ' + u); });
   page.on('console', (m) => { if (m.type() === 'error') errors.push(tag + ' ' + m.text()); });
   page.on('pageerror', (e) => errors.push(tag + ' PAGEERR ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' | ')));
@@ -25,10 +26,11 @@ async function mk(tag) {
   await page.addInitScript(INIT);
   await page.goto('http://game.local/');
   await page.waitForFunction(() => window.__frontline, null, { timeout: 30000 });
-  await page.evaluate(() => { const r = window.__frontline.G.renderer; r.clear = () => {}; r.clearDepth = () => {}; r.render = (s, c) => { s.updateMatrixWorld(); if (c && !c.parent) c.updateMatrixWorld(); }; window.__frontline.input.freeLook = true; });
+  if (!real) await page.evaluate(() => { const r = window.__frontline.G.renderer; r.clear = () => {}; r.clearDepth = () => {}; r.render = (s, c) => { s.updateMatrixWorld(); if (c && !c.parent) c.updateMatrixWorld(); }; });
+  await page.evaluate(() => { window.__frontline.input.freeLook = true; });
   return page;
 }
-const H = await mk('HOST'), C = await mk('CLIENT');
+const H = await mk('HOST', false), C = await mk('CLIENT', SHOT);
 const out = {}, fail = [];
 const check = (name, ok, info) => { out[name] = ok ? 'ok' : 'FAIL ' + JSON.stringify(info); if (!ok) fail.push(name); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -39,10 +41,11 @@ const invite = await H.evaluate(() => window.__frontline.net.hostInvite());
 const reply = await C.evaluate((c) => window.__frontline.net.joinManual('BRAVO', c), invite);
 await H.evaluate((r) => window.__frontline.net.hostAccept(r), reply);
 for (let i = 0; i < 100 && !(await H.evaluate(() => window.__frontline.net.canStart())); i++) await sleep(50);
+if (SHOT) { await H.evaluate(() => window.__frontline.openMp()); await H.evaluate(() => { document.getElementById('mpRoomCode').textContent = 'K7QXP'; }); await H.screenshot({ path: '/tmp/mp_lobby.png' }); }
 check('connect', await H.evaluate(() => window.__frontline.net.canStart()), { invite: invite.length, reply: reply.length });
 await H.evaluate(([mode, map]) => { const n = window.__frontline.net; n.hostCfg({ mode, map, difficulty: 'normal', count: 5, sameTeam: false }); n.hostStart(); }, [mode, map]);
 for (let i = 0; i < 40 && (await C.evaluate(() => window.__frontline.G.state)) !== 'deploy'; i++) await sleep(50);
-await run(240); // deploy countdown
+await run(SHOT ? 200 : 240); // deploy countdown
 const st = async () => ({
   h: await H.evaluate(() => { const G = window.__frontline.G; const r = G.units.find((u) => u.remote); return { state: G.state, n: G.units.length, now: G.now, r: r && { id: r.id, x: r.x, z: r.z, alive: r.alive, hp: r.health, team: r.team, k: r.kills }, bots: G.bots.filter((b) => b.alive).map((b) => ({ id: b.id, x: b.x, y: b.y, z: b.z, hp: b.health, team: b.team })) }; }),
   c: await C.evaluate(() => { const G = window.__frontline.G, P = G.player, S = window.__frontline.net.session; return { state: G.state, n: G.units.length, now: G.now, P: { x: P.x, z: P.z, hp: P.health, alive: P.alive, team: P.team, k: P.kills, d: P.deaths }, prox: [...S.proxies.values()].map((u) => ({ id: u.hid, x: u.x, z: u.z, alive: u.alive, vis: u.soldier.root.visible })), match: [G.match.wave, G.match.points, G.match.lives, G.match.time] }; }),
@@ -61,6 +64,10 @@ check('remote follows', Math.hypot(s.h.r.x - s.c.P.x, s.h.r.z - s.c.P.z) < 0.4, 
 await run(60); s = await st();
 const errs = s.h.bots.map((b) => { const p = s.c.prox.find((q) => q.id === b.id); return p ? Math.hypot(p.x - b.x, p.z - b.z) : 99; });
 check('proxies track', errs.length > 0 && Math.max(...errs) < 1.5, errs.map((e) => e.toFixed(2)));
+if (SHOT) { // look at the host from the client
+  await C.evaluate(() => { const F = window.__frontline, G = F.G, P = G.player, h = [...F.net.session.proxies.values()].find((u) => u.human); P.x = h.x + 4; P.z = h.z + 4; P.yaw = Math.atan2(P.x - h.x, P.z - h.z); P.pitch = -0.1; G.renderer.setPixelRatio(1); });
+  await run(8); await C.screenshot({ path: '/tmp/mp_client.png' }); console.log('shots saved'); await browser.close(); process.exit(0);
+}
 // hit claim: client damages a bot proxy
 const target = s.h.bots[0];
 await C.evaluate((id) => { const F = window.__frontline, S = F.net.session, u = S.proxies.get(id); u.protectUntil = 0; F.damage(u, 30, F.G.player, { weapon: 'm4', zone: 'body', dist: 10 }); }, target.id);
@@ -89,6 +96,16 @@ const hg = await H.evaluate(() => window.__frontline.grenades.map((g) => g.owner
 check('grenade mirrored', hg.includes('remote'), hg);
 // match fields mirrored
 check('match mirrored', JSON.stringify(s.c.match.slice(0, 3)) === JSON.stringify(await H.evaluate(() => { const m = window.__frontline.G.match; return [m.wave, m.points, m.lives]; })), s.c.match);
+if (mode === 'zombies') { // client buys off a wall; the squad's shared points pay for it
+  await H.evaluate(() => { window.__frontline.G.match.points = 5000; });
+  await run(4);
+  const spot = await C.evaluate(() => { const G = window.__frontline.G, P = G.player, box = G.world.pickups.find((p) => p.type === 'health') || G.world.pickups[0]; const sp = G.world.pickups.find((p) => p !== box); P.x = sp.x + 0.5; P.y = sp.y; P.z = sp.z; return sp; });
+  await run(6);
+  await C.evaluate(() => window.__frontline.G.match.hook.interact());
+  await run(12);
+  const after = await C.evaluate(() => [window.__frontline.G.player.weapons.join(','), window.__frontline.G.match.points]);
+  check('zombies buy', after[1] < 5000 && after[0].split(',').length >= 3, after);
+}
 // play a while with bots
 await run(secs * 60); s = await st();
 check('still running', ['playing', 'dead', 'ended'].includes(s.c.state) && s.c.n === s.h.n, [s.c.state, s.h.n, s.c.n]);
