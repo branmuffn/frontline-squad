@@ -5,6 +5,54 @@ import { crate, railX, railZ } from './props.js';
 // joined by a steel railway bridge carrying a stalled freight train. Stone stairs and ladders
 // lead down to a lower canyon with a gravel road and a wadeable creek.
 const H = 8;
+// "r" runs along each canyon wall, positive = to your right when you face that wall from the canyon (west wall: -z, east wall: +z)
+const zOf = (sx, r) => sx * r, wallX = (sx, d) => sx * (20 - d); // d = metres out from the cliff face into the canyon
+const SLIDES = [], BUSHES = [], KEEP_OUT = [];
+for (const sx of [-1, 1]) {
+  for (const [r0, r1, run, brake] of [[13, 17, 8, true], [17, 24, 4, false], [24, 28.5, 8, true]]) {
+    const za = zOf(sx, r0), zb = zOf(sx, r1), xa = wallX(sx, 0), xb = wallX(sx, run);
+    SLIDES.push({ minX: Math.min(xa, xb), maxX: Math.max(xa, xb), minZ: Math.min(za, zb), maxZ: Math.max(za, zb), axis: 'x', from: sx < 0 ? H : 0, to: sx < 0 ? 0 : H, brake });
+  }
+  KEEP_OUT.push([Math.min(wallX(sx, 0), wallX(sx, 9.5)), Math.max(wallX(sx, 0), wallX(sx, 9.5)), Math.min(zOf(sx, 2.5), zOf(sx, 29)), Math.max(zOf(sx, 2.5), zOf(sx, 29))]);
+  KEEP_OUT.push([Math.min(wallX(sx, 0), wallX(sx, 4.5)), Math.max(wallX(sx, 0), wallX(sx, 4.5)), Math.min(zOf(sx, -3), zOf(sx, -28)), Math.max(zOf(sx, -3), zOf(sx, -28))]);
+  for (const [d, r, s] of [[5.5, -9, 0.8], [6.5, -13.5, 0.95], [5.2, -17, 0.75], [7.5, -20.5, 0.9], [5.8, -24.5, 0.85], [9.5, -15.5, 0.7], [10, -22.5, 0.8]]) BUSHES.push({ x: wallX(sx, d), z: zOf(sx, r), r: 1.15 * s, s });
+}
+const kept = (x, z) => !KEEP_OUT.some(([a, b, c, d]) => x > a - 1.5 && x < b + 1.5 && z > c - 1.5 && z < d + 1.5);
+
+// Right of the train: metal zig-zag stairs (three flights, two lanes), top landing level with the plateau.
+// Further right: slide chutes. Left of the train: staggered rock ledges (0.89 m drops: walk down, jump up).
+function cliffRoutes(b, sx) {
+  const lane = (d0, d1) => [Math.min(wallX(sx, d0), wallX(sx, d1)), Math.max(wallX(sx, d0), wallX(sx, d1))];
+  const IN = lane(0, 1.3), OUT = lane(1.3, 2.6), BOTH = lane(0, 2.6), rr = (a, c) => [Math.min(zOf(sx, a), zOf(sx, c)), Math.max(zOf(sx, a), zOf(sx, c))];
+  // one flight = a floating ramp (so flights stacked above each other stay walkable) with steel treads on top
+  const flight = (L, ra, rb, ya, yb) => {
+    const [z0, z1] = rr(ra, rb), first = zOf(sx, ra) === z0, y0 = first ? ya : yb, y1 = first ? yb : ya;
+    b.ramp(L[0], L[1], z0, z1, 'z', y0, y1, 'steel', Math.max(0, Math.min(ya, yb) - 0.3));
+    for (let i = 0; i < 10; i++) { const t = (i + 0.5) / 10; b.deco((L[0] + L[1]) / 2, y0 + (y1 - y0) * t - 0.02, z0 + (z1 - z0) * t, L[1] - L[0] - 0.1, 0.06, (z1 - z0) / 10 * 0.7, 'steelRust'); }
+  };
+  const third = H / 3;
+  flight(IN, 5, 10.5, 0, third); flight(OUT, 10.5, 5, third, 2 * third); flight(IN, 5, 10.5, 2 * third, H);
+  for (const [ra, rb, y] of [[10.5, 12.1, third], [3.4, 5, 2 * third], [10.5, 12.1, H]]) { const [z0, z1] = rr(ra, rb); b.solid((BOTH[0] + BOTH[1]) / 2, y - 0.14, (z0 + z1) / 2, 2.6, 0.14, z1 - z0, 'steel'); }
+  for (const [ra, y] of [[10.5, third], [3.4, 2 * third], [10.5, H]]) for (let k = 0; k < 4; k++) b.deco(wallX(sx, 2.55), y - 3.2 + k * 0.01, zOf(sx, ra + (ra > 6 ? 1.6 : 0) - k * 0.5), 0.08, 3.2, 0.08, 'steelRust'); // support posts
+  for (const y of [third, 2 * third, H]) { const [z0, z1] = rr(3.4, 12.1); b.deco(wallX(sx, 2.62), y + 0.95, (z0 + z1) / 2, 0.07, 0.06, z1 - z0, 'steelRust'); b.deco(wallX(sx, 2.62), y + 0.5, (z0 + z1) / 2, 0.05, 0.04, z1 - z0, 'steelRust'); for (let z = z0; z <= z1 + 0.01; z += (z1 - z0) / 6) b.deco(wallX(sx, 2.62), y, z, 0.05, 0.98, 0.05, 'steelRust'); } // outer rail: posts, mid and top bar
+  // slide chutes: loose scree (walk backwards to brake); the steep middle bulge can't be braked
+  for (const s of SLIDES.filter((q) => Math.sign(q.minX + q.maxX) === sx)) { const rp = b.ramp(s.minX, s.maxX, s.minZ, s.maxZ, 'x', s.from, s.to, s.brake ? 'gravel' : 'rockDark'); rp.slide = true; rp.brake = s.brake; }
+  // staggered ledges down to the left
+  for (let k = 0; k < 9; k++) {
+    const top = H - (k + 1) * 0.89, out = k % 2 ? 2.2 : 1.6, r = -4.5 - k * 2.2, [z0, z1] = rr(r, r - 2.4);
+    b.solid((wallX(sx, 0) + wallX(sx, out)) / 2, 0, (z0 + z1) / 2, out, Math.max(0.05, top), z1 - z0, k % 3 ? 'rock' : 'rockDark');
+  }
+  // berms with bushes on the canyon floor below the ledges: lie down behind them to hide
+  for (const [d0, d1, ra, rb, h] of [[4.2, 6.2, -7, -26, 0.75], [8.6, 10.8, -13, -25, 0.6]]) {
+    const xa = wallX(sx, d0), xm = wallX(sx, (d0 + d1) / 2), xb = wallX(sx, d1), [z0, z1] = rr(ra, rb);
+    b.ramp(Math.min(xa, xm), Math.max(xa, xm), z0, z1, 'x', xa < xm ? 0 : h, xa < xm ? h : 0, 'grass');
+    b.ramp(Math.min(xm, xb), Math.max(xm, xb), z0, z1, 'x', xm < xb ? h : 0, xm < xb ? 0 : h, 'grass');
+  }
+  for (const u of BUSHES.filter((q) => Math.sign(q.x) === sx)) for (let i = 0; i < 4; i++) { // waist-high clumps (~0.75 m): hide prone, still glimpsed
+    const a = i * 1.7 + u.x, s = u.s * (0.8 + 0.12 * i);
+    b.geom(new THREE.IcosahedronGeometry(0.62, 1), i % 2 ? 'pine' : 'grass', u.x + Math.cos(a) * 0.5 * u.s, 0.3 * s, u.z + Math.sin(a) * 0.5 * u.s, a, a * 1.3, 0, 1.15 * s, 0.75 * s, 1.05 * s);
+  }
+}
 
 function boulder(b, x, z, s, y0 = 0, seed = 1) {
   b.geom(new THREE.IcosahedronGeometry(1, 0), seed % 2 ? 'rock' : 'rockDark', x, y0 + 0.42 * s, z, seed * 0.7, seed * 1.3, seed * 0.4, s, 0.72 * s, 1.1 * s);
@@ -36,10 +84,12 @@ function boxcar(b, cx, open, hatch) {
       b.doors.push({ x: cx, y, z: sz * (W / 2 + 0.075), w: 1.95, h: 2.3, t: 0.07, slide: 1.75, open: true, mat: 'boxcar' }); // sliding door (E)
     }
     b.solid(cx - L / 2 + t / 2, y, 0, t, Ht, W, 'boxcar'); b.solid(cx + L / 2 - t / 2, y, 0, t, Ht, W, 'boxcar');
-    if (hatch) { // roof hatch: grenades can drop in
-      b.solid(cx - 2.25, y + Ht, 0, 3.5, 0.12, W, 'boxcar'); b.solid(cx + 2.25, y + Ht, 0, 3.5, 0.12, W, 'boxcar');
-      b.solid(cx, y + Ht, -1.0, 1.0, 0.12, 1.0, 'boxcar'); b.solid(cx, y + Ht, 1.0, 1.0, 0.12, 1.0, 'boxcar');
+    if (hatch) { // open roof hatch (1.5 m square): a well-aimed grenade drops inside
+      b.solid(cx - 2.375, y + Ht, 0, 3.25, 0.12, W, 'boxcar'); b.solid(cx + 2.375, y + Ht, 0, 3.25, 0.12, W, 'boxcar');
+      b.solid(cx, y + Ht, -1.125, 1.5, 0.12, 0.75, 'boxcar'); b.solid(cx, y + Ht, 1.125, 1.5, 0.12, 0.75, 'boxcar');
+      for (const s of [-1, 1]) { b.deco(cx + s * 0.8, y + Ht + 0.12, 0, 0.1, 0.1, 1.7, 'black'); b.deco(cx, y + Ht + 0.12, s * 0.8, 1.7, 0.1, 0.1, 'black'); }
     } else b.solid(cx, y + Ht, 0, L, 0.12, W, 'boxcar');
+    if (!hatch) b.deco(cx, y + Ht + 0.12, 0, L - 0.4, 0.06, 0.5, 'woodDark'); // roof walk
     crate(b, cx - 2.6, 0.6, 1.1, 1.0, y); crate(b, cx + 2.8, -0.7, 1.0, 0.9, y);
   }
   for (let i = -3.5; i <= 3.5; i += 1) for (const sz of [-1, 1]) b.deco(cx + i, y, sz * (W / 2 + 0.04), 0.09, Ht, 0.04, 'steelRust');
@@ -47,12 +97,11 @@ function boxcar(b, cx, open, hatch) {
     b.deco(cx, y + 0.05, sz * (W / 2 + 0.05), L, 0.12, 0.05, 'steelRust'); b.deco(cx, y + Ht - 0.15, sz * (W / 2 + 0.05), L, 0.12, 0.05, 'steelRust');
     for (const dx of [-2.4, 2.4]) b.geom(new THREE.BoxGeometry(0.07, 3.4, 0.04), 'steelRust', cx + dx, y + Ht / 2, sz * (W / 2 + 0.06), 0, 0, dx > 0 ? 0.62 : -0.62);
   }
-  b.deco(cx, y + Ht + 0.12, 0, L - 0.4, 0.06, 0.5, 'woodDark'); // roof walk
 }
 
-function ladderVis(b, x, z, y0, y1, alongZ) {
-  for (const o of [-0.25, 0.25]) b.deco(x + (alongZ ? 0 : o), y0, z + (alongZ ? o : 0), 0.06, y1 - y0 + 1.0, 0.06, 'steelRust');
-  for (let y = y0 + 0.3; y < y1 + 0.9; y += 0.32) b.deco(x, y, z, alongZ ? 0.05 : 0.5, 0.04, alongZ ? 0.5 : 0.05, 'steelRust');
+function ladderVis(b, x, z, y0, y1, alongZ, top = 0.9) {
+  for (const o of [-0.25, 0.25]) b.deco(x + (alongZ ? 0 : o), y0, z + (alongZ ? o : 0), 0.06, y1 - y0 + top, 0.06, 'steelRust');
+  for (let y = y0 + 0.3; y < y1 + Math.min(0.9, top) - 0.05; y += 0.32) b.deco(x, y, z, alongZ ? 0.05 : 0.5, 0.04, alongZ ? 0.5 : 0.05, 'steelRust');
 }
 
 export default {
@@ -70,6 +119,9 @@ export default {
     { type: 'jeep', pts: [[-6.5, 19], [-6.5, -7]] },
     { type: 'heli', alt: H + 13, pts: [[-42, -18], [0, -22], [42, -18], [42, 18], [0, 22], [-42, 18]] },
   ],
+  // cliff descents (per wall, mirrored): right of the train metal zig-zag stairs, then slide chutes (two braking
+  // chutes with a lethal steep bulge between), left of the train staggered rock ledges with bushes and berms below
+  slides: SLIDES, bushes: BUSHES,
   ground: 'grass', groundMat: 'grass',
   sky: [0x6c95bd, 0xd3dde0, 0x7d8a7a],
   fog: { color: 0xb9c6c9, density: 0.0068 },
@@ -87,6 +139,11 @@ export default {
     for (const cx of [-4.5, 4.5]) { p.push([cx, 1.8, H + 0.45]); p.push([cx, -1.8, H + 0.45]); }
     for (let x = -16; x <= 16; x += 1.5) p.push([x, 0, 5.0]); // catwalk under the bridge (ladder access)
     p.push([6.6, 1.3, 5.0]);
+    for (const sx of [-1, 1]) { // zig-zag stairs: flights, landings and the step onto the plateau (bots climb back up here)
+      const t = H / 3, pt = (d, r, y) => p.push([wallX(sx, d), zOf(sx, r), y]);
+      for (let r = 5.6; r < 10.5; r += 1.4) { const k = (r - 5) / 5.5; pt(0.65, r, t * k); pt(1.95, r, t * (2 - k)); pt(0.65, r, t * (2 + k)); }
+      pt(1.3, 11.3, t); pt(1.3, 4.2, 2 * t); pt(1.3, 11.3, H); pt(-1.2, 11.3, H); pt(2.2, 4.4, 0);
+    }
     return p;
   })(),
   ladders: [
@@ -96,7 +153,7 @@ export default {
   ],
   spawns: {
     ffa: [[-50, -20, H], [-50, 20, H], [-42, -8, H], [-55, 8, H], [50, 20, H], [50, -20, H], [42, 8, H], [55, -8, H],
-      [-14, -20, 0], [13, 24, 0], [-12, 24, 0], [12, -24, 0], [-2, -26, 0], [2, 26, 0], [-35, 25, H], [35, -25, H]],
+      [-9.5, -20, 0], [9.5, 24, 0], [-9.5, 24, 0], [9.5, -24, 0], [-2, -26, 0], [2, 26, 0], [-35, 25, H], [35, -25, H]],
     teams: [
       [[-50, -20, H], [-50, 0, H], [-50, 20, H], [-42, -10, H], [-42, 12, H], [-55, -8, H], [-55, 10, H], [-35, -25, H], [-35, 25, H]],
       [[50, 20, H], [50, 0, H], [50, -20, H], [42, 10, H], [42, -12, H], [55, 8, H], [55, -10, H], [35, 25, H], [35, -25, H]],
@@ -116,12 +173,7 @@ export default {
         const k = Math.abs(Math.sin(z * 1.7 + sx)), d = 0.4 + k * 0.7;
         b.deco(sx * (20 + d / 2 - 0.05), 0, z, d, H * (0.55 + k * 0.45), 3.2 + k * 2, k > 0.5 ? 'rockDark' : 'rock');
       }
-      // stone stairs down each cliff (south and north), with landings onto the plateau
-      const x0 = sx < 0 ? -20 : 17.4, x1 = sx < 0 ? -17.4 : 20, xc = (x0 + x1) / 2;
-      b.stairs(x0, x1, -26, -10, 'z', 0, H, 'concrete');
-      b.stairs(x0, x1, 10, 26, 'z', H, 0, 'concrete');
-      b.solid(xc, 0, -8.75, 2.6, H, 2.5, 'concrete'); b.solid(xc, 0, 8.75, 2.6, H, 2.5, 'concrete');
-      for (let z = -25; z <= 25; z += 2.5) if (Math.abs(z) > 9) b.deco(sx < 0 ? -17.45 : 17.45, H * (1 - Math.abs(Math.abs(z) - 10) / 16) + 0.05, z, 0.06, 1.0, 0.06, 'black');
+      cliffRoutes(b, sx);
       // tunnel portal where the railway leaves the map
       b.deco(sx * 59.5, H, 0, 1.5, 9, 14, 'rockDark'); b.deco(sx * 58.7, H, 0, 0.2, 5, 4.4, 'black');
       // sniper boulders along the cliff edge and cover across the base
@@ -133,7 +185,7 @@ export default {
     }
     for (const sz of [-1, 1]) { // canyon end walls
       b.deco(0, 0, sz * 31.5, 40, 16, 3, 'rock');
-      for (let x = -18; x <= 18; x += 6) boulder(b, x + 1.5, sz * 28.6, 1.8 + Math.abs(Math.sin(x)) * 0.8, 0, x + 20);
+      for (let x = -18; x <= 18; x += 6) if (kept(x + 1.5, sz * 28.6)) boulder(b, x + 1.5, sz * 28.6, 1.8 + Math.abs(Math.sin(x)) * 0.8, 0, x + 20);
     }
 
     // ---- railway bridge (deck top at H) with a maintenance hatch at x 6..7.2 ----
@@ -154,14 +206,14 @@ export default {
     b.solid(6.6, 4.8, 1.55, 2.0, 0.2, 1.9, 'steel');
     railX(b, -17, 17, -0.62, 5.0); railX(b, -17, 5.6, 0.62, 5.0); railX(b, 7.6, 17, 0.62, 5.0);
     railZ(b, 0.62, 2.5, 5.6, 5.0); railZ(b, 0.62, 2.5, 7.6, 5.0);
-    ladderVis(b, -17.35, 0, 0, 5.0, true); ladderVis(b, 17.35, 0, 0, 5.0, true); ladderVis(b, 7.2, 2.0, 5.0, H, true);
+    ladderVis(b, -17.35, 0, 0, 5.0, true); ladderVis(b, 17.35, 0, 0, 5.0, true); ladderVis(b, 7.2, 2.0, 5.0, H, true, 0.3);
     // track across the whole map
     for (const z of [-0.72, 0.72]) b.deco(0, H, z, 117, 0.12, 0.09, 'steel');
     for (let x = -58; x <= 58; x += 0.8) b.deco(x, H, 0, 0.22, 0.06, 2.3, 'woodDark');
     // stalled freight train: closed car, two enterable cars (one with a roof hatch), flatcar with crates
     boxcar(b, -13.5, false, false);
     boxcar(b, -4.5, true, true);
-    boxcar(b, 4.5, true, false);
+    boxcar(b, 4.5, true, true);
     b.solid(13.5, H, 0, 7.4, 0.9, 2.4, 'steelRust');
     b.deco(13.5, H + 0.9, 0, 8, 0.1, 3, 'woodDark');
     crate(b, 11.5, 0.3, 1.5, 1.4, H + 0.9); crate(b, 15.2, -0.4, 1.4, 1.2, H + 0.9); crate(b, 13.4, 0.5, 1.1, 1.0, H + 2.3);
@@ -173,8 +225,8 @@ export default {
     for (let z = -26; z <= 26; z += 3.4) { b.deco(2.75, 0, z, 0.6 + Math.abs(Math.sin(z)) * 0.5, 0.35, 2.2, 'rock'); b.deco(8.75, 0, z + 1.7, 0.7, 0.3, 2.2, 'rockDark'); }
     [[-6, -16, 0.5], [5.2, -14, 0.45], [6.4, -13.2, 0.4], [5.8, 18, 0.5]].forEach(([x, z, s], i) => boulder(b, x, z, s, 0, i + 3));
     [[-12, -18, 1.7], [-14, 6, 1.5], [12, -8, 1.6], [14, 20, 1.8], [2, -24, 1.4], [-1, 24, 1.5], [-15, 17, 1.3], [15, -18, 1.4], [-2, -10, 1.1], [1, 13, 1.2]]
-      .forEach(([x, z, s], i) => boulder(b, x, z, s, 0, i + 11));
-    [[-15, -12, 10], [15, -22, 11], [-9, 22, 9], [11, 15, 10], [-16, -25, 12], [16, 25, 9], [10, 6, 8]].forEach(([x, z, h]) => pine(b, x, z, h, 0));
+      .forEach(([x, z, s], i) => kept(x, z) && boulder(b, x, z, s, 0, i + 11));
+    [[-15, -12, 10], [15, -22, 11], [-9, 22, 9], [11, 15, 10], [-16, -25, 12], [16, 25, 9], [10, 6, 8]].forEach(([x, z, h]) => kept(x, z) && pine(b, x, z, h, 0));
     b.solid(-6.5, 0.45, -14, 2.2, 1.3, 4.4, 'steelRust', { rot: 0.25 }); b.solid(-6.3, 1.75, -15.4, 2.0, 1.0, 1.6, 'steelRust', { rot: 0.25 });
     for (const dz of [-1.5, 1.5]) for (const dx of [-1.1, 1.1]) b.deco(-6.5 + dx, 0, -14 + dz, 0.3, 0.8, 0.8, 'rubber', { rot: 0.25 });
     crate(b, -11, 12, 1.6, 1.4); crate(b, 11, -12, 1.6, 1.4);

@@ -231,6 +231,7 @@ function think(u, cfg) {
     if (!(dot > 0.4 || d < 5 || hitBy || (t === b.target && G.now - b.lastSeen < 1.5))) continue;
     const vis = losClear(u.x, eye, u.z, t.x, t.y + t.h - 0.17, t.z) || losClear(u.x, eye, u.z, t.x, t.y + t.h * 0.5, t.z);
     if (!vis) continue;
+    if ((t.prone || t.crouch) && !hitBy && d > (t.prone ? 7 : 13) && (G.world.def.bushes || []).some((q) => Math.hypot(q.x - t.x, q.z - t.z) < q.r + 0.3)) continue; // hidden in a bush
     let s = 60 - d;
     if (t.isPlayer || t.remote) s += mode === 'survival' ? 25 : G.match.teams ? 4 : cfg.playerBias;
     if (t === b.target) s += 14;

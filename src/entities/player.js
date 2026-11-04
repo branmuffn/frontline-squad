@@ -117,6 +117,30 @@ export function equipWeapon(id) {
 }
 export function swapLast() { switchTo(P.lastSlot); }
 // mouse wheel / Z while scoped flips the magnification (returns true if it did)
+// Slide chutes (Cascade Gorge): loose scree pulls you downhill. Walking back up the slope brakes on the braking chutes;
+// arriving too fast hurts like a fall (lethal from 9 m/s). The steep bulge can't be braked.
+function slideStep(P, dt) {
+  let sl = null;
+  for (const rp of G.world.ramps) {
+    if (!rp.slide || P.x < rp.minX || P.x > rp.maxX || P.z < rp.minZ || P.z > rp.maxZ) continue;
+    const h = rp.from + (rp.to - rp.from) * (P.x - rp.minX) / (rp.maxX - rp.minX);
+    if (Math.abs(P.y - h) < 0.6) { sl = rp; break; }
+  }
+  if (!sl) {
+    if (P.slideNet > 0) { const v = P.slideNet; P.slideV = 0; P.slideNet = 0; if (v > 5 && P.alive) damage(P, v >= 9 ? 999 : (v - 5) / 4 * P.maxHealth, null, { weapon: 'fall' }); }
+    return;
+  }
+  const k = (sl.to - sl.from) / (sl.maxX - sl.minX), dirx = k > 0 ? -1 : 1, slope = Math.atan(Math.abs(k));
+  const walkDown = P.vx * dirx; // + = walking downhill
+  P.slideV = (P.slideV || 0) + 9.8 * (Math.sin(slope) - 0.15 * Math.cos(slope)) * dt;
+  if (sl.brake && walkDown < -1) P.slideV = Math.min(P.slideV, 2.3 - walkDown); // backing up the slope: ~2.3 m/s down
+  P.slideV = Math.max(P.slideV, 1 - walkDown); // you can't climb a chute: always at least 1 m/s downhill
+  moveBody(P, dirx * P.slideV * dt, 0);
+  P.y = sl.from + (sl.to - sl.from) * clamp((P.x - sl.minX) / (sl.maxX - sl.minX), 0, 1); P.vy = 0; P.grounded = true; P.airPeak = P.y; P.fallH = 0;
+  P.slideNet = sl.brake ? Math.max(0.01, P.slideV + walkDown) : P.slideV; // the steep bulge: you can't scramble against it
+  if (P.prone) P.prone = false;
+}
+
 export function scopeZoom(dir) {
   if (!P || !P.alive) return false;
   const w = W();
@@ -386,6 +410,7 @@ export function updatePlayer(dt) {
     play('step', null, { gain: 0.5 });
   }
   const impactV = updateVertical(P, dt);
+  slideStep(P, dt);
   if (P.fallH) applyFall(P);
   if (impactV > 4.5) {
     vmLand(Math.min(1, impactV / 11)); play('land', null, { gain: Math.min(1, impactV / 10) }); play(stepSound(surfaceAt(P.x, P.z, P.y)), null, { gain: 0.8 });

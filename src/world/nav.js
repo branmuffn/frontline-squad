@@ -29,6 +29,7 @@ export function buildNav() {
       if (x >= c.minX && x <= c.maxX && z >= c.minZ && z <= c.maxZ && c.maxY < 9 && !c.pass) hs.push(c.maxY);
     }
     for (const rp of w.ramps) {
+      if (rp.slide) continue; // slide chutes are not walking routes
       if (x >= rp.minX && x <= rp.maxX && z >= rp.minZ && z <= rp.maxZ) {
         const t = rp.axis === 'z' ? (z - rp.minZ) / (rp.maxZ - rp.minZ) : (x - rp.minX) / (rp.maxX - rp.minX);
         hs.push(rp.from + (rp.to - rp.from) * t);
