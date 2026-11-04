@@ -24,6 +24,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `vehbots.mjs [secs]` — TDM on Gorge with Vehicles On: bots board, drive, fly, fire; no NaN/errors.
 - `perf.mjs [map] [0|1]` — draw calls, triangles and frame ms in TDM with 9 bots, vehicles off/on (SwiftShader: compare runs, not absolute ms).
 - `p5.mjs <mode> <map> [secs]` — quick run of a Phase 5 mode.
+- `mp.mjs <mode> <map> [secs]` — two pages (host + joiner) connected with manual codes: sync, hit/kill claims, hurt, death/respawn, grenades, Zombies buying, FFA/TDM teams, PvP, drop handoff, end + rematch. `SHOT=1` saves /tmp/mp_lobby.png and /tmp/mp_client.png.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).
 

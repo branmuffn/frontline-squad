@@ -12,6 +12,7 @@ const SCREENS = {
   career: [() => document.getElementById('openCareer').click(), '#careerDone'],
   controls: [() => document.getElementById('openControls').click(), null],
   armory: [() => { const F = window.__frontline; F.input.freeLook = true; F.deploy({ mode: 'sandbox', map: 'yard', difficulty: 'normal', count: 0 }); window.__step(3); F.ui.showArmory(); }, '#armClose'],
+  mp: [() => { window.__NET_OPTS = { nobroker: true }; window.__frontline.openMp(); document.getElementById('mpHost').click(); document.querySelector('.mp-manual').open = true; }, '#mpStart'],
   pause: [() => { window.__frontline.ui.showPause(true); }, '#resume'],
   end: [() => { const F = window.__frontline; F.input.freeLook = true; F.deploy({ mode: 'ffa', map: 'yard', difficulty: 'normal', count: 5 }); window.__step(3); F.endMatch('time'); }, '#again'],
 };

@@ -63,7 +63,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - Transport: WebRTC data channels, peer to peer, host-authoritative (the host's game runs the match and bots). Snapshots ~30 Hz on an unreliable/unordered channel, events (kills, chat, purchases) on a reliable channel. Client-side prediction for your own movement and shooting feel; interpolation (~100 ms) for others; host-side lag compensation (rewind hitboxes to the shooter's time) for FFA/TDM.
 - Joining (seamless first): short room code via a free public signaling broker (e.g. PeerJS cloud, library inlined so the file stays self-contained) plus Google public STUN; automatic fallback to manual copy-paste offer/answer codes if the broker is down; LAN play works offline with the manual codes. For networks that block P2P (~15–20%), recommend a free virtual LAN (Tailscale/ZeroTier); no paid TURN.
 - [x] 7a built: co-op Survival + Zombies (shared lives/points), room code + manual codes, tests/mp.mjs.
-- [ ] 7b FFA/TDM between players.
+- [x] 7b FFA/TDM between players (TDM: opposite teams by default, Same team option; PvP claims, team scores, drop handoff, rematch).
 - Order: 7a 2-player co-op Zombies and Survival; 7b FFA and TDM with lag compensation; 7c up to 4–8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard. Voice: optional later (push-to-talk over WebRTC); Discord is fine.
 - Note: may not work inside the claude.ai artifact preview; must work in the downloaded HTML.
 

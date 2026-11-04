@@ -45,6 +45,7 @@ if (SHOT) { await H.evaluate(() => window.__frontline.openMp()); await H.evaluat
 check('connect', await H.evaluate(() => window.__frontline.net.canStart()), { invite: invite.length, reply: reply.length });
 await H.evaluate(([mode, map]) => { const n = window.__frontline.net; n.hostCfg({ mode, map, difficulty: 'normal', count: 5, sameTeam: false }); n.hostStart(); }, [mode, map]);
 for (let i = 0; i < 40 && (await C.evaluate(() => window.__frontline.G.state)) !== 'deploy'; i++) await sleep(50);
+await H.evaluate(() => { window.__frontline.G.match.rules = { passive: true }; }); // bots hold fire during the scripted checks
 await run(SHOT ? 200 : 240); // deploy countdown
 const st = async () => ({
   h: await H.evaluate(() => { const G = window.__frontline.G; const r = G.units.find((u) => u.remote); return { state: G.state, n: G.units.length, now: G.now, r: r && { id: r.id, x: r.x, z: r.z, alive: r.alive, hp: r.health, team: r.team, k: r.kills }, bots: G.bots.filter((b) => b.alive).map((b) => ({ id: b.id, x: b.x, y: b.y, z: b.z, hp: b.health, team: b.team })) }; }),
@@ -106,6 +107,31 @@ if (mode === 'zombies') { // client buys off a wall; the squad's shared points p
   const after = await C.evaluate(() => [window.__frontline.G.player.weapons.join(','), window.__frontline.G.match.points]);
   check('zombies buy', after[1] < 5000 && after[0].split(',').length >= 3, after);
 }
+if (mode === 'ffa' || mode === 'tdm') {
+  const teams = await H.evaluate(() => { const c = {}; for (const u of window.__frontline.G.units) c[u.team] = (c[u.team] || 0) + 1; return c; });
+  check('teams', mode === 'ffa' ? Object.keys(teams).length === await H.evaluate(() => window.__frontline.G.units.length) : Math.abs((teams[0] || 0) - (teams[1] || 0)) <= 1, teams);
+  // the client shoots the host player dead (PvP claim)
+  const before = await H.evaluate(() => { const G = window.__frontline.G; G.player.protectUntil = 0; return [G.player.health, G.match.teamScores.slice()]; });
+  await C.evaluate(() => { const F = window.__frontline, h = [...F.net.session.proxies.values()].find((u) => u.human); h.protectUntil = 0; F.damage(h, 40, F.G.player, { weapon: 'm4', zone: 'body', dist: 8 }); });
+  await run(10);
+  const hp = await H.evaluate(() => window.__frontline.G.player.health);
+  check('pvp hit', hp <= before[0] - 39, [before[0], hp]);
+  const k0 = await C.evaluate(() => window.__frontline.G.player.kills);
+  await C.evaluate(() => { const F = window.__frontline, h = [...F.net.session.proxies.values()].find((u) => u.human); F.damage(h, 200, F.G.player, { weapon: 'm4', zone: 'head', headshot: true, dist: 8 }); });
+  await run(20);
+  const res = { h: await H.evaluate(() => [window.__frontline.G.state, window.__frontline.G.match.teamScores.slice()]), c: await C.evaluate(() => [window.__frontline.G.player.kills, window.__frontline.G.match.teamScores.slice(), document.getElementById('killfeed') ? document.getElementById('killfeed').textContent.slice(0, 60) : ''] ) };
+  check('pvp kill', res.h[0] === 'dead' && res.c[0] === k0 + 1 && (mode === 'ffa' || res.c[1][1] === before[1][1] + 1), res);
+  // a gun on the floor: the host hands it to the client
+  await H.evaluate(() => { const F = window.__frontline, r = F.G.units.find((u) => u.remote); F.worldprops.dropWeapon('l96', r.x, r.y + 0.02, r.z); });
+  await run(6);
+  const nd = await C.evaluate(() => window.__frontline.worldprops.drops.length);
+  await C.evaluate(() => window.__frontline.worldprops.tryPickup());
+  await run(10);
+  const cw = await C.evaluate(() => window.__frontline.G.player.weapons.join(','));
+  const hd = await H.evaluate(() => window.__frontline.worldprops.drops.map((d) => d.id).join(','));
+  check('drop handoff', nd >= 1 && cw.includes('l96') && !hd.includes('l96'), [nd, cw, hd]);
+}
+await H.evaluate(() => { window.__frontline.G.match.rules = null; });
 // play a while with bots
 await run(secs * 60); s = await st();
 check('still running', ['playing', 'dead', 'ended'].includes(s.c.state) && s.c.n === s.h.n, [s.c.state, s.h.n, s.c.n]);
@@ -115,6 +141,11 @@ await run(20); s = await st();
 check('end', s.c.state === 'ended', s.c.state);
 const endTxt = await C.evaluate(() => document.getElementById('endTitle').textContent + ' / ' + document.getElementById('again').textContent);
 out.endClient = endTxt;
+// rematch from the end screen
+await H.evaluate(() => document.getElementById('again').click());
+for (let i = 0; i < 40 && (await C.evaluate(() => window.__frontline.G.state)) !== 'deploy'; i++) await sleep(50);
+await run(200); s = await st();
+check('rematch', s.c.state === 'playing' && s.h.state === 'playing' && s.c.n === s.h.n, [s.h.state, s.c.state, s.h.n, s.c.n]);
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(mode, map, JSON.stringify(out, null, 1));
 console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
