@@ -44,6 +44,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `range.mjs [shots]` — practice range: own map, dummies at marks, movers, damage numbers, pop back up, no XP, armory.
 - `mplate.mjs` — late join into a running match, rejoin keeps score, spectator (follow cam, snapshots, no unit).
 - `mpmodes.mjs [mode]` — multiplayer Gun Game tier-up, Infection turning a joiner, CTF joiner grabbing the flag.
+- `mpmigrate.mjs` — host quits mid-match: succession list, first joiner re-hosts with time, team scores and kills kept.
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

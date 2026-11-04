@@ -85,10 +85,10 @@ const brokerMsg = (e) => e && e.type === 'peer-unavailable' ? 'Room not found. C
   : e && e.type === 'browser-incompatible' ? 'This browser doesn’t support WebRTC.' : (e && e.message) || 'Connection failed';
 
 // Host: register a room code with the broker; every joiner arrives as a Link through onLink.
-export function hostRoom(onLink, onStatus) {
+export function hostRoom(onLink, onStatus, want) {
   let peer = null, code = null, dead = false;
   const start = () => {
-    code = newCode();
+    code = want || newCode(); want = null; // a migrating host takes over a known code
     peer = new Peer(PREFIX + code, peerOpts());
     peer.on('open', () => onStatus('ready', code));
     peer.on('connection', (conn) => fromPeerConn(conn).then(onLink).catch(() => {}));

@@ -17,7 +17,7 @@ npm run build:standalone  # one self-contained HTML file in dist-standalone/
 
 ## Multiplayer (up to 8 players)
 
-Co-op Survival and Zombies, or Free for All and Team Deathmatch; bots optional (skill 1–10, rules for what they may do). Peer to peer (WebRTC), no account, no server of ours. Works across different Wi-Fi networks: a direct route is tried first, then a free relay. Use the downloaded HTML file (the claude.ai preview may block WebRTC); everyone needs the same file.
+Co-op Survival and Zombies, or Free for All, Team Deathmatch, Gun Game, Capture the Flag and Infection; bots optional (skill 1–10, rules for what they may do). Peer to peer (WebRTC), no account, no server of ours. Works across different Wi-Fi networks: a direct route is tried first, then a free relay. Use the downloaded HTML file (the claude.ai preview may block WebRTC); everyone needs the same file.
 
 1. Both open `frontline_solo_ops.html`, click **Multiplayer**, type a name.
 2. Host clicks **Host a game** and shares the 5-letter room code; picks mode, map, difficulty and bots.
@@ -25,7 +25,7 @@ Co-op Survival and Zombies, or Free for All and Team Deathmatch; bots optional (
 4. If the code can't reach the matchmaking server (or you're offline on one LAN): open *No room code? Use copy-paste codes*. Host: **1 · Make invite code** and send it. Friend: paste it, **2 · Make reply code**, send it back. Host: paste it, **3 · Connect**.
 5. If your networks block direct connections (~1 in 6), install free Tailscale or ZeroTier on both PCs and use the copy-paste codes.
 
-Lag: your own movement, shooting and driving are instant (local), your hits count where you aimed (shooter-favoured), others are drawn ~100 ms behind for smoothness. Points and lives are shared in co-op. Everyone earns killstreaks and gets the kill cam. Vehicles (Cascade Gorge) can be switched On in the lobby. The lobby shows each player's ping and whether the link is Direct, LAN or Relayed.
+Lag: your own movement, shooting and driving are instant (local), your hits count where you aimed (shooter-favoured), others are drawn ~100 ms behind for smoothness. Points and lives are shared in co-op. Everyone earns killstreaks and gets the kill cam. Vehicles (Cascade Gorge) can be switched On in the lobby. The lobby shows each player's ping and whether the link is Direct, LAN or Relayed. Friends can join a match already running (and rejoin with their score), tick Spectate to watch, and if the host leaves mid-match the next player takes over (room-code games).
 
 ## What's in the game
 

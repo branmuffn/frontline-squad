@@ -59,7 +59,7 @@ function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobb
 
 const cleanSkin = (k) => { k = k || {}; const pick = (list, id) => (list.find((e) => e[0] === id) || list[0])[0]; return { uniform: pick(SKINS.uniform, k.uniform), pattern: pick(SKINS.pattern, k.pattern), helmet: pick(SKINS.helmet, k.helmet), op: OPERATORS.some((o) => o.id === k.op) ? k.op : 'rex' }; };
 export function setSkin(k) { S.skin = cleanSkin(k); if (S.client && S.link) S.link.send({ t: 'skin', k: S.skin }); }
-export function hostOpen(name, cfg, skin) {
+export function hostOpen(name, cfg, skin, wantCode) {
   leave(true);
   Object.assign(S, { role: 'host', host: true, client: false, name: clean(name), cfg, remotes: [], nextSlot: 1, skin: cleanSkin(skin || S.skin) });
   chat.reset();
@@ -67,9 +67,9 @@ export function hostOpen(name, cfg, skin) {
   status('Opening room…');
   if ((window.__NET_OPTS || {}).nobroker) { status('Room ready (manual codes only).', 'ok'); refreshUi(); return; }
   S.room = hostRoom(addLink, (st, v) => {
-    if (st === 'ready') { status('Room open. Share the code; your friend presses Join and types it.', 'ok'); if (S.ui) S.ui.code(v); }
+    if (st === 'ready') { S.code = v; status('Room open. Share the code; your friend presses Join and types it.', 'ok'); if (S.ui) S.ui.code(v); }
     else status(v + ' (Manual codes still work.)', 'warn');
-  });
+  }, wantCode);
   refreshUi();
 }
 export function hostCfg(cfg) { S.cfg = cfg; if (S.host) { bcast({ t: 'lobby', p: players(), cfg }); refreshUi(); } }
@@ -142,7 +142,7 @@ export async function joinManual(name, invite, skin, spec) {
 function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
-  L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
+  L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was && !S.leaving && S.succ && S.succ.code && migrate()) return; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
   L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate });
   status('Connected. Waiting for the host to start…', 'ok');
 }
@@ -178,6 +178,34 @@ export function lookFor(team, slot, mode, skin) {
   return k ? { ...k, accent: base.accent } : base;
 }
 // a player arriving while a match runs (or coming back after a drop: same name keeps their score)
+// ---- host migration (room-code games): if the host leaves mid-match, the first joiner in line re-hosts under a derived
+// code and everyone reconnects; the match continues (mode, time left, team scores, everyone's kills/deaths), all respawn.
+const nextCode = (c) => { c = c || 'ROOMX'; const i = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.indexOf(c[4]); return c.slice(0, 4) + (i < 0 ? 'A' : 'BCDEFGHJKLMNPQRSTUVWXYZA'[i]); };
+function sendSuccession() {
+  if (!S.host || !S.live || !S.code) return;
+  const order = S.remotes.filter((r) => r.hello && !r.spec).sort((a, b) => a.slot - b.slot).map((r) => r.name);
+  bcast({ t: 'succ', code: nextCode(S.code), order, cfg: S.liveCfg });
+}
+function migrate() {
+  const sc = S.succ, m = G.match; if (!sc || !m) return false;
+  const keep = { time: m.time, ts: m.teamScores && m.teamScores.slice(), scores: {} };
+  for (const u of G.units) if (u.isPlayer || u.human) keep.scores[u.isPlayer ? S.name : u.name] = { kills: u.kills, deaths: u.deaths, team: u.team };
+  const me = S.name, first = sc.order[0] === me, cfg = { ...sc.cfg }, skin = S.skin;
+  hud.banner('Host left', first ? 'You are taking over the match…' : `${sc.order[0]} is taking over…`);
+  S.live = false; clearProxies();
+  if (first) {
+    hostOpen(me, cfg, skin, sc.code);
+    S.liveCfg = cfg; S.dropped = keep.scores; S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
+    S.cb.deploy(cfg);
+    const P = G.player, mine = keep.scores[me]; if (mine) { P.kills = mine.kills; P.deaths = mine.deaths; }
+    G.match.time = keep.time; if (keep.ts) G.match.teamScores = keep.ts; G.state = 'playing';
+    chat.add('', 'You are now the host. Others are reconnecting…', 'sys');
+  } else {
+    let tries = 0; const go = () => { if (S.link || tries++ > 8) return; joinCode(me, sc.code, skin).catch(() => setTimeout(go, 1500)); };
+    setTimeout(go, 1800);
+  }
+  return true;
+}
 function lateJoin(r) {
   const cfg = S.liveCfg, mode = cfg.mode;
   if (r.spec) { r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
@@ -188,6 +216,7 @@ function lateJoin(r) {
   spawnRemote(u, S.cb.pickSpawn(u), false);
   r.link.send({ t: 'start', cfg, uid: u.id, team: u.team, sp: spawnOf(u), seq: r.seq, hostName: S.name, late: true });
   sendRoster(true);
+  sendSuccession();
   const msg = `${r.name} ${back ? 'rejoined (score kept)' : 'joined the match'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }, r);
 }
 export function hostStart() {
@@ -198,7 +227,7 @@ export function hostStart() {
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
-  sendRoster(true);
+  sendRoster(true); sendSuccession();
   return true;
 }
 const spawnOf = (u) => ({ x: u.x, y: u.y, z: u.z, yaw: u.yaw });
@@ -355,8 +384,9 @@ function clientMsg(m) {
     case 'lobby': S.lobby = m.p; S.lobbyCfg = m.cfg; refreshUi(); return;
     case 'pi': S.link.send({ t: 'po', c: m.c }); return;
     case 'po': S.rtt = S.rtt ? S.rtt * 0.7 + (now() - m.c) * 0.3 : now() - m.c; return;
-    case 'closed': status('The host closed the room.', 'warn'); if (S.live) { S.live = false; S.cb.abort('The host closed the room.'); } return;
+    case 'closed': status('The host closed the room.', 'warn'); if (S.live && S.succ && S.succ.code) { S.link = null; migrate(); return; } if (S.live) { S.live = false; S.cb.abort('The host closed the room.'); } return;
     case 'start': clientStart(m); return;
+    case 'succ': S.succ = m; return;
     case 'abort': if (S.live) { S.live = false; clearProxies(); S.cb.abort('The host ended the match.'); } return;
   }
   if (!S.live) return;
