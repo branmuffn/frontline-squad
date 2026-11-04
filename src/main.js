@@ -1,4 +1,5 @@
 import * as chat from './ui/chat.js';
+import { streakState } from './entities/streaks.js';
 import { initChat } from './ui/chat.js';
 import { G, isLive } from './core/state.js';
 import { loadProfile, saveProfile } from './core/storage.js';
@@ -68,7 +69,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { streakState, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

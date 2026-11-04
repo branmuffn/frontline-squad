@@ -66,6 +66,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 7b FFA/TDM between players (TDM: opposite teams by default, Same team option; PvP claims, team scores, drop handoff, rematch).
 - [x] 7c Up to 8 players: ready-up gate, kick (lobby button or /kick), chat (lobby + T/Enter in match, host relays + rate limit), ping on scoreboard, skins (uniform/pattern/helmet by rank; TDM keeps team uniforms), TDM teams dealt by join order, unique names. tests/mp3.mjs (3 pages).
 - [x] Bot settings: skill 1-10 (Recruit..Elite bands, interpolated AI), Bots may: grenades/killstreaks/snipers/vehicles/loot/tactics, No bots in MP. tests/bots.mjs.
+- [x] Joiner killstreaks: host counts the joiner's streak and grants rewards (`stk`), the joiner deploys through the host (`use`, validated), mortar strikes and sentries (incl. bots' and the host's) are mirrored to every joiner with their bursts. tests/mpstreaks.mjs.
 - [x] Cross-network: PeerJS free TURN relay restored (was dropped by custom iceServers), optional own TURN, Direct/LAN/Relayed shown in lobby.
 - Order: 7a 2-player co-op Zombies and Survival; 7b FFA and TDM with lag compensation; 7c up to 4–8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard. Voice: optional later (push-to-talk over WebRTC); Discord is fine.
 - Note: may not work inside the claude.ai artifact preview; must work in the downloaded HTML.

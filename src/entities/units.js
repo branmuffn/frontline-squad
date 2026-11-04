@@ -6,7 +6,7 @@ import { play } from '../engine/audio.js';
 import * as hud from '../ui/hud.js';
 import { onKill as matchOnKill } from '../game/match.js';
 import { awardKill, award } from '../game/progression.js';
-import { checkStreak, botStreak } from './streaks.js';
+import { checkStreak, botStreak, remoteStreak } from './streaks.js';
 import { dropWeapon } from './worldprops.js';
 
 let nextId = 1;
@@ -95,6 +95,7 @@ export function kill(victim, attacker, info = {}) {
   hud.killfeed(credited ? credited : victim, victim, info.weapon, !!info.headshot, !credited);
   const noStreaks = G.match.hook && G.match.hook.noStreaks;
   if (credited && !credited.isPlayer && !credited.remote && !info.noStreak && !noStreaks) botStreak(credited, credited.streak);
+  if (credited && credited.remote && !info.noStreak && !noStreaks && G.mp && G.mp.live) remoteStreak(credited, credited.streak);
   if (credited && credited.isPlayer) {
     awardKill(victim, info, victimStreak);
     if (!info.noStreak && !noStreaks) checkStreak(credited.streak);

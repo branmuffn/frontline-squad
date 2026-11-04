@@ -20,6 +20,7 @@ import { awardKill } from '../game/progression.js';
 import { pickSpawn, endMatch } from '../game/match.js';
 import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transport.js';
 import * as chat from '../ui/chat.js';
+import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entities/streaks.js';
 
 export const MAX_PLAYERS = 8;
 export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm'];
@@ -302,6 +303,7 @@ function hostMsg(r, m) {
       break;
     }
     case 'drop': { const w = WEAPONS[m.id]; if (w && !w.melee) dropWeapon(m.id, u.x, u.y + 0.02, u.z, m.ammo); break; }
+    case 'use': remoteUseStreak(u, m); break;
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
 }
@@ -333,6 +335,8 @@ function clientMsg(m) {
       G.shake = Math.min(0.05, (G.shake || 0) + m.a * 0.0009); P.lastHitAt = G.now;
       break;
     }
+    case 'stk': G.player.streak = m.n; G.player.bestStreak = Math.max(G.player.bestStreak || 0, m.n); checkStreak(m.n); break;
+    case 'mor': case 'sen': netStreak(m, m.o ? unitById(m.o) : null); break;
     case 'hm': hud.hitMarker(m.k); play('hit', null, { important: true }); break;
     case 'gr': case 'rk': replaySpawn(m, unitById(m.o)); break;
     case 'dr+': S.replay = true; dropWeapon(m.id, m.p[0], m.p[1], m.p[2]); drops[drops.length - 1].key = m.k; S.replay = false; break;
@@ -387,6 +391,7 @@ function onKillEv(m) {
 
 // ---------------- shots and projectiles ----------------
 function replayShot(s, from) {
+  if (s[0] < 0) { if (S.client) netSentryShot(-s[0], s[2], s[3], s[4], s[5], s[6], s[7]); return; } // sentry burst
   const u = unitById(s[0]), wid = WIDS[s[1]], w = WEAPONS[wid];
   if (!u || !w) return;
   if (S.host) S.shots.push(s); // forward to the other clients in the next snapshot
