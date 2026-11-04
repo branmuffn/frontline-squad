@@ -10,14 +10,16 @@ Round A, Round B (B1–B6), Phases 1–6 and extras X1 (prone) / X2 (train cars 
 
 ## Setup
 1. Unzip to /home/claude/frontline (if it unzips to a nested folder, flatten it), `npm install`, `sh tests/setup.sh`, `node scripts/build-standalone.mjs`. `npx vite build` must also keep working.
-2. Read PLAN.md, README.md, tests/README.md and `git log --oneline` before changing anything.
+2. Read PLAN.md, README.md, docs/ARCHITECTURE.md, tests/README.md and `git log --oneline` before changing anything.
 3. Headless tests (details in tests/README.md): Playwright Chromium with SwiftShader; `node tests/regress.mjs 25` covers FFA/TDM/Survival/Sandbox × 4 maps; `node tests/p5.mjs <gungame|infection|ctf|zombies> <map> 35` covers Phase 5 modes; `tests/shot.mjs` for screenshots. Keep each command under the 300 s tool limit. `sh tests/ship.sh "message"` builds, commits, copies the HTML to outputs and re-zips.
 4. Update the same artifact every time: https://claude.ai/artifact/PKJoK4eySfhpVtZKeEexSd (Artifact tool, action publish with that url). If that fails, publish a new one and tell me the link.
 
 ## What to build (all decisions are in PLAN.md; build without re-asking unless truly ambiguous)
-1. Round B in order: B1 rock/collider hit-box audit (Cascade Gorge rocks and plateau tops first), B2 fully offline single HTML (inline three.js, no Google Fonts) + Export/Import Profile, B3 everything fits the window (loadout tabs, Deploy always visible), B4 kill cam (On/Off setting, default On) + free look-around after death, B5 two-level sniper zoom (4×/8×) + new Mk 14 EBR / WARDEN DMR marksman rifle with 2× scope, B6 "detailed stylized" graphics pass (soldiers, zombies, infected, weapons, lighting).
-2. Then Phase 6 vehicles (6a–6d), with the match setting "Vehicles: On/Off", default OFF.
-3. Then STOP and ask me before Phase 7 (multiplayer). Its decisions so far are recorded in PLAN.md for later; do not build any of it yet.
+Phase 7 multiplayer is APPROVED. Build in order, one commit per sub-step, shipping after each:
+1. 7a 2-player co-op Zombies and Survival (WebRTC data channels, host-authoritative; room code via a free public signaling broker with the library inlined, Google public STUN; fallback to manual copy-paste offer/answer codes; LAN works offline with manual codes).
+2. 7b FFA and TDM between players with lag compensation (snapshots ~30 Hz unreliable channel, events on reliable channel, client prediction for own movement/shooting, interpolation for others).
+3. 7c Up to 4-8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard.
+Single-player must stay fully offline; signaling is the only allowed network use. Multiplayer may not work inside the claude.ai artifact preview; it must work in the downloaded HTML. Add a headless test that runs host + client in two pages (Playwright can open two pages and pass the manual codes).
 
 ## Architecture notes (read the code for details)
 - src/core: config.js (all tuning: weapons incl. falloff/pen/velocity, PENETRATION, SLOT_MODES, modes, difficulty, streaks, explosions), storage.js (localStorage profile with merge; presets A/B/C), input.js, state.js (shared `G`), util.js.
@@ -44,4 +46,4 @@ Round A, Round B (B1–B6), Phases 1–6 and extras X1 (prone) / X2 (train cars 
 - Real gun names stay the default, with the Fictional toggle.
 - Vehicles must have an On/Off match setting, default OFF.
 
-Start by unzipping, setting up, running a quick smoke test and the regression, then begin B1.
+Start by unzipping, setting up, running a quick smoke test and the regression, read docs/ARCHITECTURE.md, then begin 7a.
