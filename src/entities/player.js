@@ -5,6 +5,7 @@ import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
 import { ladderBlocked } from './units.js';
+import { applyGear } from './gear.js';
 import { playerVehicle, exitVehicle } from './vehicles.js';
 import { moveBody, updateVertical, canStand, canCrouch, rayWorld, rayUnits, supportHeight, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
@@ -55,7 +56,9 @@ export function spawnPlayer(x, y, z, yaw) {
   });
   P.weapons = startingWeapons();
   refillAmmo();
-  P.switchStart = G.now; P.switchDur = WEAPONS[cur()].draw;
+  applyGear(P, G.profile.loadout || {});
+  if (G.mp && G.mp.live && G.mp.client) G.mp.send({ t: 'gear', v: P.vest, b: P.belt });
+  P.switchStart = G.now; P.switchDur = WEAPONS[cur()].draw * (P.belt === 'quickdraw' ? 0.65 : 1);
   P.damagers.clear();
   hud.setWeapon(P);
 }
@@ -321,7 +324,7 @@ export function grenadeRelease() {
   aimDir(_d);
   const o = cam(), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   throwGrenade(P, o.x + _d.x * 0.4 - rx * 0.15, o.y + _d.y * 0.4 - 0.05, o.z + _d.z * 0.4 - rz * 0.15,
-    _d.x * GRENADE.throwSpeed + P.vx * 0.6, _d.y * GRENADE.throwSpeed + 3.2, _d.z * GRENADE.throwSpeed + P.vz * 0.6, Math.max(0.05, GRENADE.fuse - held));
+    _d.x * GRENADE.throwSpeed + P.vx * 0.6, _d.y * GRENADE.throwSpeed + 3.2, _d.z * GRENADE.throwSpeed + P.vz * 0.6, Math.max(0.05, GRENADE.fuse - held), P.nade || 'frag');
   play('throw');
   hud.setAmmo(P);
 }

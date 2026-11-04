@@ -143,6 +143,12 @@ export function xpPopup(label, amount) {
 
 let hintUntil = 0;
 export function hint(title, text, secs = 8) { const h = $('hint'); h.innerHTML = `<b>${esc(title)}</b>${esc(text)}`; h.classList.add('show'); hintUntil = G.realTime + secs; }
+// flashbang white-out: k 0..1 (how directly and how close); fades out over up to ~3.5 s
+export function flash(k) {
+  const el = document.getElementById('flashbang'); if (!el || k <= 0.02) return;
+  el.style.transition = 'none'; el.style.opacity = String(Math.min(1, 0.25 + k)); void el.offsetWidth;
+  el.style.transition = `opacity ${0.5 + 3 * k}s ease-in ${0.25 + 0.6 * k}s`; el.style.opacity = '0';
+}
 export function notice(text) { if (!text) return; set('notice', 'text', text); $('notice').classList.add('show'); noticeUntil = G.realTime + 1.8; }
 export function banner(title, sub = '', share) { if (share && G.mp && G.mp.host && G.mp.live) G.mp.banner(title, sub, share); bannerQ.push({ title, sub }); if (bannerQ.length > 4) bannerQ.shift(); }
 export function center(text, dur = 0.95) { const c = $('center'); c.textContent = text; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); centerUntil = G.realTime + dur; }

@@ -9,6 +9,7 @@ import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, ladderBlocked, ladderBusy } from './units.js';
 import { drops, dropWeapon, removeDrop } from './worldprops.js';
 import { botUseStreaks } from './streaks.js';
+import { smokeBlocks } from './gear.js';
 import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun, restyleSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
@@ -229,6 +230,8 @@ function think(u, cfg) {
     const dot = (dx * fx + dz * fz) / (d || 1);
     const hitBy = u.lastAttacker === t && G.now - u.lastHitAt < 2.5;
     if (!(dot > 0.4 || d < 5 || hitBy || (t === b.target && G.now - b.lastSeen < 1.5))) continue;
+    if (b.stunUntil > G.now) continue; // flashbanged
+    if (smokeBlocks(u.x, eye, u.z, t.x, t.y + t.h * 0.6, t.z)) continue; // smoke
     const vis = losClear(u.x, eye, u.z, t.x, t.y + t.h - 0.17, t.z) || losClear(u.x, eye, u.z, t.x, t.y + t.h * 0.5, t.z);
     if (!vis) continue;
     if ((t.prone || t.crouch) && !hitBy && d > (t.prone ? 7 : 13) && (G.world.def.bushes || []).some((q) => Math.hypot(q.x - t.x, q.z - t.z) < q.r + 0.3)) continue; // hidden in a bush

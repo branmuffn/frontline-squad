@@ -31,6 +31,7 @@ import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
 import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
 import { finishFinale } from './game/match.js';
+import { updateGear, useEquipment } from './entities/gear.js';
 import { updateDoors, doorInteract } from './world/doors.js';
 import { updateVehicles, vehicleInteract, switchSeat, vehicles, damageVehicle } from './entities/vehicles.js';
 import { damage, kill } from './entities/units.js';
@@ -218,6 +219,7 @@ function onKeyDown(code, e) {
   else if (matches('swap', code)) swapLast();
   else if (matches('grenade', code)) grenadePress();
   else if (matches('streak', code)) useStreak();
+  else if (matches('equip', code)) useEquipment(G.player);
   else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !vehicleInteract(G.player) && !doorInteract(G.player)) tryPickup(); }
   else if (matches('armory', code) && G.match.mode === 'sandbox') openArmory();
 }
@@ -271,7 +273,7 @@ function loop(t) {
       updateVehicles(dt);
       updateDoors(dt);
       updatePickups(dt);
-      updateStreaks(dt);
+      updateStreaks(dt); updateGear(dt);
       updateHud(dt);
       recordFrame();
       ambienceTick(dt, G.world.def.ambience);

@@ -22,6 +22,7 @@ import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transp
 import * as chat from '../ui/chat.js';
 import { vehSnap, vehApplySnap, vehInterp, vehLocal, vehHostApply, vehHostMsg, vehOk, vehRequest } from './netveh.js';
 import { vehicles } from '../entities/vehicles.js';
+import { placeClaymore, netClaymore } from '../entities/gear.js';
 import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entities/streaks.js';
 
@@ -253,9 +254,9 @@ S.shot = (u, wid, mx, my, mz, ex, ey, ez) => {
   if (S.host) S.shots.push(rec); else S.link.sendFast({ t: 'sh', s: rec });
 };
 // host & client: grenades / rockets spawned locally are mirrored on the others
-S.spawnEv = (kind, owner, a) => {
+S.spawnEv = (kind, owner, a, gk) => {
   if (!S.live || S.replay || !owner) return;
-  const msg = { t: kind, o: owner.id, a: a.map(r3) };
+  const msg = { t: kind, o: owner.id, a: a.map(r3), k: gk || undefined };
   if (S.host) bcast(msg, owner.remote ? owner.rec : null); else if (owner === G.player) S.link.send(msg);
 };
 S.door = (i) => { if (S.client && S.live) S.link.send({ t: 'door', i }); };
@@ -319,6 +320,8 @@ function hostMsg(r, m) {
     }
     case 'drop': { const w = WEAPONS[m.id]; if (w && !w.melee) dropWeapon(m.id, u.x, u.y + 0.02, u.z, m.ammo); break; }
     case 'use': remoteUseStreak(u, m); break;
+    case 'clay': if (u.alive && m.p && Math.hypot(m.p[0] - u.x, m.p[2] - u.z) < 4) placeClaymore(u, m.p[0], m.p[1], m.p[2], m.p[3]); break;
+    case 'gear': u.vest = m.v; u.belt = m.b; break;
     case 'ven': case 'vex': case 'vsw': case 'vdm': vehHostMsg(r, m); break;
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
@@ -352,6 +355,7 @@ function clientMsg(m) {
       break;
     }
     case 'vok': vehOk(m); break;
+    case 'cl': netClaymore(m, m.o ? unitById(m.o) : null); break;
     case 'stk': G.player.streak = m.n; G.player.bestStreak = Math.max(G.player.bestStreak || 0, m.n); checkStreak(m.n); break;
     case 'mor': case 'sen': netStreak(m, m.o ? unitById(m.o) : null); break;
     case 'hm': hud.hitMarker(m.k); play('hit', null, { important: true }); break;
@@ -432,7 +436,7 @@ function replaySpawn(m, owner) {
   if (!owner || owner === G.player) return;
   const a = m.a;
   S.replay = true;
-  if (m.t === 'gr') { throwGrenade(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6]); }
+  if (m.t === 'gr') { throwGrenade(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6], m.k || 'frag'); }
   else { fireRocket(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6]); play(WEAPONS.rpg.sound, { x: a[0], y: a[1], z: a[2] }, { occlude: true }); }
   S.replay = false;
 }

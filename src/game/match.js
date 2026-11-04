@@ -21,6 +21,7 @@ import { resetMatchXp, award, finishMatch } from './progression.js';
 import * as hud from '../ui/hud.js';
 import { showEnd } from '../ui/menus.js';
 import { onDeathCam, resetKillcam, startFinale } from './killcam.js';
+import { resetGear } from '../entities/gear.js';
 import { resetVehicles, vehicles } from '../entities/vehicles.js';
 function resetVehiclesHard() { const keep = G.profile.lobby.vehicles; G.profile.lobby.vehicles = false; resetVehicles(); G.profile.lobby.vehicles = keep; }
 import { HOOKS } from './modes.js';
@@ -72,7 +73,7 @@ export function startMatch(cfg) {
   }
   if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
   const remotes = rt.length ? G.mp.makeRemoteUnits(cfg.mode) : [];
-  resetPickups(); resetStreaks(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
+  resetPickups(); resetStreaks(); resetGear(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);
   for (const u of remotes) G.mp.spawnRemote(u, pickSpawn(u), false);
   for (const b of G.bots) { const sp = pickSpawn(b); resetBotForSpawn(b, sp.x, sp.y, sp.z, sp.yaw); hookSpawn(b); }

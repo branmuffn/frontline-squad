@@ -7,6 +7,7 @@ import * as hud from '../ui/hud.js';
 import { onKill as matchOnKill } from '../game/match.js';
 import { awardKill, award } from '../game/progression.js';
 import { checkStreak, botStreak, remoteStreak } from './streaks.js';
+import { vestMul } from './gear.js';
 import { dropWeapon } from './worldprops.js';
 
 let nextId = 1;
@@ -56,6 +57,7 @@ export function damage(victim, amount, attacker, info = {}) {
   const H = G.match && G.match.hook;
   let dmg = H && H.modDamage ? H.modDamage(victim, attacker, amount) : amount;
   if (attacker === victim) dmg *= 0.6;
+  dmg *= vestMul(victim, info); // heavy vest
   dmg = Math.min(dmg, victim.health + 200);
   victim.health -= dmg;
   victim.lastHitAt = G.now; victim.lastAttacker = attacker;

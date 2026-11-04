@@ -211,10 +211,10 @@ for (const [id, w] of Object.entries(WEAPONS)) {
   Object.defineProperty(w, 'desc', { get() { return desc.replace(/\{(\w+)\}/g, (_, k) => WEAPONS[k].name); }, enumerable: true });
 }
 
-export const SOURCE_NAMES = { claws: 'CLAWS', frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL', roadkill: 'JEEP', vehicle: 'WRECK' };
+export const SOURCE_NAMES = { claymore: 'CLAYMORE', sticky: 'STICKY', claws: 'CLAWS', frag: 'FRAG', mortar: 'MORTAR', sentry: 'SENTRY', fall: 'FALL', barrel: 'BARREL', roadkill: 'JEEP', vehicle: 'WRECK' };
 
 // explosion types: radius, max damage, visual size
-export const EXPLOSIONS = { frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 170, big: 1.25 }, rpg: { R: 5.5, D: 150, big: 1 }, barrel: { R: 6.5, D: 140, big: 1.1 } };
+export const EXPLOSIONS = { sticky: { R: 6, D: 140, big: 0.9 }, frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 170, big: 1.25 }, rpg: { R: 5.5, D: 150, big: 1 }, barrel: { R: 6.5, D: 140, big: 1.1 } };
 
 export const GRENADE = { fuse: 3.0, throwSpeed: 17, radius: 7, damage: 135, perLife: 2 };
 
@@ -369,3 +369,23 @@ export function skinLook(sk) {
   sk = sk || {};
   return { uniform: f(SKINS.uniform, sk.uniform)[2], pattern: f(SKINS.pattern, sk.pattern)[2] || null, helmet: f(SKINS.helmet, sk.helmet)[2] };
 }
+
+// Rev 3b gear (free for now; price fields ready for a later shop)
+export const NADES = {
+  frag: { name: 'Frag', desc: 'Bounces, cook it with a held G. Big blast.', price: 0 },
+  flash: { name: 'Flashbang', desc: 'Blinds anyone looking at it and stuns bots for a few seconds. No damage.', price: 0 },
+  smoke: { name: 'Smoke', desc: 'Thick cloud for 13 s. Bots cannot see through it.', price: 0 },
+  sticky: { name: 'Sticky', desc: 'Sticks to the first thing it touches (people too). Short fuse.', price: 0 },
+};
+export const EQUIPMENT = { none: { name: 'None', desc: 'Travel light.', price: 0 }, claymore: { name: 'Claymore', desc: 'Directional mine (V). Trips on enemies in front of it. Two at a time.', price: 0 } };
+export const VESTS = {
+  light: { name: 'Light vest', desc: '7% faster on foot. No armour.', speed: 1.07, price: 0 },
+  standard: { name: 'Standard vest', desc: 'Balanced.', speed: 1, price: 0 },
+  heavy: { name: 'Heavy vest', desc: '20% less body damage (12% vs blasts), 7% slower. Headshots ignore it.', speed: 0.93, price: 0 },
+};
+export const BELTS = {
+  none: { name: 'Plain belt', desc: 'Nothing extra.', price: 0 },
+  bandolier: { name: 'Bandolier', desc: '50% more spare ammo.', price: 0 },
+  grenadier: { name: 'Grenadier', desc: 'One extra grenade per life.', price: 0 },
+  quickdraw: { name: 'Quickdraw', desc: 'Weapon swaps 35% faster.', price: 0 },
+};

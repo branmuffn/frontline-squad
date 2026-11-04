@@ -7,17 +7,21 @@ import { damage, noise, isEnemy } from './units.js';
 import { play } from '../engine/audio.js';
 import { explosion } from '../engine/fx.js';
 import { nearbyBarrels, damageBarrel } from './worldprops.js';
+import { flashbang, smokeCloud } from './gear.js';
+const KMAT = {};
+const kmat = (k) => KMAT[k] || (KMAT[k] = (() => { const m = new THREE.MeshStandardMaterial({ color: { flash: 0x2c3236, smoke: 0x8d9295, sticky: 0x7b4a2a }[k] || 0x4e5a36, roughness: 0.7 }); m.color.convertSRGBToLinear(); return m; })());
 
 export const grenades = [];
 const GEO = new THREE.SphereGeometry(0.075, 10, 8);
 const MAT = new THREE.MeshStandardMaterial({ color: 0x4e5a36, roughness: 0.7 });
 MAT.color.convertSRGBToLinear();
 
-export function throwGrenade(owner, x, y, z, vx, vy, vz, fuse) {
-  if (G.mp) G.mp.spawnEv('gr', owner, [x, y, z, vx, vy, vz, fuse]);
-  const mesh = new THREE.Mesh(GEO, MAT); mesh.castShadow = true;
+export function throwGrenade(owner, x, y, z, vx, vy, vz, fuse, kind = 'frag') {
+  if (G.mp) G.mp.spawnEv('gr', owner, [x, y, z, vx, vy, vz, fuse], kind);
+  const mesh = new THREE.Mesh(GEO, kind === 'frag' ? MAT : kmat(kind)); mesh.castShadow = true;
+  if (kind === 'smoke' || kind === 'flash') mesh.scale.set(0.8, 1.5, 0.8);
   mesh.position.set(x, y, z); G.scene.add(mesh);
-  grenades.push({ owner, x, y, z, vx, vy, vz, explodeAt: G.now + fuse, mesh, lastBounce: 0, rest: false });
+  grenades.push({ owner, kind, x, y, z, vx, vy, vz, explodeAt: G.now + (kind === 'sticky' ? 2.2 : kind === 'flash' ? Math.min(fuse, 1.6) : kind === 'smoke' ? 1.8 : fuse), mesh, lastBounce: 0, rest: false, stuck: null });
 }
 
 function inside(x, y, z, r) {
@@ -30,8 +34,16 @@ function inside(x, y, z, r) {
 export function updateGrenades(dt) {
   for (let i = grenades.length - 1; i >= 0; i--) {
     const g = grenades[i];
-    if (G.now >= g.explodeAt) { explode(g.x, g.y, g.z, g.owner, 'frag'); G.scene.remove(g.mesh); grenades.splice(i, 1); continue; }
+    if (g.stuck) { const u = g.stuck; g.x = u.x + g.sx; g.y = u.y + g.sy; g.z = u.z + g.sz; g.mesh.position.set(g.x, g.y, g.z); }
+    if (G.now >= g.explodeAt) {
+      if (g.kind === 'flash') flashbang(g.x, g.y, g.z, g.owner); else if (g.kind === 'smoke') smokeCloud(g.x, g.y - 0.05, g.z); else explode(g.x, g.y, g.z, g.owner, g.kind === 'sticky' ? 'sticky' : 'frag');
+      G.scene.remove(g.mesh); grenades.splice(i, 1); continue;
+    }
     if (g.rest) continue;
+    if (g.kind === 'sticky') { // sticks to the first person it touches
+      for (const u of G.units) if (u.alive && u !== g.owner && Math.hypot(u.x - g.x, u.z - g.z) < 0.45 && g.y > u.y && g.y < u.y + u.h + 0.1) { g.stuck = u; g.sx = g.x - u.x; g.sy = g.y - u.y; g.sz = g.z - u.z; g.rest = true; play('bounce', g); break; }
+      if (g.rest) continue;
+    }
     const steps = 4, h = dt / steps, r = 0.075;
     for (let s = 0; s < steps; s++) {
       g.vy -= 19 * (G.gravMul || 1) * h;
@@ -56,7 +68,7 @@ export function updateGrenades(dt) {
       if (g.z < b.minZ || g.z > b.maxZ) { g.vz = -g.vz * 0.4; g.z = Math.max(b.minZ, Math.min(b.maxZ, g.z)); bounced = true; }
       if (bounced && Math.hypot(g.vx, g.vy, g.vz) > 2 && G.now - g.lastBounce > 0.08) { g.lastBounce = G.now; play('bounce', g); }
     }
-    if (Math.hypot(g.vx, g.vy, g.vz) < 0.35 && Math.abs(g.vy) < 0.5) { g.rest = true; g.vx = g.vy = g.vz = 0; }
+    if ((Math.hypot(g.vx, g.vy, g.vz) < 0.35 && Math.abs(g.vy) < 0.5) || (g.kind === 'sticky' && g.lastBounce > 0)) { g.rest = true; g.vx = g.vy = g.vz = 0; }
     g.mesh.position.set(g.x, g.y, g.z);
     g.mesh.rotation.x += dt * Math.hypot(g.vx, g.vz) * 3; g.mesh.rotation.z += dt * 4;
   }
