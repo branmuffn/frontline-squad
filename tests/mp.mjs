@@ -141,6 +141,8 @@ await run(20); s = await st();
 check('end', s.c.state === 'ended', s.c.state);
 const endTxt = await C.evaluate(() => document.getElementById('endTitle').textContent + ' / ' + document.getElementById('again').textContent);
 out.endClient = endTxt;
+if (mode === 'tdm') { const r = await C.evaluate(() => { const G = window.__frontline.G, t = G.player.team, ts = G.match.teamScores; return [t, ts[t], ts[1 - t], document.getElementById('endTitle').textContent]; });
+  check('tdm result side', r[3] === (r[1] > r[2] ? 'Victory' : r[1] < r[2] ? 'Defeat' : 'Draw'), r); }
 // rematch from the end screen
 await H.evaluate(() => document.getElementById('again').click());
 for (let i = 0; i < 40 && (await C.evaluate(() => window.__frontline.G.state)) !== 'deploy'; i++) await sleep(50);

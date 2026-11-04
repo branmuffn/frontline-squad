@@ -138,7 +138,7 @@ export function pickSpawn(u, opts = {}) {
       if (d < 50 && losClear(o.x, o.y + 1.6, o.z, x, y + 1.2, z)) seen++;
     }
     let s = Math.min(minD, 45) + rand(0, 7) - seen * 30 + Math.min(friends, 2) * 4;
-    if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && !u.isPlayer) { const p = G.player; const d = Math.hypot(p.x - x, p.z - z); if (d < 22) s -= 80; }
+    if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && u.brain) { for (const p of G.units) if ((p.isPlayer || p.remote) && p.alive && Math.hypot(p.x - x, p.z - z) < 22) s -= 80; } // wave enemies never spawn on a human
     if (minD < 6) s -= 60;
     if (s > bs) { bs = s; best = { x, y, z }; }
   }
@@ -283,8 +283,8 @@ export function endMatch(reason) {
     else if (top.kills === P.kills && top.deaths === P.deaths) { result = 'draw'; title = 'Draw'; detail = 'Tied for first. Run it back.'; }
     else { result = 'defeat'; title = 'Defeat'; detail = `${top.name} topped the board with ${top.kills} eliminations.`; }
   } else if (m.mode === 'tdm') {
-    const [a, b] = m.teamScores;
-    result = a > b ? 'victory' : a < b ? 'defeat' : 'draw';
+    const [a, b] = m.teamScores, mine = m.teamScores[P.team === 1 ? 1 : 0], theirs = m.teamScores[P.team === 1 ? 0 : 1];
+    result = mine > theirs ? 'victory' : mine < theirs ? 'defeat' : 'draw';
     title = result === 'victory' ? 'Victory' : result === 'defeat' ? 'Defeat' : 'Draw';
     detail = `${TEAMS[0].name} ${a}  :  ${b} ${TEAMS[1].name}`;
   } else {

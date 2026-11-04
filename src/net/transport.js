@@ -5,7 +5,27 @@
 import { Peer } from 'peerjs';
 
 const opts = () => window.__NET_OPTS || {}; // test hook: { signal: 'localhost:9000', nostun: true }
-export const iceServers = () => (opts().nostun ? [] : [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]);
+// STUN finds a direct route (works for most home networks). When both sides sit behind strict NATs (mobile hotspots,
+// carrier-grade NAT, some office/school Wi-Fi) a TURN relay forwards the traffic instead: PeerJS's free relay is always
+// offered, plus an optional relay of the user's own (lobby > Advanced), e.g. a free Metered or Cloudflare account.
+const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+const RELAY = [{ urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }];
+export function customTurn() {
+  try { const t = (JSON.parse(localStorage.getItem('frontline_mp_v1')) || {}).turn; if (t && /^turns?:/.test(t.url || '')) return { urls: t.url.trim(), username: (t.user || '').trim(), credential: (t.pass || '').trim() }; } catch {}
+  return null;
+}
+export const iceServers = () => { if (opts().nostun) return []; const c = customTurn(); return STUN.concat(c ? [c] : [], RELAY); };
+// 'direct' or 'relay' once a link is up (shown next to the player's ping)
+export async function routeOf(pc) {
+  try {
+    const st = await pc.getStats(); let pair = null; const by = new Map();
+    st.forEach((r) => { by.set(r.id, r); if (r.type === 'transport' && r.selectedCandidatePairId) pair = r.selectedCandidatePairId; });
+    if (!pair) st.forEach((r) => { if (r.type === 'candidate-pair' && r.state === 'succeeded' && (r.nominated || r.selected)) pair = r.id; });
+    const lc = pair && by.get(by.get(pair).localCandidateId), rc = pair && by.get(by.get(pair).remoteCandidateId);
+    if (!lc) return '';
+    return lc.candidateType === 'relay' || (rc && rc.candidateType === 'relay') ? 'relay' : lc.candidateType === 'host' && rc && rc.candidateType === 'host' ? 'lan' : 'direct';
+  } catch { return ''; }
+}
 const PREFIX = 'frontline-solo-ops-v1-';
 const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const newCode = () => Array.from({ length: 5 }, () => ALPHA[(Math.random() * ALPHA.length) | 0]).join('');
@@ -115,7 +135,7 @@ async function unpack(code) {
 function gathered(pc) {
   if (pc.iceGatheringState === 'complete') return Promise.resolve();
   return new Promise((r) => {
-    const t = setTimeout(r, 3000);
+    const t = setTimeout(r, 4500); // relay candidates can take a moment
     pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); r(); } });
   });
 }
