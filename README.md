@@ -2,6 +2,8 @@
 
 A single-player browser FPS inspired by classic Combat Arms. Three.js r128, no backend, no accounts.
 
+See `docs/ARCHITECTURE.md` for the architecture diagram, status and build/output pipeline.
+
 ## Run it
 
 ```bash
