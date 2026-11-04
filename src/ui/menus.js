@@ -1,7 +1,7 @@
 import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -56,7 +56,8 @@ function refreshMenu() {
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
   seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
   $('modeDesc').textContent = MODES[L.mode].desc;
-  seg($('diffSel'), Object.entries(DIFFICULTY).map(([k, d]) => ({ v: k, html: d.label })), L.difficulty, (v) => { L.difficulty = v; saveProfile(); refreshBest(); });
+  refreshSkill();
+  if (!$('botRulesBtn').dataset.on) { $('botRulesBtn').dataset.on = '1'; $('botRulesBtn').addEventListener('click', () => { $('botOpts').classList.toggle('hidden'); refreshBotOpts(); }); $('botOptsX').addEventListener('click', () => $('botOpts').classList.add('hidden')); }
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
     mapSel.dataset.built = '1';
@@ -75,6 +76,18 @@ function refreshVehicles() {
   $('vehRow').classList.toggle('hidden', !show);
   document.querySelector('#menu .row2').classList.toggle('three', show);
   if (show) seg($('vehSel'), [{ v: 'off', html: 'Off' }, { v: 'on', html: 'On' }], L.vehicles ? 'on' : 'off', (v) => { L.vehicles = v === 'on'; saveProfile(); });
+}
+// Bot skill: five named bands on the main menu, 1-10 fine tune and what bots may do under "Rules"
+function refreshSkill() {
+  const L = G.profile.lobby;
+  seg($('diffSel'), SKILL_BANDS.map(([k, a]) => ({ v: k, html: DIFFICULTY[k].label })), skillBand(L.skill), (v) => { L.skill = SKILL_BANDS.find((b) => b[0] === v)[1]; L.difficulty = v; saveProfile(); refreshBest(); refreshBotOpts(); });
+}
+function refreshBotOpts() {
+  const L = G.profile.lobby, box = $('botOpts'); if (box.classList.contains('hidden')) return;
+  $('skillVal').textContent = `${L.skill} · ${DIFFICULTY[skillBand(L.skill)].label}`; $('skillRange').value = L.skill;
+  $('botRuleSel').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${L.bots[k] ? 'on' : ''}" aria-pressed="${!!L.bots[k]}">${label}</button>`).join('');
+  $('botRuleSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { L.bots[bt.dataset.k] = !L.bots[bt.dataset.k]; saveProfile(); refreshBotOpts(); }));
+  if (!$('skillRange').dataset.on) { $('skillRange').dataset.on = '1'; $('skillRange').addEventListener('input', (e) => { L.skill = +e.target.value; L.difficulty = skillBand(L.skill); saveProfile(); refreshSkill(); refreshBest(); refreshBotOpts(); }); }
 }
 function refreshSandbox() {
   const L = G.profile.lobby;
@@ -95,7 +108,7 @@ function refreshBest() {
   const pr = G.profile, L = pr.lobby;
   let t;
   if (L.mode === 'sandbox') t = 'Nothing in Sandbox counts toward XP or career stats.';
-  else if (L.mode === 'survival') t = `Best on ${DIFFICULTY[L.difficulty].label.toLowerCase()}: ${(pr.best.survival[L.difficulty] || 0).toLocaleString()} points · furthest wave ${pr.best.wave}`;
+  else if (L.mode === 'survival') t = `Best on ${DIFFICULTY[skillBand(L.skill)].label.toLowerCase()}: ${(pr.best.survival[skillBand(L.skill)] || 0).toLocaleString()} points · furthest wave ${pr.best.wave}`;
   else if (L.mode === 'zombies') t = `Furthest round: ${pr.best.zombies || 0}`;
   else t = `Most kills in a ${MODES[L.mode].name.toLowerCase()} match: ${pr.best[L.mode] || 0}`;
   $('bestLine').textContent = t;
@@ -307,7 +320,7 @@ export function initMenus(callbacks) {
   $('loadoutDone').addEventListener('click', () => {
     if (!prematch) { showScreen('menu'); return; }
     const L = G.profile.lobby;
-    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: L.difficulty, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
+    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, bots: { ...L.bots }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
   // export / import profile

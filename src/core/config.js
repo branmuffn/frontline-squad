@@ -220,19 +220,43 @@ export const EXPLOSIONS = { frag: { R: 7, D: 135, big: 1 }, mortar: { R: 8, D: 1
 export const GRENADE = { fuse: 3.0, throwSpeed: 17, radius: 7, damage: 135, perLife: 2 };
 
 export const DIFFICULTY = {
-  easy: {
+  recruit: {
+    label: 'RECRUIT', skill: 1, react: [0.9, 1.35], aimErr: 0.11, settle: 1.9, dmgMul: 0.55, burstGap: [0.9, 1.5], burstMul: 0.5,
+    turn: 4, speed: 0.92, hearing: 0.55, aggro: 0.15, grenade: 0.0, playerBias: 3, headChance: 0.01, sniperAim: 2, mg: 0.07,
+  },
+  easy: { skill: 3,
     label: 'EASY', react: [0.65, 1.0], aimErr: 0.085, settle: 1.4, dmgMul: 0.7, burstGap: [0.7, 1.2], burstMul: 0.6,
-    turn: 5, speed: 1, hearing: 0.7, aggro: 0.25, grenade: 0.0, playerBias: 4, headChance: 0.03, sniperAim: 1.6,
+    turn: 5, speed: 1, hearing: 0.7, aggro: 0.25, grenade: 0.0, playerBias: 4, headChance: 0.03, sniperAim: 1.6, mg: 0.05,
   },
   normal: {
-    label: 'NORMAL', react: [0.38, 0.6], aimErr: 0.06, settle: 0.95, dmgMul: 1, burstGap: [0.4, 0.8], burstMul: 0.85,
-    turn: 8, speed: 1, hearing: 1, aggro: 0.5, grenade: 0.1, playerBias: 8, headChance: 0.08, sniperAim: 1.15,
+    label: 'NORMAL', skill: 5, react: [0.38, 0.6], aimErr: 0.06, settle: 0.95, dmgMul: 1, burstGap: [0.4, 0.8], burstMul: 0.85,
+    turn: 8, speed: 1, hearing: 1, aggro: 0.5, grenade: 0.1, playerBias: 8, headChance: 0.08, sniperAim: 1.15, mg: 0.03,
   },
   hard: {
-    label: 'HARD', react: [0.2, 0.34], aimErr: 0.042, settle: 0.6, dmgMul: 1, burstGap: [0.22, 0.5], burstMul: 1,
-    turn: 12, speed: 1, hearing: 1.3, aggro: 0.8, grenade: 0.2, playerBias: 12, headChance: 0.15, sniperAim: 0.85,
+    label: 'HARD', skill: 7, react: [0.2, 0.34], aimErr: 0.042, settle: 0.6, dmgMul: 1, burstGap: [0.22, 0.5], burstMul: 1,
+    turn: 12, speed: 1, hearing: 1.3, aggro: 0.8, grenade: 0.2, playerBias: 12, headChance: 0.15, sniperAim: 0.85, mg: 0.018,
+  },
+  elite: {
+    label: 'ELITE', skill: 9.5, react: [0.12, 0.22], aimErr: 0.03, settle: 0.4, dmgMul: 1, burstGap: [0.15, 0.36], burstMul: 1.1,
+    turn: 16, speed: 1.04, hearing: 1.5, aggro: 0.9, grenade: 0.26, playerBias: 14, headChance: 0.22, sniperAim: 0.7, mg: 0.012,
   },
 };
+// Bot skill 1-10: bands for labels/records, AI numbers interpolated between the anchors above.
+export const SKILL_BANDS = [['recruit', 1, 2], ['easy', 3, 4], ['normal', 5, 6], ['hard', 7, 8], ['elite', 9, 10]];
+export const skillBand = (n) => (SKILL_BANDS.find(([, a, b]) => n >= a && n <= b) || SKILL_BANDS[2])[0];
+export const skillFor = (diff) => (DIFFICULTY[diff] ? Math.round(DIFFICULTY[diff].skill) : 5);
+export function botSkill(n) {
+  const L = Object.values(DIFFICULTY), x = Math.max(1, Math.min(10, +n || 5));
+  let i = 0; while (i < L.length - 2 && x > L[i + 1].skill) i++;
+  const A = L[i], B = L[i + 1], k = Math.max(0, Math.min(1, (x - A.skill) / (B.skill - A.skill)));
+  const mix = (a, b) => (Array.isArray(a) ? a.map((v, j) => v + (b[j] - v) * k) : typeof a === 'number' ? a + (b - a) * k : a);
+  const out = {}; for (const key of Object.keys(B)) out[key] = mix(A[key], B[key]);
+  out.label = DIFFICULTY[skillBand(Math.round(x))].label; out.skill = x;
+  return out;
+}
+// What bots may do (lobby "Bot rules"; all on by default)
+export const BOT_RULES = [['grenades', 'Grenades'], ['streaks', 'Killstreaks'], ['snipers', 'Sniper rifles'], ['vehicles', 'Vehicles'], ['loot', 'Pick up guns'], ['tactics', 'Flank & cover']];
+export const botRulesDefault = () => Object.fromEntries(BOT_RULES.map(([k]) => [k, true]));
 
 export const MODES = {
   ffa: {

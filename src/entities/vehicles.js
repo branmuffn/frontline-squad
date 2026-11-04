@@ -515,9 +515,9 @@ export function obbRay(d, ox, oy, oz, dx, dy, dz, tmax) {
 
 // ---------- bots (6c) ----------
 let crewAt = 0;
-const BOT_SPREAD = { easy: 0.05, normal: 0.03, hard: 0.018 };
 // idle bots walk to empty seats (one bot per seat), board when close; give up if the seat is taken or the jeep is gone
 function assignCrews() {
+  if (!G.match.bots.vehicles) return;
   for (const u of G.bots) {
     const b = u.brain; if (!u.alive || u.vehicle || !b.board) continue;
     const v = b.board;
@@ -577,7 +577,7 @@ function botGunner(u, v, dt, t) {
   const wantYaw = Math.atan2(-(tx - px), -(tz - pz)), wantPitch = Math.atan2(ty - py, Math.hypot(tx - px, tz - pz));
   const cur = v.yaw + v.gunYaw, dy = wrapA(wantYaw - cur), turn = 2.6 * dt;
   const a = aimGun(v, cur + clamp(dy, -turn, turn), v.gunPitch + clamp(wantPitch - v.gunPitch, -turn, turn));
-  if (Math.abs(dy) < 0.09 && Math.abs(wantPitch - v.gunPitch) < 0.09) fireMG(v, u, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9, BOT_SPREAD[G.match.difficulty] || 0.03);
+  if (Math.abs(dy) < 0.09 && Math.abs(wantPitch - v.gunPitch) < 0.09) fireMG(v, u, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9, G.match.ai.mg || 0.03);
 }
 function botDriver(u, v, dt, t) {
   const r = u.vRoute; if (!r) { drive(v, dt, 0, 0, true); return; }
@@ -601,7 +601,7 @@ function botPilot(u, v, dt, t) {
     const d = Math.hypot(t.x - v.x, t.z - v.z); fwd = d > 60 ? 0.6 : d < 25 ? -0.4 : 0;
     if (Math.abs(wrapA(wantYaw - v.yaw)) < 0.12 && v.y > g + 4) {
       const [nx, nz] = world(v, 0, -2.5), ny = v.y + 0.75, tx = t.x - nx, ty = t.y + 1 - ny, tz = t.z - nz, l = Math.hypot(tx, ty, tz) || 1;
-      fireMG(v, u, tx / l, ty / l, tz / l, nx, ny, nz, (BOT_SPREAD[G.match.difficulty] || 0.03) * 1.3);
+      fireMG(v, u, tx / l, ty / l, tz / l, nx, ny, nz, (G.match.ai.mg || 0.03) * 1.3);
     }
   } else if (r) {
     const wp = r.pts[u.vWp % r.pts.length], dx = wp[0] - v.x, dz = wp[1] - v.z;

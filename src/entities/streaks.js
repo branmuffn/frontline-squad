@@ -137,7 +137,7 @@ function explodeSentry(s) { G.scene.remove(s.mesh); play('radio', { x: s.x, y: s
 // ---------- bots earn and use the same rewards ----------
 export function botStreak(u, n) {
   const s = STREAKS.find((q) => q.kills === n), b = u.brain;
-  if (!s || !b) return;
+  if (!s || !b || !G.match.bots.streaks) return;
   const hostile = isEnemy(u, G.player);
   if (s.auto) {
     b.uavUntil = G.now + s.duration;

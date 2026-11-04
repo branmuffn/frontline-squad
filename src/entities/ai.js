@@ -86,7 +86,7 @@ function lootSlot(u, id) {
   return Math.max(0, b.guns.indexOf(b.weapon));
 }
 function considerLoot(u, b) {
-  if (b.loot || b.melee || b.guns[0] === 'knife' || (G.match.rules && G.match.rules.knife)) return;
+  if (b.loot || b.melee || !G.match.bots.loot || b.guns[0] === 'knife' || (G.match.rules && G.match.rules.knife)) return;
   for (const d of drops) {
     if (!TIER[d.id] || Math.abs(d.y - u.y) > 1.2 || Math.hypot(d.x - u.x, d.z - u.z) > 12) continue;
     if (!d.seen) d.seen = new Set();
@@ -159,8 +159,8 @@ function onDamaged(u, attacker) {
   const b = u.brain;
   if (!attacker || attacker === u || !isEnemy(u, attacker)) return;
   if (!b.target || !b.visible) { b.target = attacker; b.lastKnown = { x: attacker.x, y: attacker.y, z: attacker.z }; b.lastSeen = G.now - 0.5; b.reactAt = Math.min(b.reactAt, G.now + 0.25); b.trackStart = G.now; }
-  const cfg = DIFFICULTY[G.match.difficulty];
-  if (!b.T.noCover && b.state !== 'cover' && chance((1 - Math.max(cfg.aggro, b.T.aggro)) * 0.7 + (u.health < 45 ? 0.3 : 0))) b.wantCover = true;
+  const cfg = G.match.ai;
+  if (!b.T.noCover && G.match.bots.tactics && b.state !== 'cover' && chance((1 - Math.max(cfg.aggro, b.T.aggro)) * 0.7 + (u.health < 45 ? 0.3 : 0))) b.wantCover = true;
 }
 
 const yawTo = (ax, az, bx, bz) => Math.atan2(-(bx - ax), -(bz - az));
@@ -273,14 +273,14 @@ function think(u, cfg) {
   // grenade throw at a hiding target
   if (b.target && b.grenades > 0 && G.now > b.grenadeAt && b.lastKnown && !b.evade) {
     const d = Math.hypot(b.lastKnown.x - u.x, b.lastKnown.z - u.z);
-    if (d > 9 && d < 24 && (!b.visible || chance(0.25)) && G.now - b.lastSeen < 3 && chance(cfg.grenade)) botThrow(u, b.lastKnown, d);
+    if (d > 9 && d < 24 && (!b.visible || chance(0.25)) && G.now - b.lastSeen < 3 && G.match.bots.grenades && chance(cfg.grenade)) botThrow(u, b.lastKnown, d);
     b.grenadeAt = Math.max(b.grenadeAt, G.now + 2);
   }
   // decide state
   const prev = b.state;
   if (b.evade) b.state = 'evade';
   else if (b.target && b.visible) {
-    if (!b.melee && (b.wantCover || (u.health < 40 && !b.T.noCover) || (G.now < b.reloadUntil && Math.hypot(b.target.x - u.x, b.target.z - u.z) < 18)) && prev !== 'cover') {
+    if (!b.melee && G.match.bots.tactics && (b.wantCover || (u.health < 40 && !b.T.noCover) || (G.now < b.reloadUntil && Math.hypot(b.target.x - u.x, b.target.z - u.z) < 18)) && prev !== 'cover') {
       const c = findCover(u, b.target);
       b.wantCover = false;
       if (c) { b.cover = c; b.coverUntil = G.now + rand(1.6, 3.2); b.state = 'cover'; setGoal(u, c.x, c.y, c.z, true); }
@@ -289,7 +289,7 @@ function think(u, cfg) {
     else b.state = 'engage';
   } else if (b.target && b.lastKnown) {
     b.state = 'hunt';
-    if (prev !== 'hunt' && chance(cfg.aggro * 0.45) && mode !== 'survival') b.flankUntil = G.now + 6;
+    if (prev !== 'hunt' && G.match.bots.tactics && chance(cfg.aggro * 0.45) && mode !== 'survival') b.flankUntil = G.now + 6;
   } else if (b.investigate && G.now < b.investigate.until) b.state = 'investigate';
   else if (u.health < u.maxHealth * 0.55) {
     let hp = null, hd = 38;
@@ -411,7 +411,7 @@ function fire(u, cfg) {
 }
 
 export function updateBots(dt) {
-  const cfg = DIFFICULTY[G.match.difficulty];
+  const cfg = G.match.ai;
   const frozen = G.state === 'deploy';
   for (const u of G.bots) {
     const s = u.soldier, b = u.brain;

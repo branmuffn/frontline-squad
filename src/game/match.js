@@ -1,7 +1,7 @@
 import { G } from '../core/state.js';
 import { loadoutGuns, SLOT_MODES, ALL_GUNS } from '../core/config.js';
 import { rankFor } from './progression.js';
-import { MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY } from '../core/config.js';
+import { MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY, botSkill, skillBand, skillFor, botRulesDefault } from '../core/config.js';
 import { rand, randInt, pick, shuffle, chance } from '../core/util.js';
 import { clearInput, exitLock } from '../core/input.js';
 import { loadMap } from '../world/maps/index.js';
@@ -29,7 +29,7 @@ let deployBeep = 0;
 
 function pickWeapon() {
   if (G.match.rules && G.match.rules.knife) return 'knife';
-  const r = Math.random();
+  const r = Math.random() * (G.match.bots.snipers ? 1 : 0.9); // no bolt-action snipers when the rule is off
   return r < 0.28 ? 'm4' : r < 0.46 ? 'ak47' : r < 0.62 ? 'mp5' : r < 0.71 ? 'm870' : r < 0.77 ? 'spas12' : r < 0.84 ? 'm249' : r < 0.9 ? 'mk14' : r < 0.96 ? 'l96' : 'barrett';
 }
 
@@ -39,9 +39,10 @@ export function startMatch(cfg) {
   resetKillcam();
   if (!G.world.nav) buildNav();
   cleanupMatch();
+  const skill = cfg.skill >= 1 ? +cfg.skill : skillFor(cfg.difficulty);
   G.match = {
-    mode: cfg.mode, map: cfg.map, difficulty: cfg.difficulty, count: cfg.count, def: mode,
-    time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? cfg.count * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
+    mode: cfg.mode, map: cfg.map, difficulty: skillBand(Math.round(skill)), skill, ai: botSkill(skill), bots: { ...botRulesDefault(), ...(cfg.bots || {}) }, count: cfg.count, def: mode,
+    time: mode.time || 0, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
     rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
@@ -196,7 +197,7 @@ function startWave(n) {
 }
 function spawnSurvivor() {
   const m = G.match, type = WAVE_TYPES(m.wave);
-  const weapon = type === 'rusher' ? 'mp5' : type === 'heavy' ? 'm870' : type === 'marksman' ? (chance(0.5) ? 'mk14' : 'l96') : chance(0.3) ? 'mp5' : 'm4';
+  const weapon = type === 'rusher' ? 'mp5' : type === 'heavy' ? 'm870' : type === 'marksman' ? (chance(0.5) || !m.bots.snipers ? 'mk14' : 'l96') : chance(0.3) ? 'mp5' : 'm4';
   const b = addBot({
     name: type === 'heavy' ? 'HEAVY' : type === 'marksman' ? 'MARKSMAN' : type === 'rusher' ? 'RUSHER' : 'HOSTILE', team: 1, weapon, type,
     uniform: type === 'heavy' ? 0x2c2f31 : type === 'marksman' ? 0x4d5a3a : pick([0x3a3f44, 0x46423c, 0x5a4f43]), accent: type === 'heavy' ? 0x1f2224 : 0x8a3a30,

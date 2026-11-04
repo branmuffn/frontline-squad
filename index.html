@@ -26,10 +26,11 @@
     <div class="field"><span class="flabel">Mode</span><div id="modeSel" class="modes"></div><p id="modeDesc" class="mode-desc"></p></div>
     <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps"></div></div>
     <div class="row2">
-      <div class="field"><span class="flabel">Difficulty</span><div id="diffSel" class="seg"></div></div>
+      <div class="field"><span class="flabel">Bot skill <button id="botRulesBtn" class="flink" type="button">Rules…</button></span><div id="diffSel" class="seg"></div></div>
       <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
       <div class="field hidden" id="vehRow"><span class="flabel">Vehicles</span><div id="vehSel" class="seg"></div></div>
     </div>
+    <div class="field hidden bot-pop" id="botOpts"><button id="botOptsX" class="pop-x" type="button" aria-label="Close">×</button><span class="flabel">Bot skill <b id="skillVal"></b></span><input id="skillRange" type="range" min="1" max="10" step="1" class="skill-range"><span class="flabel">Bots may</span><div id="botRuleSel" class="chips"></div></div>
     <div class="field hidden" id="sandboxOpts"><span class="flabel">Sandbox rules</span><div id="ruleSel" class="chips"></div></div>
     <button id="deploy" class="btn-primary deploy" type="button">Deploy</button>
     <p id="bestLine" class="best"></p>
@@ -205,8 +206,9 @@
           <div class="mp-settings">
             <label class="field"><span class="flabel">Mode</span><select id="mpMode"></select></label>
             <label class="field"><span class="flabel">Map</span><select id="mpMap"></select></label>
-            <label class="field"><span class="flabel">Difficulty</span><select id="mpDiff"></select></label>
+            <label class="field"><span class="flabel">Bot skill</span><select id="mpDiff"></select></label>
             <label class="field" id="mpCountRow"><span class="flabel" id="mpCountLabel">Bots</span><select id="mpCount"></select></label>
+            <div class="field mp-botrules"><span class="flabel">Bots may</span><div id="mpBotRules" class="chips small"></div></div>
             <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
           </div>
         </div>

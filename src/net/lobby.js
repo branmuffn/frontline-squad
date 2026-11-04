@@ -1,11 +1,13 @@
 // Multiplayer lobby screen: host / join by room code, manual copy-paste codes, match settings, start.
 import { G } from '../core/state.js';
 import { $ } from '../core/util.js';
-import { MODES, DIFFICULTY } from '../core/config.js';
+import { MODES, DIFFICULTY, skillBand, skillFor, BOT_RULES, botRulesDefault } from '../core/config.js';
 import { MAPS } from '../world/maps/index.js';
 import * as net from './net.js';
 
 const KEY = 'frontline_mp_v1';
+// bot counts in multiplayer (0 = humans only)
+const MP_COUNTS = { ffa: [0, 1, 2, 3, 5, 7, 9], tdm: [0, 2, 3, 4, 5, 6] };
 let saved = null, show = null;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -13,9 +15,10 @@ function load() {
   try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { saved = {}; }
   saved.name = saved.name || 'PLAYER' + Math.floor(Math.random() * 90 + 10);
   saved.cfg = Object.assign({ mode: 'survival', map: 'yard', difficulty: 'normal', count: 5, sameTeam: false }, saved.cfg || {});
+  if (!(saved.cfg.skill >= 1 && saved.cfg.skill <= 10)) saved.cfg.skill = skillFor(saved.cfg.difficulty);
+  saved.cfg.bots = { ...botRulesDefault(), ...(saved.cfg.bots || {}) };
   if (!net.MP_MODES.includes(saved.cfg.mode)) saved.cfg.mode = 'survival';
   if (!MAPS[saved.cfg.map]) saved.cfg.map = Object.keys(MAPS)[0];
-  if (!DIFFICULTY[saved.cfg.difficulty]) saved.cfg.difficulty = Object.keys(DIFFICULTY)[1] || Object.keys(DIFFICULTY)[0];
 }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {} }
 const panel = () => $('mp').querySelector('.panel');
@@ -25,21 +28,23 @@ const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(
 function fillSettings(cfg) {
   $('mpMode').innerHTML = net.MP_MODES.map((m) => opt(m, MODES[m].name + (net.COOP(m) ? ' (co-op)' : ' (versus)'), m === cfg.mode)).join('');
   $('mpMap').innerHTML = Object.entries(MAPS).map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
-  $('mpDiff').innerHTML = Object.entries(DIFFICULTY).map(([id, d]) => opt(id, d.label, id === cfg.difficulty)).join('');
-  const counts = MODES[cfg.mode].counts;
+  $('mpDiff').innerHTML = Array.from({ length: 10 }, (_, i) => opt(i + 1, `${i + 1} · ${DIFFICULTY[skillBand(i + 1)].label}`, i + 1 === +cfg.skill)).join('');
+  const counts = MP_COUNTS[cfg.mode];
   $('mpCountRow').classList.toggle('hidden', !counts);
   if (counts) {
     if (!counts.includes(+cfg.count)) cfg.count = MODES[cfg.mode].defaultCount;
-    $('mpCountLabel').textContent = cfg.mode === 'tdm' ? 'Squad size' : 'Bots';
-    $('mpCount').innerHTML = counts.map((c) => opt(c, String(c), c === +cfg.count)).join('');
+    $('mpCountLabel').textContent = cfg.mode === 'tdm' ? 'Team size (bots fill)' : 'Bots';
+    $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
   }
+  const host = !!net.session.host;
+  $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
   $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
   $('mpTeams').value = cfg.sameTeam ? '1' : '0';
 }
 function readSettings() {
   const c = saved.cfg;
-  c.mode = $('mpMode').value; c.map = $('mpMap').value; c.difficulty = $('mpDiff').value;
-  c.count = +$('mpCount').value || MODES[c.mode].defaultCount || 0; c.sameTeam = $('mpTeams').value === '1';
+  c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.difficulty = skillBand(c.skill);
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1';
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
   net.hostCfg({ ...c });
@@ -82,6 +87,7 @@ export function initLobby(cb) {
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
   for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {
     if (!net.session.host) { setState('host'); fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }); }

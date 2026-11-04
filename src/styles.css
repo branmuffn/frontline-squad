@@ -468,3 +468,12 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #mpStart:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
 [data-state=choose] #mpStart, [data-state=client] #mpStart { display: none; }
 .net-ping { position: absolute; top: 8px; right: 12px; font-size: 13px; color: var(--ink-dim); text-shadow: 0 1px 2px #000; }
+
+.flink { background: none; border: 0; padding: 0 0 0 8px; color: var(--brass, #c9a25a); font: inherit; font-size: 0.9em; text-decoration: underline; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.skill-range { width: 100%; accent-color: #c9a25a; margin: 2px 0 6px; }
+#botOpts .flabel b { color: #ffe2a6; margin-left: 6px; }
+.chips.small button { padding: 3px 7px; font-size: 13px; }
+.chips button:disabled { opacity: 0.75; cursor: default; }
+.bot-pop { position: fixed; right: clamp(12px, 3vw, 40px); bottom: clamp(12px, 4vh, 40px); width: min(380px, 38vw); z-index: 5; padding: 14px 16px; background: rgba(16, 20, 23, 0.94); border: 1px solid var(--line); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+.bot-pop .chips button { padding: 4px 8px; font-size: 14px; }
+.pop-x { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: #aab; font-size: 22px; line-height: 1; cursor: pointer; }
