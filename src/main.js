@@ -32,6 +32,7 @@ import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
 import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
 import { finishFinale } from './game/match.js';
 import { unitFoley } from './entities/units.js';
+import { spectateStep, spectateCycle, spectateToggleView } from './net/spectate.js';
 import { updateGear, useEquipment } from './entities/gear.js';
 import { openCrate } from './entities/streaks.js';
 import { updateDoors, doorInteract } from './world/doors.js';
@@ -53,13 +54,13 @@ function boot() {
   applySetting('crosshair'); applySetting('showFps'); applySetting('scopeToggle'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'finale') { skipKillcam(); return; } if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'finale') { skipKillcam(); return; } if (G.spectating) { spectateCycle(b === 2 ? -1 : 1); return; } if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
     onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
   initChat();
   initLobby({ showScreen });
-  net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); } });
+  net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); }, pickSpawn: (u) => pickSpawn(u) });
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
     onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
@@ -96,6 +97,7 @@ function applySetting(k) {
 }
 
 function deploy(cfg) {
+  if (!(G.mp && G.mp.live && G.mp.client)) G.spectating = null;
   if (cfg.mode === 'range') cfg = { ...cfg, map: 'range', count: 0 }; // the range is its own map
   lastCfg = cfg; G.netPaused = false;
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
@@ -194,6 +196,7 @@ function onCanvasClick() {
 let finaleVM = false;
 function onKeyDown(code, e) {
   if (G.state === 'finale') { if (!e.repeat && code !== 'Tab') skipKillcam(); return; }
+  if (G.spectating && code === 'KeyV' && !e.repeat) { spectateToggleView(); return; }
   if (!(isLive() || G.state === 'paused')) return;
   if (code === 'F9') { e.preventDefault(); toggleColliderDebug(); return; }
   if (G.state === 'dead' && !e.repeat && code !== 'Escape' && !matches('scoreboard', code) && skipKillcam()) return;
@@ -259,7 +262,8 @@ function loop(t) {
     G.now += dt;
     updateMatch(dt);
     if (isLive()) {
-      updatePlayer(dt);
+      document.body.classList.toggle('spectating', !!G.spectating);
+      if (G.spectating) spectateStep(dt); else updatePlayer(dt);
       updateBots(dt); unitFoley(dt);
       if (G.mp) net.update(dt);
       separateUnits();

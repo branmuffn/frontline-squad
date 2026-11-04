@@ -42,6 +42,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `medals.mjs` — no-scope, 360 no-scope, quickscope, nutcracker (groin zone).
 - `streaks3c.mjs` — picks + kill counts, care package drop/open, airstrike, attack chopper (shot down), counter-UAV, gunship.
 - `range.mjs [shots]` — practice range: own map, dummies at marks, movers, damage numbers, pop back up, no XP, armory.
+- `mplate.mjs` — late join into a running match, rejoin keeps score, spectator (follow cam, snapshots, no unit).
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

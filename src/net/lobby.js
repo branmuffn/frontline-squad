@@ -120,7 +120,7 @@ export function initLobby(cb) {
     const code = $('mpCode').value.trim().toUpperCase();
     if (code.length < 5) { status('Type the 5-letter room code from the host.', 'warn'); return; }
     setState('client');
-    net.joinCode(name(), code, G.profile.skin).catch(() => setState('choose'));
+    net.joinCode(name(), code, G.profile.skin, $('mpSpec').checked).catch(() => setState('choose'));
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
@@ -143,7 +143,7 @@ export function initLobby(cb) {
     try {
       status('Making reply code…');
       setState('client');
-      const c = await net.joinManual(name(), $('mpInviteIn').value, G.profile.skin);
+      const c = await net.joinManual(name(), $('mpInviteIn').value, G.profile.skin, $('mpSpec').checked);
       $('mpReplyOut').value = c; copy(c);
       status('Reply copied. Send it to the host; you connect as soon as they paste it.', 'ok');
     } catch (e) { status(e.message, 'warn'); setState('choose'); }

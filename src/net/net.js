@@ -85,7 +85,7 @@ export async function hostAccept(reply) {
   const L = await inv.accept(reply); S.invite = null; addLink(L);
 }
 function addLink(L) {
-  if (!S.host || S.remotes.length >= MAX_PLAYERS - 1 || S.live) { L.send({ t: 'full', why: S.live ? 'Match in progress. Try again when it ends.' : 'Room is full.' }); setTimeout(() => L.close(), 500); return; }
+  if (!S.host || S.remotes.length >= MAX_PLAYERS - 1) { L.send({ t: 'full', why: 'Room is full.' }); setTimeout(() => L.close(), 500); return; }
   const r = { link: L, slot: S.nextSlot++, name: 'PLAYER', rtt: 0, buf: [], unit: null, seq: 0, hello: false, ready: false, skin: cleanSkin(null), route: '', chatT: -9, team: 0 };
   if (L.pc) setTimeout(() => routeOf(L.pc).then((k) => { r.route = k; refreshUi(); bcast({ t: 'lobby', p: players(), cfg: S.cfg }); }), 1500);
   S.remotes.push(r);
@@ -96,6 +96,7 @@ function addLink(L) {
 function dropRemote(r, why) {
   const i = S.remotes.indexOf(r); if (i < 0) return;
   S.remotes.splice(i, 1); clearInterval(r.pingT);
+  if (r.unit && S.live) S.dropped[r.name] = { kills: r.unit.kills, deaths: r.unit.deaths, team: r.unit.team };
   if (r.unit) removeRemoteUnit(r);
   if (r.hello) { const msg = `${r.name} ${why === 'left' ? 'left the game' : why === 'kicked' ? 'was removed by the host' : 'was disconnected'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }); }
   status(`${r.name} left.`, 'warn');
@@ -121,17 +122,17 @@ export function sendChat(text, team) {
     chat.add(S.name, m, 'me', !!team); for (const r of S.remotes) if (r.hello && (!team || (r.unit && r.unit.team === tm))) r.link.send({ t: 'chat', n: S.name, m, tm, tt: team ? 1 : 0 });
   } else if (S.link) { chat.add(S.name, m, 'me', !!team); S.link.send({ t: 'chat', m, tt: team ? 1 : 0 }); }
 }
-export async function joinCode(name, code, skin) {
+export async function joinCode(name, code, skin, spec) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false }); chat.reset();
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec }); chat.reset();
   G.mp = S;
   status('Joining room ' + code.toUpperCase() + '…');
   const p = joinRoom(code); S.pending = p;
   try { attach(await p); } catch (e) { status(e.message, 'warn'); throw e; }
 }
-export async function joinManual(name, invite, skin) {
+export async function joinManual(name, invite, skin, spec) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false }); chat.reset();
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec }); chat.reset();
   G.mp = S;
   const r = await manualReply(invite); S.reply = r;
   r.link.then(attach).catch((e) => status(e.message, 'warn'));
@@ -142,7 +143,7 @@ function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
   L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
-  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD });
+  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate });
   status('Connected. Waiting for the host to start…', 'ok');
 }
 
@@ -163,7 +164,7 @@ export function leave(silent) {
 
 // ---------------- match start / end ----------------
 const joined = () => S.remotes.filter((r) => r.hello);
-export const notReady = () => joined().filter((r) => !r.ready).map((r) => r.name);
+export const notReady = () => joined().filter((r) => !r.ready && !r.spec).map((r) => r.name);
 export const canStart = () => S.host && joined().length > 0 && !notReady().length && MP_MODES.includes(S.cfg.mode);
 // teams are dealt when the match starts: TDM alternates by join order (host first), so sides stay even
 function dealTeams(mode) {
@@ -176,10 +177,24 @@ export function lookFor(team, slot, mode, skin) {
   const base = { uniform: UNIFORMS[(slot + 3) % UNIFORMS.length], accent: ACCENTS[(slot + 2) % ACCENTS.length], helmet: 0x3b4034 };
   return k ? { ...k, accent: base.accent } : base;
 }
+// a player arriving while a match runs (or coming back after a drop: same name keeps their score)
+function lateJoin(r) {
+  const cfg = S.liveCfg, mode = cfg.mode;
+  if (r.spec) { r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
+  const back = S.dropped[r.name];
+  if (COOP(mode)) r.team = 0; else if (mode === 'tdm') { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
+  const [u] = makeRemoteUnits(mode, [r]);
+  if (back) { u.kills = back.kills; u.deaths = back.deaths; delete S.dropped[r.name]; }
+  spawnRemote(u, S.cb.pickSpawn(u), false);
+  r.link.send({ t: 'start', cfg, uid: u.id, team: u.team, sp: spawnOf(u), seq: r.seq, hostName: S.name, late: true });
+  sendRoster(true);
+  const msg = `${r.name} ${back ? 'rejoined (score kept)' : 'joined the match'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }, r);
+}
 export function hostStart() {
   if (!canStart()) return false;
   const cfg = { ...S.cfg, streakKills: { ...((G.profile.streaks || {}).kills || {}) } }; // the host's killstreak kill counts apply to everyone
   dealTeams(cfg.mode);
+  S.liveCfg = cfg; S.dropped = {};
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
@@ -188,11 +203,11 @@ export function hostStart() {
 }
 const spawnOf = (u) => ({ x: u.x, y: u.y, z: u.z, yaw: u.yaw });
 // called by startMatch on the host: one unit per connected player (bots count is adjusted by match.js)
-export function remoteTeams() { return joined().map((r) => r.team); }
-export function makeRemoteUnits(mode) {
+export function remoteTeams() { return joined().filter((r) => !r.spec).map((r) => r.team); }
+export function makeRemoteUnits(mode, only) {
   const out = [];
-  for (const r of S.remotes) {
-    if (!r.hello) continue;
+  for (const r of only || S.remotes) {
+    if (!r.hello || r.spec) continue;
     const team = r.team, look = lookFor(team, r.slot, mode, r.skin);
     const u = makeUnit({ name: r.name, team, remote: true, human: true, maxHealth: 100, health: 100 });
     u.look = look; u.weapon = 'm4'; u.rec = r;
@@ -275,11 +290,12 @@ function hostMsg(r, m) {
   switch (m.t) {
     case 'hello':
       if (m.v !== VER) { r.link.send({ t: 'full', why: 'Version mismatch: both players need the same game file.' }); setTimeout(() => r.link.close(), 500); return; }
-      r.name = clean(m.name); r.hello = true; r.skin = cleanSkin(m.k);
+      r.name = clean(m.name); r.hello = true; r.skin = cleanSkin(m.k); r.spec = !!m.spec; if (r.spec) r.ready = true;
       if (m.b && m.b !== BUILD) { const w = `${clean(m.name)} is on ${m.b}, you are on ${BUILD}. Everyone should reload the same link.`; status(w, 'warn'); r.link.send({ t: 'chat', n: '', m: w, k: 'sys' }); }
       { let n = 2; const base = r.name; while ([S.name, ...S.remotes.filter((x) => x !== r && x.hello).map((x) => x.name)].includes(r.name)) r.name = (base.slice(0, 12) + n++); }
       r.link.send({ t: 'welcome', slot: r.slot });
-      status(`${r.name} joined.`, 'ok'); play('pickup');
+      status(`${r.name} ${r.spec ? 'is spectating' : 'joined'}.`, 'ok'); play('pickup');
+      if (S.live) lateJoin(r); // a match is running: straight in
       bcast({ t: 'lobby', p: players(), cfg: S.cfg }); refreshUi(); return;
     case 'pi': r.link.send({ t: 'po', c: m.c }); return;
     case 'po': r.rtt = r.rtt ? r.rtt * 0.7 + (now() - m.c) * 0.3 : now() - m.c; return;
@@ -385,7 +401,10 @@ function clientStart(m) {
   S.live = true;
   S.cb.deploy(m.cfg);               // startMatch sees G.mp.client: no bots, our team
   const P = G.player; P.name = S.name;
+  if (m.spec) { G.spectating = { i: 0, fp: false }; P.alive = false; P.x = 0; P.y = -50; P.z = 0; G.state = 'playing'; hud.notice('Spectating · click: next player · right-click: previous · V: their eyes / chase cam'); return; }
+  G.spectating = null;
   spawnPlayer(m.sp.x, m.sp.y, m.sp.z, m.sp.yaw);
+  if (m.late) { G.state = 'playing'; hud.notice('Joined a match in progress'); } // no deploy countdown when joining late
 }
 function clientSpawn(m) {
   S.seq = m.seq;
@@ -512,8 +531,8 @@ function sendSnap() {
   const mf = matchFields(), mk = JSON.stringify({ ...mf, time: 0 }), mSend = key || mk !== S.lastMf; S.lastMf = mk; // match state: on change + keyframes
   const snap = { t: 'sn', n: r3(G.now), u: us, m: mSend ? mf : undefined, dr: changed ? dr : undefined, br: changed ? br : undefined, pk: changed ? pk : undefined, vh: vehicles.length ? vehDelta(key) : undefined };
   for (const r of S.remotes) {
-    if (!r.hello || !r.unit) continue;
-    snap.sh = S.shots.filter((s) => s[0] !== r.unit.id);
+    if (!r.hello || (!r.unit && !r.spec)) continue;
+    snap.sh = r.unit ? S.shots.filter((s) => s[0] !== r.unit.id) : S.shots;
     r.link.sendFast(snap);
   }
   S.shots = [];
@@ -625,4 +644,4 @@ function clientUpdate(dt) {
   if (S.pingAcc > 1) { S.pingAcc = 0; S.link.send({ t: 'pi', c: now() }); }
 }
 export const pingMs = () => Math.round((S.host ? Math.max(0, ...S.remotes.map((r) => r.rtt)) : S.rtt) * 1000);
-Object.assign(S, { remoteTeams, makeRemoteUnits, spawnRemote, hostEnded, vehInterp, vehRequest });
+Object.assign(S, { remoteTeams, makeRemoteUnits, spawnRemote, hostEnded, vehInterp, vehRequest, dropped: {} });

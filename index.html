@@ -192,7 +192,7 @@
         <label class="field mp-name"><span class="flabel">Your name</span><input id="mpName" maxlength="14" autocomplete="off" spellcheck="false"></label>
         <div class="mp-choose">
           <button id="mpHost" class="btn-primary" type="button">Host a game</button>
-          <div class="mp-join"><input id="mpCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="mpJoin" class="btn-ghost" type="button">Join</button></div>
+          <div class="mp-join"><input id="mpCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="mpJoin" class="btn-ghost" type="button">Join</button><label class="mp-spec" title="Watch without playing"><input type="checkbox" id="mpSpec"> Spectate</label></div>
         </div>
         <div class="mp-codebox"><span class="flabel">Room code</span><b id="mpRoomCode">·····</b><button id="mpCopyCode" class="btn-ghost" type="button">Copy</button><button id="mpCopyLink" class="btn-ghost hidden" type="button">Copy invite link</button></div>
       </div>
@@ -275,6 +275,7 @@
   <div class="hud-tl"><canvas id="radar" width="180" height="180"></canvas><div id="mapLabel"></div></div>
   <div id="score" class="score"></div>
   <div id="killfeed"></div>
+  <div id="specTag" class="spec-tag"></div>
   <div id="chatlog" class="chatlog"></div><input id="chatIn" class="chat-in hidden" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Say something… (Enter sends, Esc cancels)">
   <div id="crosshair"><i class="l"></i><i class="r"></i><i class="t"></i><i class="b"></i><b></b></div>
   <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
