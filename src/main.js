@@ -61,6 +61,7 @@ function boot() {
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
     onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
+    onSkin: (k) => net.setSkin(k),
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
   // music can only start after the first user gesture (browser autoplay rules)

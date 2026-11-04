@@ -38,6 +38,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `gorgeshot.mjs` — screenshots of the Gorge cliff routes (/tmp/gorge_right.png, /tmp/gorge_left.png).
 - `finale.mjs` — end-of-match replay plays ("Final kill"), runs to the end screen, any key skips.
 - `gear.mjs` — heavy vest damage, grenadier, flashbang stun + white-out, smoke, sticky sticks, claymore trips, light vest speed, bandolier ammo.
+- `loshot.mjs [w] [h]` — loadout screenshots (gun, vest, operator tabs; TABS=…, OP=ava) to /tmp/lo_*.png.
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

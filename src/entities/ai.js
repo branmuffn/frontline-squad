@@ -1,7 +1,7 @@
 import { botVehicle } from './vehicles.js';
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { PHYS, WEAPONS, DIFFICULTY } from '../core/config.js';
+import { PHYS, WEAPONS, DIFFICULTY, OPERATORS, operatorLook } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
 import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
 import { findPath, randomNode, nearestNode } from '../world/nav.js';
@@ -37,7 +37,8 @@ const laserGeo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('p
 export function createBot(o) {
   const type = TYPES[o.type || 'soldier'];
   const u = makeUnit({ name: o.name, team: o.team, maxHealth: type.hp, health: type.hp });
-  u.soldier = makeSoldier({ uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin, pattern: o.pattern, style: o.type === 'zombie' ? 'zombie' : o.type === 'infected' ? 'infected' : 'soldier' });
+  if (!o.type || o.type === 'soldier' || o.type === 'rusher' || o.type === 'marksman') Object.assign(o, { ...operatorLook(OPERATORS[(Math.random() * OPERATORS.length) | 0].id), ...o });
+  u.soldier = makeSoldier({ ...(o.body ? { body: o.body, hair: o.hair, hairStyle: o.hairStyle, beard: o.beard, face: o.face } : {}), uniform: o.uniform, accent: o.accent, weapon: type.claws ? 'none' : o.weapon, heavy: type.heavy, noHelmet: type.noHelmet || o.noHelmet, helmet: o.helmet, skin: o.skin, pattern: o.pattern, style: o.type === 'zombie' ? 'zombie' : o.type === 'infected' ? 'infected' : 'soldier' });
   u.soldier.root.visible = false;
   const w = WEAPONS[o.weapon];
   u.brain = {

@@ -133,7 +133,17 @@ function buildBody(o, hi) {
   if (human) {
     b.add(B.head, rbox(0.17, 0.055, 0.05, 0.02, 1), 0x1c2226, [0, 0.168, -0.108]); // goggles frame
     if (hi) for (const sx of [-1, 1]) b.add(B.head, sphere(0.032, 8, 6), 0x6fa3b0, [sx * 0.042, 0.169, -0.128], [0, 0, 0], [1, 0.85, 0.45], { ao: 0 });
-    b.add(B.head, sphere(0.1, hi ? 10 : 6, hi ? 6 : 4), 0x6b6450, [0, 0.055, -0.055], [0, 0, 0], [1.02, 0.5, 0.8]); // face wrap (sand scarf)
+    if (o.face !== 'open') b.add(B.head, sphere(0.1, hi ? 10 : 6, hi ? 6 : 4), 0x6b6450, [0, 0.055, -0.055], [0, 0, 0], [1.02, 0.5, 0.8]); // face wrap (sand scarf)
+    else { // operators with an open face: nose, mouth, optional beard
+      b.add(B.head, sphere(0.022, 6, 4), skin, [0, 0.13, -0.122], [0, 0, 0], [0.9, 1.2, 1]);
+      b.add(B.head, rbox(0.05, 0.012, 0.02, 0.005, 1), 0x6a3a30, [0, 0.085, -0.112]);
+      if (o.beard) b.add(B.head, sphere(0.1, hi ? 10 : 6, hi ? 6 : 4), o.hair ?? 0x2b2620, [0, 0.06, -0.045], [0, 0, 0], [1.0, 0.5, 0.82]);
+    }
+    if (o.hairStyle === 'pony') b.add(B.head, capsule(0.03, 0.04, 0.22, RS, CS), o.hair ?? 0x2b2620, [0, 0.07, 0.15], [0.55, 0, 0]);
+    else if (o.hairStyle === 'bun') b.add(B.head, sphere(0.065, hi ? 8 : 5, hi ? 6 : 4), o.hair ?? 0x2b2620, [0, 0.12, 0.15]);
+    else if (o.hairStyle === 'short') b.add(B.head, sphere(0.125, hi ? 10 : 6, hi ? 5 : 3, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.3), o.hair ?? 0x2b2620, [0, 0.13, 0.02]);
+    if (o.vest === 'heavy') for (const z of [-1, 1]) b.add(B.torso, rbox(0.34, 0.3, 0.07, 0.03, 1), gear, [0, 0.33, z * 0.15]); // armour plates
+    if (o.belt === 'bandolier') b.add(B.torso, rbox(0.06, 0.62, 0.035, 0.01, 1), 0x4a3b24, [0.02, 0.3, -0.155], [0, 0, 0.62]);
   } else {
     const eye = infected ? 0x9cff6a : 0x5a1410;
     for (const sx of [-1, 1]) b.add(B.head, sphere(0.022, 6, 4), eye, [sx * 0.042, 0.165, -0.112], [0, 0, 0], [1, 0.8, 0.5], { ao: 0 });
@@ -159,12 +169,15 @@ function buildBody(o, hi) {
     b.add(el, sphere(0.05, hi ? 8 : 5, hi ? 6 : 4), hand, [0, -0.3, -0.01], [0, 0, 0], [0.95, 1.25, 1.1]);
     if (hi) b.add(el, sphere(0.022, 6, 4), hand, [side * -0.035, -0.29, -0.04], [0, 0, 0], [1, 1.4, 1]); // thumb
   }
+  if (o.body === 'f') { // female build: narrower shoulders and waist
+    const p = b.pos; for (let i = 0; i < p.length; i += 3) { const y = p[i + 1], k = y > 1.12 ? 0.9 : y > 0.85 ? 0.93 : 1; p[i] *= k; p[i + 2] *= k > 0.99 ? 1 : 0.95; }
+  }
   return b.geometry();
 }
 
 const cache = new Map();
 function bodyGeometry(o) {
-  const key = [o.uniform, o.accent, o.helmet, o.skin, !!o.noHelmet, o.style || 'soldier', (o.pattern || []).join(',')].join('|');
+  const key = [o.uniform, o.accent, o.helmet, o.skin, !!o.noHelmet, o.style || 'soldier', (o.pattern || []).join(','), o.body, o.face, o.hair, o.hairStyle, !!o.beard, o.vest, o.belt].join('|');
   let c = cache.get(key);
   if (!c) { c = { hi: buildBody(o, true), lo: buildBody(o, false) }; cache.set(key, c); }
   return c;
@@ -287,7 +300,7 @@ export function makeSoldier(opts) {
     arms: [{ sh: bones[B.shL], el: bones[B.elL] }, { sh: bones[B.shR], el: bones[B.elR] }],
     gun: null, gunId: null, flinch: 0, deathT: -1, deathDir: 1, deathType: 0, t: Math.random() * 10,
   };
-  if (opts.heavy) root.scale.setScalar(1.1);
+  if (opts.heavy) root.scale.setScalar(1.1); else if (opts.body === 'f') root.scale.setScalar(0.965);
   setSoldierGun(s, opts.style === 'zombie' ? 'none' : (opts.weapon || 'm4'));
   G.scene.add(root);
   return s;

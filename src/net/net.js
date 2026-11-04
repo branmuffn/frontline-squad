@@ -3,7 +3,7 @@
 // render everyone else from 30 Hz snapshots interpolated 100 ms in the past. Explosives, pickups, doors, barrels,
 // drops, deaths and respawns are decided by the host.
 import { G } from '../core/state.js';
-import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook } from '../core/config.js';
+import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook, OPERATORS, operatorLook } from '../core/config.js';
 import { makeUnit, isEnemy, noise, damage } from '../entities/units.js';
 import { makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
 import { spawnPlayer, onPlayerDeath, refillAmmo, pickupAmmo, takeWeapon, pickupSlot } from '../entities/player.js';
@@ -57,7 +57,7 @@ function players() {
 }
 function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobbyCfg); }
 
-const cleanSkin = (k) => { k = k || {}; const pick = (list, id) => (list.find((e) => e[0] === id) || list[0])[0]; return { uniform: pick(SKINS.uniform, k.uniform), pattern: pick(SKINS.pattern, k.pattern), helmet: pick(SKINS.helmet, k.helmet) }; };
+const cleanSkin = (k) => { k = k || {}; const pick = (list, id) => (list.find((e) => e[0] === id) || list[0])[0]; return { uniform: pick(SKINS.uniform, k.uniform), pattern: pick(SKINS.pattern, k.pattern), helmet: pick(SKINS.helmet, k.helmet), op: OPERATORS.some((o) => o.id === k.op) ? k.op : 'rex' }; };
 export function setSkin(k) { S.skin = cleanSkin(k); if (S.client && S.link) S.link.send({ t: 'skin', k: S.skin }); }
 export function hostOpen(name, cfg, skin) {
   leave(true);
@@ -171,7 +171,7 @@ function dealTeams(mode) {
 }
 export function lookFor(team, slot, mode, skin) {
   const k = skin ? skinLook(skin) : null;
-  if (mode === 'tdm') { const t = team === 0 ? { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 } : { uniform: 0x3a3f44, accent: TEAMS[1].hex, helmet: 0x26292b }; if (k) t.helmet = k.helmet; return t; }
+  if (mode === 'tdm') { const t = team === 0 ? { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 } : { uniform: 0x3a3f44, accent: TEAMS[1].hex, helmet: 0x26292b }; if (k) Object.assign(t, operatorLook(skin.op), { helmet: k.helmet }); return t; }
   if (COOP(mode)) return k ? { ...k, accent: TEAMS[0].hex } : { uniform: 0x5f6a52, accent: TEAMS[0].hex, helmet: 0x4a5340 };
   const base = { uniform: UNIFORMS[(slot + 3) % UNIFORMS.length], accent: ACCENTS[(slot + 2) % ACCENTS.length], helmet: 0x3b4034 };
   return k ? { ...k, accent: base.accent } : base;

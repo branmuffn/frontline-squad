@@ -367,7 +367,7 @@ export const SKINS = {
 export function skinLook(sk) {
   const f = (list, id) => list.find((e) => e[0] === id) || list[0];
   sk = sk || {};
-  return { uniform: f(SKINS.uniform, sk.uniform)[2], pattern: f(SKINS.pattern, sk.pattern)[2] || null, helmet: f(SKINS.helmet, sk.helmet)[2] };
+  return { uniform: f(SKINS.uniform, sk.uniform)[2], pattern: f(SKINS.pattern, sk.pattern)[2] || null, helmet: f(SKINS.helmet, sk.helmet)[2], ...operatorLook(sk.op) };
 }
 
 // Rev 3b gear (free for now; price fields ready for a later shop)
@@ -389,3 +389,14 @@ export const BELTS = {
   grenadier: { name: 'Grenadier', desc: 'One extra grenade per life.', price: 0 },
   quickdraw: { name: 'Quickdraw', desc: 'Weapon swaps 35% faster.', price: 0 },
 };
+
+// Operators (look only): body build, skin tone, hair, open face or scarf. Bots pick at random.
+export const OPERATORS = [
+  { id: 'rex', name: 'Rex', body: 'm', skin: 0xb08c70, hair: 0x2b2620, hairStyle: 'short', beard: true, face: 'open' },
+  { id: 'ava', name: 'Ava', body: 'f', skin: 0xd2a684, hair: 0x3b2a1f, hairStyle: 'pony', face: 'open' },
+  { id: 'dante', name: 'Dante', body: 'm', skin: 0x6e4630, hair: 0x111111, hairStyle: 'short', face: 'wrap' },
+  { id: 'mara', name: 'Mara', body: 'f', skin: 0x8d5a3b, hair: 0x161210, hairStyle: 'bun', face: 'open' },
+  { id: 'jonas', name: 'Jonas', body: 'm', skin: 0xd8b494, hair: 0x8a6a3a, hairStyle: 'short', beard: true, face: 'wrap' },
+  { id: 'kira', name: 'Kira', body: 'f', skin: 0xe1b896, hair: 0xa8743a, hairStyle: 'pony', face: 'wrap' },
+];
+export const operatorLook = (id) => { const o = OPERATORS.find((q) => q.id === id) || OPERATORS[0]; return { body: o.body, skin: o.skin, hair: o.hair, hairStyle: o.hairStyle, beard: !!o.beard, face: o.face }; };

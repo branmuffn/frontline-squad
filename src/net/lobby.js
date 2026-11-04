@@ -89,8 +89,6 @@ const name = () => { saved.name = $('mpName').value.trim() || saved.name; persis
 export function initLobby(cb) {
   show = cb.showScreen;
   $('mpBuild').textContent = 'Version: ' + net.BUILD; $('buildTag').textContent = 'Frontline: Solo Ops · ' + net.BUILD;
-  $('openOperator').addEventListener('click', () => { fillSkins(); show('operator'); });
-  $('operatorDone').addEventListener('click', () => show('menu'));
   // invite link: hosted copies open straight into the host's lobby (#join=CODE)
   $('mpCopyLink').addEventListener('click', (e) => copy(location.href.split('#')[0] + '#join=' + $('mpRoomCode').textContent.trim(), e.target));
   $('mpCopyLink').classList.toggle('hidden', !/^https?:/.test(location.protocol));
@@ -118,7 +116,6 @@ export function initLobby(cb) {
   $('mpPlayers').addEventListener('click', (e) => { const b = e.target.closest('.kick'); if (b) net.kick(+b.dataset.slot); });
   $('mpReady').addEventListener('click', () => { net.setReady(!net.session.ready); updateStart(); });
   $('mpChatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { net.sendChat(e.target.value); e.target.value = ''; } });
-  for (const [id, k] of [['mpSkinU', 'uniform'], ['mpSkinP', 'pattern'], ['mpSkinH', 'helmet']]) $(id).addEventListener('change', (e) => { G.profile.skin[k] = e.target.value; saveProfile(); net.setSkin(G.profile.skin); });
   const join = () => {
     const code = $('mpCode').value.trim().toUpperCase();
     if (code.length < 5) { status('Type the 5-letter room code from the host.', 'warn'); return; }

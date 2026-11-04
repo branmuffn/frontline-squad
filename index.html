@@ -61,13 +61,18 @@
       <div class="field"><span class="flabel">Weapon slots</span><div id="slotSel" class="seg"></div></div>
     </div>
     <p id="slotDesc" class="lede small"></p>
-    <div id="loTabs" class="lo-tabs" role="tablist"></div>
-    <div class="pbody scroll-list">
-      <p id="loDetail" class="lo-detail"></p>
-      <div class="lo-pane" data-tab="0"><div id="weaponList" class="weapons"></div></div>
-      <div class="lo-pane" data-tab="1"><div id="pistolList" class="weapons"></div></div>
-      <div class="lo-pane" data-tab="2"><div id="thirdList" class="weapons"></div></div>
-      <div class="lo-pane" data-tab="3"><div id="camoList" class="camos"></div></div>
+    <div class="lo-main">
+      <div class="lo-left">
+        <div id="loTabs" class="lo-tabs" role="tablist"></div>
+        <p id="loDetail" class="lo-detail"></p>
+        <div id="loRow" class="lo-row scroll-list"></div>
+        <div id="loOpExtra" class="op-grid hidden">
+          <label class="field"><span class="flabel">Uniform</span><select id="mpSkinU"></select></label>
+          <label class="field"><span class="flabel">Pattern</span><select id="mpSkinP"></select></label>
+          <label class="field"><span class="flabel">Helmet</span><select id="mpSkinH"></select></label>
+        </div>
+      </div>
+      <div class="lo-right"><div id="loPreview" class="lo-preview"></div><p id="loSummary" class="lo-sum"></p></div>
     </div>
     <div id="streakSummary"></div>
     <div class="btn-row"><button id="loadoutBack" class="btn-ghost hidden" type="button">Back</button><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
@@ -111,19 +116,6 @@
     <ul id="streakRules" class="streak-rules"></ul>
     </div>
     <div class="btn-row"><button id="streaksDone" class="btn-primary" type="button">Done</button></div>
-  </div>
-</section>
-
-<section id="operator" class="screen hidden">
-  <div class="panel fit">
-    <h2>Operator</h2>
-    <p class="lede">How other players see you in multiplayer. More uniforms, patterns and helmets unlock as you rank up.</p>
-    <div class="pbody"><div class="op-grid">
-      <label class="field"><span class="flabel">Uniform</span><select id="mpSkinU"></select></label>
-      <label class="field"><span class="flabel">Pattern</span><select id="mpSkinP"></select></label>
-      <label class="field"><span class="flabel">Helmet</span><select id="mpSkinH"></select></label>
-    </div></div>
-    <div class="btn-row"><button id="operatorDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
 

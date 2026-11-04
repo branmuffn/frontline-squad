@@ -1,17 +1,18 @@
 import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
 import { input } from '../core/input.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
 import { badgeSVG } from './badges.js';
+import { showPreview, stopPreview, gunThumb } from './preview.js';
 import { setScene, stinger } from '../engine/music.js';
 import { codeName, keyName } from './hud.js';
 
-const SCREENS = ['menu', 'operator', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
+const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
 let cb = null, back = 'menu';
 
 export function showScreen(id) {
@@ -153,9 +154,28 @@ function pickSlots(v, sandbox) {
   G.profile.settings.slots = v; saveProfile(); return true;
 }
 const card = (w, id, sel, full) => `<button type="button" class="wcard ${full ? '' : 'compact'} ${sel ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><div class="wc-head"><b>${w.name}</b><small>${w.cls}</small></div>${statBars(w)}</button>`;
-let loTab = 0;
+let loTab = 'g0';
+// small SVG icons for gear cards
+const ICON = {
+  frag: '<circle cx="40" cy="34" r="17" fill="#55603f"/><rect x="34" y="12" width="12" height="7" fill="#2a3034"/><path d="M46 14 q12 0 10 14" stroke="#9aa0a4" stroke-width="3" fill="none"/>',
+  flash: '<rect x="30" y="14" width="20" height="38" rx="4" fill="#2c3236"/><rect x="30" y="22" width="20" height="4" fill="#c9a25a"/><path d="M58 22 l10 -6 M60 32 h12 M58 42 l10 6" stroke="#ffe9a8" stroke-width="3"/>',
+  smoke: '<rect x="30" y="20" width="20" height="34" rx="4" fill="#8d9295"/><circle cx="34" cy="13" r="8" fill="#c9cdcf"/><circle cx="46" cy="9" r="9" fill="#dfe2e3"/><circle cx="56" cy="16" r="7" fill="#c9cdcf"/>',
+  sticky: '<circle cx="40" cy="34" r="16" fill="#7b4a2a"/><path d="M40 50 q0 8 4 10" stroke="#a87a3a" stroke-width="4" fill="none"/><circle cx="40" cy="34" r="5" fill="#d0a060"/>',
+  claymore: '<path d="M16 26 q24 -10 48 0 v16 q-24 -10 -48 0 z" fill="#4e5a36"/><path d="M24 40 l-4 14 M56 40 l4 14" stroke="#2a3034" stroke-width="3"/><text x="40" y="35" font-size="7" text-anchor="middle" fill="#c9d3a8">FRONT</text>',
+  none: '<circle cx="40" cy="34" r="16" fill="none" stroke="#6b7478" stroke-width="4"/><path d="M28 46 L52 22" stroke="#6b7478" stroke-width="4"/>',
+  light: '<path d="M26 14 h28 l6 12 v28 h-40 v-28 z" fill="#5f6a52"/><path d="M34 14 v10 h12 v-10" fill="#3a4233"/>',
+  standard: '<path d="M24 12 h32 l8 12 v32 h-48 v-32 z" fill="#4f5848"/><rect x="28" y="30" width="10" height="10" fill="#3a4233"/><rect x="42" y="30" width="10" height="10" fill="#3a4233"/>',
+  heavy: '<path d="M22 10 h36 l10 12 v36 h-56 v-36 z" fill="#2f3438"/><rect x="28" y="22" width="24" height="26" rx="3" fill="#4a5054"/><rect x="26" y="50" width="28" height="6" fill="#1e2124"/>',
+  'b-none': '<rect x="10" y="30" width="60" height="9" rx="3" fill="#4a3b24"/><rect x="36" y="28" width="9" height="13" fill="#9aa0a4"/>',
+  bandolier: '<rect x="10" y="30" width="60" height="9" rx="3" fill="#4a3b24"/>' + [16, 26, 46, 56].map((x) => `<rect x="${x}" y="22" width="6" height="12" fill="#c9a25a"/>`).join(''),
+  grenadier: '<rect x="10" y="34" width="60" height="9" rx="3" fill="#4a3b24"/><circle cx="26" cy="30" r="7" fill="#55603f"/><circle cx="54" cy="30" r="7" fill="#55603f"/>',
+  quickdraw: '<rect x="10" y="22" width="60" height="9" rx="3" fill="#4a3b24"/><path d="M44 30 h14 l-2 26 h-10 z" fill="#2a2e31"/><path d="M14 46 h18 M10 52 h18" stroke="#c9a25a" stroke-width="3"/>',
+};
+const icon = (k) => `<svg class="ico" viewBox="0 0 80 64" aria-hidden="true">${ICON[k] || ICON.none}</svg>`;
+// Loadout: tabs for every slot; each tab is one side-scrolling row of picture cards; the operator on the right wears it all
 function refreshLoadout() {
   const pr = G.profile, lo = pr.loadout, rank = rankFor(pr.xp), sandbox = prematch && pr.lobby.mode === 'sandbox';
+  for (const [k, d] of [['grenade', 'frag'], ['equip', 'claymore'], ['vest', 'standard'], ['belt', 'none']]) if (!lo[k]) lo[k] = d;
   let mode = pr.settings.slots;
   if (mode === 'overkill' && overkillLocked(sandbox)) mode = 'classic';
   seg($('presetTabs'), pr.presets.map((p, i) => ({ v: i, html: `${'ABC'[i]} <small>${esc(WEAPONS[loadoutGuns(p, mode)[0]].name)}</small>` })), pr.preset, (v) => {
@@ -166,34 +186,45 @@ function refreshLoadout() {
   const okBtn = $('slotSel').querySelector('[data-v="overkill"]');
   if (okBtn) okBtn.title = overkillLocked(sandbox) ? `Overkill unlocks at ${RANKS[SLOT_MODES.overkill.rank].name} (always open in Sandbox).` : '';
   const guns = loadoutGuns(lo, mode), keys = ['primary', 'secondary', 'third'];
-  // write back the resolved guns so the preset is always valid for this rule
   guns.forEach((g, i) => { lo[keys[i]] = g; });
-  const lists = ['weaponList', 'pistolList', 'thirdList'];
+  const nGuns = SLOT_MODES[mode].guns, camo = CAMOS.find((c) => c.id === lo.camo) || CAMOS[0], op = OPERATORS.find((o) => o.id === pr.skin.op) || OPERATORS[0];
   const labels = mode === 'classic' ? ['Primary', 'Sidearm'] : ['Weapon 1', 'Weapon 2', 'Weapon 3'];
-  if (mode === 'classic') {
-    $('weaponList').innerHTML = PRIMARIES.map((id) => card(WEAPONS[id], id, guns[0] === id, true)).join('');
-    $('pistolList').innerHTML = SECONDARIES.map((id) => card(WEAPONS[id], id, guns[1] === id, true)).join('');
-  } else {
-    for (let i = 0; i < SLOT_MODES[mode].guns; i++) $(lists[i]).innerHTML = ALL_GUNS.map((id) => card(WEAPONS[id], id, guns[i] === id, false)).join('');
-  }
-  // tabs: one list at a time so the screen fits; each tab shows what is picked in it
-  const nGuns = SLOT_MODES[mode].guns, camo = CAMOS.find((c) => c.id === lo.camo) || CAMOS[0];
-  const tabs = [...labels.slice(0, nGuns).map((l, i) => [i, l, WEAPONS[guns[i]].name]), [3, 'Camo', camo.name]];
-  if (!tabs.some((t) => t[0] === loTab)) loTab = 0;
+  const tabs = [...labels.slice(0, nGuns).map((l, i) => ['g' + i, l, WEAPONS[guns[i]].name]), ['nade', 'Grenade', NADES[lo.grenade].name], ['equip', 'Equipment', EQUIPMENT[lo.equip].name],
+    ['vest', 'Vest', VESTS[lo.vest].name], ['belt', 'Belt', BELTS[lo.belt].name], ['op', 'Operator', op.name], ['camo', 'Camo', camo.name]];
+  if (!tabs.some((t) => t[0] === loTab)) loTab = 'g0';
   $('loTabs').innerHTML = tabs.map(([i, l, v]) => `<button type="button" role="tab" aria-selected="${i === loTab}" class="${i === loTab ? 'sel' : ''}" data-t="${i}"><b>${l}</b><small>${esc(v)}</small></button>`).join('');
-  $('loTabs').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { loTab = Number(bt.dataset.t); refreshLoadout(); }));
-  document.querySelectorAll('#loadout .lo-pane').forEach((p) => p.classList.toggle('hidden', Number(p.dataset.tab) !== loTab));
-  $('loDetail').textContent = loTab === 3 ? 'New finishes unlock as you rank up.' : WEAPONS[guns[loTab]].desc;
-  lists.forEach((l, i) => $(l).querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => {
-    const id = bt.dataset.v, other = guns.indexOf(id);
-    if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; // picking a gun already in another slot swaps them
-    lo[keys[i]] = id; saveProfile(); refreshLoadout();
-  })));
-  $('camoList').innerHTML = CAMOS.map((c) => {
-    const locked = rank < c.rank;
-    return `<button type="button" class="camo ${lo.camo === c.id ? 'sel' : ''} ${locked ? 'locked' : ''}" data-v="${c.id}" ${locked ? 'disabled' : ''} title="${locked ? 'Unlocks at ' + esc(RANKS[c.rank].name) : esc(c.name)}"><i style="${camoStyle(c)}"></i><span>${esc(c.name)}</span>${locked ? `<small>${esc(RANKS[c.rank].name)}</small>` : ''}</button>`;
-  }).join('');
-  $('camoList').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { lo.camo = bt.dataset.v; saveProfile(); cb.onCamo(lo.camo); refreshLoadout(); }));
+  $('loTabs').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { loTab = bt.dataset.t; refreshLoadout(); }));
+  const pick = (cards, onPick) => { $('loRow').innerHTML = cards.join(''); $('loRow').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { onPick(bt.dataset.v); saveProfile(); refreshLoadout(); })); };
+  const gearCard = (k, d, sel, ico) => `<button type="button" class="lo-card ${sel ? 'sel' : ''}" data-v="${k}">${icon(ico || k)}<b>${esc(d.name)}</b><small>${esc(d.desc)}</small></button>`;
+  $('loOpExtra').classList.toggle('hidden', loTab !== 'op');
+  if (loTab[0] === 'g') {
+    const i = +loTab[1], pool = mode === 'classic' ? (i === 0 ? PRIMARIES : SECONDARIES) : ALL_GUNS;
+    $('loDetail').textContent = WEAPONS[guns[i]].desc;
+    pick(pool.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="lo-card ${guns[i] === id ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><img alt="" src="${gunThumb(id)}"><b>${w.name}</b><small>${w.cls}</small>${statBars(w)}</button>`; }), (id) => {
+      const other = guns.indexOf(id); if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; lo[keys[i]] = id;
+    });
+  } else if (loTab === 'nade') { $('loDetail').textContent = 'G throws it (hold to cook a frag). Free for now.'; pick(Object.entries(NADES).map(([k, d]) => gearCard(k, d, lo.grenade === k)), (v) => { lo.grenade = v; }); }
+  else if (loTab === 'equip') { $('loDetail').textContent = `${keyName('equip')} sets it down where you look.`; pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
+  else if (loTab === 'vest') { $('loDetail').textContent = 'Armour against speed.'; pick(Object.entries(VESTS).map(([k, d]) => gearCard(k, d, lo.vest === k)), (v) => { lo.vest = v; }); }
+  else if (loTab === 'belt') { $('loDetail').textContent = 'One perk carried on the belt.'; pick(Object.entries(BELTS).map(([k, d]) => gearCard(k, d, lo.belt === k, k === 'none' ? 'b-none' : k)), (v) => { lo.belt = v; }); }
+  else if (loTab === 'op') {
+    $('loDetail').textContent = 'Your operator and look (what other players see). More uniforms, patterns and helmets unlock as you rank up.';
+    pick(OPERATORS.map((o) => `<button type="button" class="lo-card ${o.id === op.id ? 'sel' : ''}" data-v="${o.id}"><svg class="ico" viewBox="0 0 80 64"><circle cx="40" cy="26" r="14" fill="#${o.skin.toString(16).padStart(6, '0')}"/><path d="M26 22 a14 14 0 0 1 28 0 z" fill="#4a5340"/>${o.hairStyle === 'pony' ? `<path d="M52 28 q8 10 2 22" stroke="#${o.hair.toString(16).padStart(6, '0')}" stroke-width="6" fill="none"/>` : o.hairStyle === 'bun' ? `<circle cx="54" cy="24" r="6" fill="#${o.hair.toString(16).padStart(6, '0')}"/>` : ''}${o.beard ? `<path d="M30 30 q10 12 20 0 v4 q-10 10 -20 0 z" fill="#${o.hair.toString(16).padStart(6, '0')}"/>` : ''}<rect x="22" y="42" width="36" height="18" rx="6" fill="#5f6a52"/></svg><b>${o.name}</b><small>${o.face === 'wrap' ? 'Face scarf' : 'Open face'}</small></button>`), (v) => { pr.skin.op = v; cb.onSkin && cb.onSkin(pr.skin); });
+    fillSkins();
+  } else {
+    $('loDetail').textContent = 'Finishes for your guns. New ones unlock as you rank up.';
+    pick(CAMOS.map((c) => { const locked = rank < c.rank; return `<button type="button" class="lo-card ${lo.camo === c.id ? 'sel' : ''}" data-v="${c.id}" ${locked ? 'disabled' : ''} title="${locked ? 'Unlocks at ' + esc(RANKS[c.rank].name) : esc(c.name)}"><i class="camo-sw" style="${camoStyle(c)}"></i><b>${esc(c.name)}</b><small>${locked ? '🔒 ' + esc(RANKS[c.rank].name) : 'Unlocked'}</small></button>`; }), (v) => { lo.camo = v; cb.onCamo(v); });
+  }
+  const gi = loTab[0] === 'g' ? +loTab[1] : 0;
+  showPreview($('loPreview'), { ...skinLook(pr.skin), accent: 0x7a6a48, weapon: guns[gi], vest: lo.vest, belt: lo.belt });
+  $('loSummary').textContent = `${guns.map((g) => WEAPONS[g].name).join(' · ')} · ${NADES[lo.grenade].name} · ${EQUIPMENT[lo.equip].name} · ${VESTS[lo.vest].name} · ${BELTS[lo.belt].name}`;
+}
+// uniform / pattern / helmet pickers (operator tab), locked until the listed rank
+function fillSkins() {
+  const sk = G.profile.skin, rank = rankFor(G.profile.xp);
+  const fill = (id, list, cur) => { $(id).innerHTML = list.map((e) => { const lock = e[e.length - 1] > rank; return `<option value="${e[0]}"${e[0] === cur ? ' selected' : ''}${lock ? ' disabled' : ''}>${esc(e[1])}${lock ? ' · ' + esc(RANKS[e[e.length - 1]].name) : ''}</option>`; }).join(''); };
+  for (const [k, list] of [['uniform', SKINS.uniform], ['pattern', SKINS.pattern], ['helmet', SKINS.helmet]]) { const e = list.find((x) => x[0] === sk[k]); if (!e || e[e.length - 1] > rank) sk[k] = list[0][0]; }
+  fill('mpSkinU', SKINS.uniform, sk.uniform); fill('mpSkinP', SKINS.pattern, sk.pattern); fill('mpSkinH', SKINS.helmet, sk.helmet);
 }
 // ---------- killstreaks ----------
 export const streakHow = (s) => s.how.replace('{streak}', keyName('streak'));
@@ -206,8 +237,8 @@ function streakSummary() {
 }
 
 // prematch = shown after Deploy, before the match loads
-export function showLoadout(isPrematch) {
-  prematch = !!isPrematch;
+export function showLoadout(isPrematch, tab) {
+  prematch = !!isPrematch; if (tab) loTab = tab;
   const L = G.profile.lobby;
   $('loTitle').textContent = prematch ? 'Choose your loadout' : 'Loadout';
   $('loLede').textContent = prematch ? `${MODES[L.mode].name} on ${MAP_LIST.find((m) => m.id === L.map).name}. Pick a preset, then deploy.` : 'Three saved presets. Pick one, set it up, and it’s remembered.';
@@ -331,6 +362,8 @@ export function initMenus(callbacks) {
   cb = callbacks;
   $('deploy').addEventListener('click', () => showLoadout(true));
   $('openLoadout').addEventListener('click', () => showLoadout(false));
+  $('openOperator').addEventListener('click', () => showLoadout(false, 'op'));
+  for (const [id, k] of [['mpSkinU', 'uniform'], ['mpSkinP', 'pattern'], ['mpSkinH', 'helmet']]) $(id).addEventListener('change', (e) => { G.profile.skin[k] = e.target.value; saveProfile(); cb.onSkin && cb.onSkin(G.profile.skin); refreshLoadout(); });
   $('loadoutBack').addEventListener('click', () => showScreen('menu'));
   $('openSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'menu'); });
   $('openCareer').addEventListener('click', () => { refreshCareer(); open('career'); });

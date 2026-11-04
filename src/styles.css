@@ -504,3 +504,24 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #buildTag { position: fixed; right: 14px; bottom: 10px; margin: 0; pointer-events: none; }
 .row2.tight { gap: 10px; } .row2.tight .field { min-width: 0; } #fpsSel button { padding-left: 4px; padding-right: 4px; }
 #flashbang { position: absolute; inset: 0; background: #f4f6f2; opacity: 0; pointer-events: none; z-index: 3; }
+
+.lo-main { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 22vw, 280px); gap: 16px; min-height: 0; flex: 1 1 auto; }
+.lo-left { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.lo-row { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 4px 2px 10px; scroll-snap-type: x proximity; flex: 0 0 auto; }
+.lo-card { flex: 0 0 clamp(150px, 15vw, 190px); scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 8px; border: 1px solid var(--line); background: rgba(29, 36, 40, 0.8); }
+.lo-card.sel { border-color: var(--brass, #c9a25a); background: rgba(143, 108, 44, 0.25); } .lo-card:disabled { opacity: 0.5; }
+.lo-card img, .lo-card .ico { width: 100%; height: clamp(54px, 7vh, 76px); object-fit: contain; display: block; }
+.lo-card b { font-size: 16px; } .lo-card small { color: var(--ink-dim); font-size: 13px; line-height: 1.25; }
+.lo-card .stat { font-size: 12px; } .lo-card .camo-sw { height: clamp(54px, 7vh, 76px); border-radius: 4px; }
+.lo-right { display: flex; flex-direction: column; min-height: 0; }
+.lo-preview { flex: 1 1 auto; min-height: 180px; border: 1px solid var(--line); background: radial-gradient(ellipse at 50% 35%, rgba(70, 80, 84, 0.55), rgba(14, 18, 20, 0.9)); }
+.lo-sum { font-size: 13px; color: var(--ink-dim); margin: 6px 0 0; line-height: 1.35; }
+#loOpExtra { margin-top: 6px; }
+.lo-left .lo-tabs { display: flex; flex-wrap: wrap; gap: 4px; } .lo-left .lo-tabs button { flex: 1 1 calc(25% - 4px); min-width: 0; padding: 4px 8px; }
+.lo-left .lo-tabs button small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+#loOpExtra select { background: #1d2428; color: var(--ink, #e6e2d6); border: 1px solid var(--line); padding: 6px 8px; font: inherit; font-size: 15px; width: 100%; }
+@media (max-height: 700px) {
+  #loadout #slotDesc, #loadout #loLede { display: none; }
+  .lo-card { padding: 6px; gap: 2px; } .lo-card img, .lo-card .ico, .lo-card .camo-sw { height: 44px; }
+  .lo-card .stat { font-size: 11px; line-height: 1.1; } .lo-preview { min-height: 120px; } #loadout .lo-detail { margin: 2px 0; }
+}
