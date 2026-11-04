@@ -31,6 +31,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `mpstreaks.mjs` — joiner earns UAV/mortar/sentry from the host, deploys them through the host; strikes, sentries and sentry bursts mirrored.
 - `kcshot.mjs [gun|mortar]` — kill cam screenshot during the slow-motion final blow (/tmp/kc_*.png): killer's eyes or orbit view.
 - `vehcrew.mjs` — shots to kill a jeep driver / helicopter pilot through the hull, frag hurts a crew, hull damage.
+- `mpveh.mjs` — vehicles in MP on Gorge: same vehicles, joiner boards via the host and drives (host follows), seats mirrored, exit, joiner hits hull + crew, wreck and respawn mirrored.
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

@@ -92,7 +92,7 @@ function deploy(cfg) {
   lastCfg = cfg; G.netPaused = false;
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
-  const veh = G.profile.lobby.vehicles; if (G.mp) G.profile.lobby.vehicles = false; // no vehicles in multiplayer (yet)
+  const veh = G.profile.lobby.vehicles; if (G.mp) G.profile.lobby.vehicles = !!cfg.vehicles; // multiplayer: the host's lobby setting
   startMatch(cfg); syncColliderDebug();
   G.profile.lobby.vehicles = veh;
   showScreen(null);

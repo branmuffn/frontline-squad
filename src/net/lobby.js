@@ -6,6 +6,7 @@ import { rankFor } from '../game/progression.js';
 import { saveProfile } from '../core/storage.js';
 import { MAPS } from '../world/maps/index.js';
 import * as net from './net.js';
+import { VEHICLE_MODES } from '../entities/vehicles.js';
 
 const KEY = 'frontline_mp_v1';
 // bot counts in multiplayer (0 = humans only)
@@ -41,12 +42,14 @@ function fillSettings(cfg) {
   const host = !!net.session.host;
   $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
   $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
+  const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
+  $('mpVehRow').classList.toggle('hidden', !vOk); $('mpVeh').value = cfg.vehicles ? '1' : '0';
   $('mpTeams').value = cfg.sameTeam ? '1' : '0';
 }
 function readSettings() {
   const c = saved.cfg;
   c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.difficulty = skillBand(c.skill);
-  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1';
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1';
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
   net.hostCfg({ ...c });
@@ -106,7 +109,7 @@ export function initLobby(cb) {
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams', 'mpVeh']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {

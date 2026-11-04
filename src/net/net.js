@@ -20,6 +20,8 @@ import { awardKill } from '../game/progression.js';
 import { pickSpawn, endMatch } from '../game/match.js';
 import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transport.js';
 import * as chat from '../ui/chat.js';
+import { vehSnap, vehApplySnap, vehInterp, vehLocal, vehHostApply, vehHostMsg, vehOk, vehRequest } from './netveh.js';
+import { vehicles } from '../entities/vehicles.js';
 import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak } from '../entities/streaks.js';
 
@@ -287,8 +289,9 @@ function hostMsg(r, m) {
     case 'st': if (m.q === r.seq) { r.buf.push(m); if (r.buf.length > 20) r.buf.shift(); } break;
     case 'hit': {
       const v = unitById(m.id), w = WEAPONS[m.w];
-      if (!v || !v.alive || !u.alive || !w || !(m.a > 0) || m.a > 1000) break;
-      if (Math.hypot(v.x - u.x, v.z - u.z) > (w.range || 3) + 8) break;
+      const road = m.w === 'roadkill' && u.vehicle && u.seat === 0; // run over by a joiner's jeep
+      if (!v || !v.alive || !u.alive || !(w || road) || !(m.a > 0) || m.a > 1000) break;
+      if (Math.hypot(v.x - u.x, v.z - u.z) > (road ? 7 : (w.range || 3) + 8)) break;
       damage(v, m.a, u, { weapon: m.w, zone: m.z, headshot: m.h, melee: m.m, dist: m.d, sx: u.x, sz: u.z, claim: true });
       break;
     }
@@ -305,6 +308,7 @@ function hostMsg(r, m) {
     }
     case 'drop': { const w = WEAPONS[m.id]; if (w && !w.melee) dropWeapon(m.id, u.x, u.y + 0.02, u.z, m.ammo); break; }
     case 'use': remoteUseStreak(u, m); break;
+    case 'ven': case 'vex': case 'vsw': case 'vdm': vehHostMsg(r, m); break;
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
 }
@@ -336,6 +340,7 @@ function clientMsg(m) {
       G.shake = Math.min(0.05, (G.shake || 0) + m.a * 0.0009); P.lastHitAt = G.now;
       break;
     }
+    case 'vok': vehOk(m); break;
     case 'stk': G.player.streak = m.n; G.player.bestStreak = Math.max(G.player.bestStreak || 0, m.n); checkStreak(m.n); break;
     case 'mor': case 'sen': netStreak(m, m.o ? unitById(m.o) : null); break;
     case 'hm': hud.hitMarker(m.k); play('hit', null, { important: true }); break;
@@ -442,6 +447,7 @@ function hostUpdate(dt) {
         u.crouch = !!(st.f & 2); u.prone = !!(st.f & 4); u.grounded = !!(st.f & 8);
         u.h = u.prone ? (PHYS.proneH || 0.6) : u.crouch ? PHYS.crouchH : PHYS.standH;
         const w = WIDS[st.w] || 'm4'; if (w !== u.weapon) { u.weapon = w; setSoldierGun(u.soldier, w); }
+        if (u.vehicle && st.v) vehHostApply(u, st.v, dt);
       }
       if (u.flashUntil > G.realTime) setFlash(u.soldier, 0.9); else if (u.protectUntil > G.now) setFlash(u.soldier, 0.35 + 0.25 * Math.sin(G.realTime * 18), 0x3a6aa8); else setFlash(u.soldier, 0);
     } else if (u.respawnAt > 0 && G.now >= u.respawnAt && !m.ended && G.state !== 'ended') spawnRemote(u, pickSpawn(u));
@@ -474,7 +480,7 @@ function sendSnap() {
   const w = G.world;
   const snap = { t: 'sn', n: r3(G.now), u: us, m: matchFields(),
     dr: (w.doors || []).map((d) => d.target), br: (w.barrelCols || []).map((c) => (c.dead ? 1 : 0)).join(''),
-    pk: pickups.map((p) => (p.available ? 1 : 0)).join('') };
+    pk: pickups.map((p) => (p.available ? 1 : 0)).join(''), vh: vehicles.length ? vehSnap() : undefined };
   for (const r of S.remotes) {
     if (!r.hello || !r.unit) continue;
     snap.sh = S.shots.filter((s) => s[0] !== r.unit.id);
@@ -533,6 +539,7 @@ function onSnap(m) {
     if (!(f & 1) && u.alive) proxyDie(u, null);
   }
   if (m.sh) for (const s of m.sh) replayShot(s, null);
+  if (m.vh) vehApplySnap(m.n, m.vh, unitById);
   const w = G.world;
   if (w.doors && m.dr) m.dr.forEach((t, i) => { const dd = w.doors[i]; if (dd && dd.target !== t) toggleDoor(dd, t > 0.5); });
   if (w.barrelCols && m.br) for (let i = 0; i < m.br.length; i++) { const c = w.barrelCols[i]; if (c && m.br[i] === '1' && !c.dead) killBarrel(c); }
@@ -582,10 +589,10 @@ function clientUpdate(dt) {
   if (S.sendAcc >= SNAP_DT && P && P.alive) {
     S.sendAcc = Math.min(S.sendAcc - SNAP_DT, SNAP_DT);
     S.link.sendFast({ t: 'st', q: S.seq, n: r3(G.now), x: r2(P.x), y: r2(P.y), z: r2(P.z), yaw: r3(P.yaw), p: r3(P.pitch), c: r2(P.crouchT || 0), ms: r2(P.moveSpeed || 0),
-      f: (P.crouch ? 2 : 0) | (P.prone ? 4 : 0) | (P.grounded ? 8 : 0), w: WIDS.indexOf(P.weapons[P.slot]) });
+      f: (P.crouch ? 2 : 0) | (P.prone ? 4 : 0) | (P.grounded ? 8 : 0), w: WIDS.indexOf(P.weapons[P.slot]), v: P.vehicle ? vehLocal() : undefined });
   }
   S.pingAcc += dt;
   if (S.pingAcc > 1) { S.pingAcc = 0; S.link.send({ t: 'pi', c: now() }); }
 }
 export const pingMs = () => Math.round((S.host ? Math.max(0, ...S.remotes.map((r) => r.rtt)) : S.rtt) * 1000);
-Object.assign(S, { remoteTeams, makeRemoteUnits, spawnRemote, hostEnded });
+Object.assign(S, { remoteTeams, makeRemoteUnits, spawnRemote, hostEnded, vehInterp, vehRequest });

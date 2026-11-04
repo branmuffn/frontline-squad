@@ -110,7 +110,7 @@ export function resetVehicles() {
 
 function spawnVehicle(home) {
   const type = home.type || 'jeep', spec = SPEC[type];
-  const v = { type, spec, home, x: home.x, y: home.y || 0, z: home.z, yaw: home.yaw || 0, speed: 0, steer: 0, vx: 0, vz: 0, vy: 0, hp: spec.hp, alive: true,
+  const v = { vid: G.world.def.vehicles.indexOf(home), type, spec, home, x: home.x, y: home.y || 0, z: home.z, yaw: home.yaw || 0, speed: 0, steer: 0, vx: 0, vz: 0, vy: 0, hp: spec.hp, alive: true,
     seats: [null, null], pitch: 0, roll: 0, heat: 0, overheated: false, fireAt: 0, wheelSpin: 0, rotor: 0, deadAt: 0, lastHitBy: null, m: type === 'heli' ? makeHeliMesh() : makeJeepMesh(), engine: null, gunYaw: type === 'heli' ? -Math.PI / 2 : 0, gunPitch: 0 };
   v.y = supportHeight(v.x, v.z, type === 'heli' ? 1 : 0.3, v.y + 1);
   v.dyn = { vehicle: v, x: v.x, z: v.z, yaw: v.yaw, hw: spec.hw, hd: spec.hd, y0: v.y + spec.y0, y1: v.y + spec.y1, mat: 'metal' };
@@ -151,7 +151,7 @@ export function exitVehicle(u) {
   if (u.isPlayer) { u.yaw = Math.atan2(Math.sin(u.yaw), Math.cos(u.yaw)); play('doorOpen', { x: v.x, y: v.y + 1, z: v.z }, { gain: 0.6 }); }
   return true;
 }
-export function switchSeat(u, seat) { const v = u.vehicle; if (!v || v.seats[seat] || seat === u.seat) return false; v.seats[u.seat] = null; v.seats[seat] = u; u.seat = seat; placeOccupant(v, u); return true; }
+export function switchSeat(u, seat) { if (u.isPlayer && (G.mp && G.mp.live && G.mp.client) && u.vehicle && !u._vok) { if (!u.vehicle.seats[seat]) G.mp.send({ t: 'vsw', s: seat }); return false; } const v = u.vehicle; if (!v || v.seats[seat] || seat === u.seat) return false; v.seats[u.seat] = null; v.seats[seat] = u; u.seat = seat; placeOccupant(v, u); return true; }
 
 function placeOccupant(v, u) {
   const S = v.spec.seats[u.seat], [x, z] = world(v, S.x, S.z);
@@ -161,6 +161,7 @@ function placeOccupant(v, u) {
 
 // E: get in, or out. Returns true when it handled the key.
 export function vehicleInteract(u) {
+  if (u.isPlayer && (G.mp && G.mp.live && G.mp.client)) return G.mp.vehRequest(); // the host hands out seats
   if (u.vehicle) return exitVehicle(u);
   const v = nearestVehicle(u);
   return v ? enterVehicle(u, v) : false;
@@ -169,6 +170,7 @@ export function vehicleInteract(u) {
 // ---------- damage ----------
 export function damageVehicle(v, amount, attacker, kind = 'bullet') {
   if (!v.alive || amount <= 0) return;
+  if ((G.mp && G.mp.live && G.mp.client)) { if (attacker === G.player && kind === 'bullet') { G.mp.send({ t: 'vdm', i: v.vid, a: Math.round(amount) }); hud.hitMarker('hit'); } return; } // the host owns vehicle health
   // own team's fire doesn't hurt a crewed jeep (same rule as units)
   const crew = v.seats.find((s) => s);
   if (attacker && crew && attacker !== crew && !isEnemy(attacker, crew)) return;
@@ -184,6 +186,23 @@ export function explodeNearVehicles(x, y, z, R, maxD, owner) {
     const [lx, lz] = local(v, x, z), d = Math.hypot(Math.max(0, Math.abs(lx) - v.spec.hw), Math.max(0, Math.abs(lz) - v.spec.hd), Math.max(0, Math.abs(y - (v.y + 0.8)) - 0.6));
     if (d < R) damageVehicle(v, (maxD * Math.pow(1 - d / R, 0.8) + 15) * 2.2, owner, 'explosive');
   }
+}
+// the wreck's look and sound (also used by joiners when the host's snapshot says it blew up)
+export function wreckVehicle(v) {
+  v.alive = false; v.deadAt = G.now; v.speed = 0;
+  explosion(v.x, v.y + 1, v.z, 1.6);
+  play('explosion', { x: v.x, y: v.y + 1, z: v.z }, { important: true, range: 180, ref: 14 });
+  stopEngine(v);
+  v.m.hull.material = wreckMat(); v.m.gun.visible = false;
+  v.m.wheels.forEach((w) => { w.w.material = v.m.hull.material; });
+  for (const u of v.seats) if (u && u.vehicle === v) { u.vehicle = null; u.seat = -1; }
+  v.seats = [null, null];
+}
+export function respawnVehicleNow(v) { // joiner: the host respawned it
+  G.scene.remove(v.m.root); stopEngine(v);
+  const i = vehicles.indexOf(v); if (i >= 0) vehicles.splice(i, 1);
+  const j = G.world.dynamic.indexOf(v.dyn); if (j >= 0) G.world.dynamic.splice(j, 1);
+  return spawnVehicle(v.home);
 }
 function destroyVehicle(v, attacker) {
   v.alive = false; v.deadAt = G.now; v.speed = 0;
@@ -339,6 +358,7 @@ function fireMG(v, u, dirx, diry, dirz, ox, oy, oz, spread = 0.02) {
   const d = { x: 0, y: 0, z: 0 }; coneDir(dirx, diry, dirz, u.isPlayer ? 0.008 : spread, d);
   const s = newShot(u, 'm2', ox, oy, oz, 1, 0); G.ignoreDyn = v.dyn; traceSegment(s, d.x, d.y, d.z, w.range); G.ignoreDyn = null;
   const mx = ox + dirx * 1.3, my = oy + diry * 1.3, mz = oz + dirz * 1.3;
+  if (G.mp && G.mp.live) G.mp.shot(u, 'm2', mx, my, mz, s.x, s.y, s.z); // mirrored tracer for everyone else
   tracer(mx, my, mz, s.x, s.y, s.z, 0xffd080, 520);
   play(w.sound, u.isPlayer ? null : { x: mx, y: my, z: mz }, { gain: 0.95, important: u.isPlayer });
   if (G.muzzleLight && u.isPlayer) { G.muzzleLight.position.set(mx, my, mz); G.muzzleLight.intensity = 3; }
@@ -416,16 +436,18 @@ export function hidePlayerBody() { if (pBody) pBody.root.visible = false; }
 // ---------- per-frame ----------
 export function updateVehicles(dt) {
   if (!vehicles.length) return;
-  const P = G.player;
+  const P = G.player, net = (G.mp && G.mp.live && G.mp.client), rt = G.now - 0.1;
   for (const v of vehicles) {
     if (!v.alive) {
+      if (net) { syncMesh(v, dt); continue; } // the host decides when it comes back
       if (v.type === 'heli') { fly(v, dt, 0, 0, 0, null, false); syncMesh(v, dt); }
       if (G.now - v.deadAt > v.spec.respawn) respawnVehicle(v);
       continue;
     }
     // occupants who died leave their seat
     v.seats.forEach((u, i) => { if (u && (!u.alive || u.vehicle !== v)) { v.seats[i] = null; if (u.vehicle === v) { u.vehicle = null; u.seat = -1; } } });
-    if (!v.seats[0] || !v.seats[0].isPlayer) { // no player driver: coast to a stop (bots drive in 6c)
+    if (net) { if (v.seats[0] !== P || !P.vehicle) G.mp.vehInterp(v, dt, rt); }
+    else if (!v.seats[0] || !v.seats[0].isPlayer) { // no player driver: coast to a stop (bots drive in 6c)
       if (!v.seats[0]) { if (v.type === 'heli') fly(v, dt, 0, 0, 0, null, false); else drive(v, dt, 0, 0, true); }
     }
     for (const u of v.seats) if (u && !u.isPlayer) placeOccupant(v, u);
@@ -435,7 +457,7 @@ export function updateVehicles(dt) {
     syncMesh(v, dt);
     engineSound(v);
   }
-  if (G.state === 'playing' && G.now >= crewAt) { crewAt = G.now + 1; assignCrews(); }
+  if (G.state === 'playing' && G.now >= crewAt && !net) { crewAt = G.now + 1; assignCrews(); }
   // prompt to get in
   if (P && P.alive && !P.vehicle && G.state === 'playing') {
     const v = nearestVehicle(P);
