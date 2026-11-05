@@ -51,6 +51,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `mpmodes.mjs zombies` — co-op revives: joiner downed, host revives, joiner revives host, bleed-out uses a life.
 - `kcvictim.mjs` — B2: kill cam victim visible while the slug flies, falls after it lands (60 m L96, 15 m M4).
 - `walls.mjs [maps] [step]` — B3: every standable spot vs the visual geometry (rocks, skins, roofs, props): your centre must never be inside something that looks solid. All maps must report 0 gaps.
+- `rack.mjs` — B5: range rack (multi-select, carried at once, 1-9 keys, survives respawn, saved, all/clear); /tmp/rack.png.
 - `quick.sh` — smoke suite: build, power, regress 6, mp.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

@@ -12,7 +12,7 @@ import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js
 import { loadMap, setShadows, setShadowSize } from './world/maps/index.js';
 import { perfTick, perfFrameStart, initPower } from './engine/power.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
-import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
+import { giveWeapons, spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
 import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
@@ -25,7 +25,7 @@ import { updatePickups } from './entities/pickups.js';
 import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
 import { startMatch, updateMatch, abandonMatch, pickSpawn, endMatch } from './game/match.js';
 import { initHud, updateHud, toggleBoard, setFps, setWeapon as setWeaponHud } from './ui/hud.js';
-import { setNameStyle } from './core/config.js';
+import { setNameStyle, WEAPONS, ALL_GUNS } from './core/config.js';
 import { initMenus, showScreen, showPause, showArmory, showLoadout } from './ui/menus.js';
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
@@ -124,6 +124,14 @@ function openArmory() {
 }
 function onArmory(a) {
   const P = G.player;
+  if (a.rack) { // practice range rack: tick guns on/off, the menu stays open
+    const r = G.profile.rangeRack = (G.profile.rangeRack || []).filter((id) => WEAPONS[id]);
+    const list = a.rack === 'all' ? ALL_GUNS.slice() : a.rack === 'none' ? [] : r.includes(a.rack) ? r.filter((x) => x !== a.rack) : [...r, a.rack];
+    G.profile.rangeRack = list; saveProfile();
+    const keep = P.weapons[P.slot], guns = list.length ? list : P.weapons.filter((w) => !WEAPONS[w].melee).slice(0, 1);
+    giveWeapons([...guns, 'knife'], guns.includes(keep) ? keep : guns[guns.length - 1]);
+    showArmory(); return;
+  }
   if (a.weapon) equipWeapon(a.weapon);
   else if (a.action === 'refill') { refillAmmo(); P.grenades = 3; }
   else if (a.action === 'heal') P.health = P.maxHealth;
@@ -224,6 +232,7 @@ function onKeyDown(code, e) {
   if (matches('zoom', code)) scopeZoom(0);
   if (matches('prone', code)) toggleProne();
   if (matches('reload', code)) startReload();
+  else if (G.match.mode === 'range' && /^Digit[1-9]$/.test(code) && G.player.weapons.length > 4) { const i = +code[5] - 1; if (i < G.player.weapons.length) selectSlot(i); }
   else if (matches('primary', code)) selectSlot(0);
   else if (matches('secondary', code)) selectSlot(1);
   else if (matches('melee', code)) selectSlot(2);

@@ -45,6 +45,7 @@ function freshProfile() {
     streaks: { picks: ['uav', 'mortar', 'sentry'], kills: { uav: 3, cuav: 4, mortar: 5, care: 6, sentry: 7, chopper: 9, air: 11, gunship: 15 } },
     hints: {},
     backup: { last: 0, nag: 0 },
+    rangeRack: [], // practice range: the guns you carry there (any number; empty = your loadout)
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0, medals: { __open: true } },
     best: { ffa: 0, tdm: 0, survival: { recruit: 0, easy: 0, normal: 0, hard: 0, elite: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },

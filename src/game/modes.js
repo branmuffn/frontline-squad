@@ -423,8 +423,11 @@ const zombies = {
 };
 
 // ---------- practice range: dummies that stand still or ride a track, pop back up, never fight ----------
+const rackOf = () => (G.profile.rangeRack || []).filter((id) => WEAPONS[id] && !WEAPONS[id].melee);
 const range = {
   noDrops: true, noStreaks: true,
+  // the range rack: carry any number of guns (B to pick; wheel, 1-9 or Q to switch)
+  weapons(u) { const r = rackOf(); return u.isPlayer && r.length ? [...r, 'knife'] : null; },
   setup(m) {
     m.rules = { infAmmo: true, passive: true };
     const look = { uniform: 0x8a7a58, accent: 0xb8402e, helmet: 0x3b4034 };
@@ -440,6 +443,6 @@ const range = {
       b.x = d.x; b.z = d.z; b.y = 0; b.yaw = 0; b.health = Math.max(b.health, 1);
     }
   },
-  score() { return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B for weapons · damage shows on hit' }; },
+  score() { return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B: range rack (carry any guns) · wheel / 1-9 / Q to switch' }; },
 };
 export const HOOKS = { gungame, infection, ctf, zombies, range };

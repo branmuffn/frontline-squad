@@ -93,7 +93,7 @@ export function scoreChanged() {
 
 export function setWeapon(P) {
   const w = WEAPONS[P.weapons[P.slot]];
-  set('wName', 'text', w.name); set('wCls', 'text', w.cls);
+  set('wName', 'text', w.name); set('wCls', 'text', w.cls + (P.weapons.length > 4 ? ` · ${P.slot + 1}/${P.weapons.length}` : ''));
   setAmmo(P);
 }
 export function setAmmo(P) {

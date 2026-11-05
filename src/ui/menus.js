@@ -360,7 +360,18 @@ export function showEnd(r) {
 
 // ---------- sandbox weapon menu ----------
 export function showArmory() {
-  const P = G.player, cur = P.weapons;
+  const P = G.player, cur = P.weapons, isRange = G.match && G.match.mode === 'range';
+  $('armTitle').textContent = isRange ? 'Range rack' : 'Weapon menu';
+  $('armLede').textContent = isRange ? 'Tick as many guns as you like: you carry all of them here. Switch with the mouse wheel, 1–9 or Q. B or Esc closes.' : 'Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.';
+  if (isRange) {
+    const rk = G.profile.rangeRack || [], rb = (id) => `<button type="button" data-r="${id}" class="${rk.includes(id) ? 'sel' : ''}"><b>${rk.includes(id) ? (rk.indexOf(id) + 1) + ' · ' : ''}${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
+    $('armPrimary').innerHTML = ALL_PRIMARIES.map(rb).join(''); $('armSecondary').innerHTML = SECONDARIES.map(rb).join('');
+    $('armExtras').innerHTML = '<button type="button" data-r="all"><b>ALL GUNS</b><small>Carry every gun</small></button><button type="button" data-r="none"><b>CLEAR</b><small>Back to your loadout</small></button><button type="button" data-a="refill"><b>REFILL AMMO</b><small>Full ammo and three grenades</small></button><button type="button" data-a="close"><b>DONE</b><small>Back to the range</small></button>';
+    $('armExtrasH').textContent = 'Rack';
+    document.querySelectorAll('#armory .arm-grid button').forEach((bt) => bt.addEventListener('click', () => cb.onArmory(bt.dataset.r ? { rack: bt.dataset.r } : { action: bt.dataset.a })));
+    showScreen('armory'); return;
+  }
+  $('armExtrasH').textContent = 'Killstreaks and supplies';
   const btn = (id) => `<button type="button" data-w="${id}" class="${cur.includes(id) ? 'sel' : ''}"><b>${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
   $('armPrimary').innerHTML = ALL_PRIMARIES.map(btn).join('');
   $('armSecondary').innerHTML = SECONDARIES.map(btn).join('');
