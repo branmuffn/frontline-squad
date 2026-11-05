@@ -178,6 +178,7 @@ const RECIPES = {
   bow: (d, t) => { noise(d, t, 0.09, { type: 'bandpass', f0: 900, f1: 500, q: 1.2, gain: 0.35, attack: 0.002 }); tone(d, t, 0.18, { type: 'triangle', f0: 140, f1: 90, gain: 0.22 }); },
   gl: (d, t) => { noise(d, t, 0.25, { type: 'lowpass', f0: 600, f1: 200, q: 0.8, gain: 0.7, attack: 0.005 }); tone(d, t, 0.2, { type: 'sine', f0: 90, f1: 45, gain: 0.5 }); },
   rail: (d, t) => { tone(d, t, 0.35, { type: 'sawtooth', f0: 300, f1: 2400, gain: 0.18 }); noise(d, t, 0.3, { type: 'highpass', f0: 2000, f1: 4000, q: 0.7, gain: 0.3, attack: 0.003 }); tone(d, t + 0.02, 0.4, { type: 'sine', f0: 70, f1: 40, gain: 0.45 }); },
+  cricket: (d, t) => { for (let i = 0; i < 3; i++) tone(d, t + i * 0.06, 0.035, { type: 'sine', f0: 4300, f1: 4100, gain: 0.05 }); },
   deny: (d, t) => tone(d, t, 0.12, { type: 'square', f0: 180, gain: 0.08 }),
 };
 
@@ -219,8 +220,9 @@ export function startAmbience(kind) {
 }
 // occasional birdsong on the woodland map
 export function ambienceTick(dt, kind) {
-  if (!ctx || kind !== 'forest') return;
+  if (!ctx || (kind !== 'forest' && kind !== 'night')) return;
   birdT -= dt;
+  if (kind === 'night') { if (birdT <= 0) { birdT = 0.8 + Math.random() * 2.5; play('cricket', { x: L.x + (Math.random() - 0.5) * 40, y: 0.3, z: L.z + (Math.random() - 0.5) * 40 }, { gain: 0.5, range: 60 }); } return; }
   if (birdT <= 0) { birdT = 3 + Math.random() * 7; play('bird', { x: L.x + (Math.random() - 0.5) * 60, y: 8, z: L.z + (Math.random() - 0.5) * 60 }, { gain: 0.9, range: 80 }); }
 }
 

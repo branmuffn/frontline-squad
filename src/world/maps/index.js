@@ -8,9 +8,10 @@ import outpost from './dustoutpost.js';
 import atomic from './atomicacres.js';
 import gorge from './cascadegorge.js';
 import range from './firingrange.js';
+import atomicnight from './atomicnight.js';
 
-export const MAPS = { yard, outpost, atomic, gorge, range };
-export const MAP_LIST = [yard, outpost, atomic, gorge];
+export const MAPS = { yard, outpost, atomic, atomicnight, gorge, range };
+export const MAP_LIST = [yard, outpost, atomic, atomicnight, gorge];
 
 function disposeGroup(g) {
   g.traverse((o) => {
@@ -58,6 +59,8 @@ export function loadMap(id) {
   if (G.vmHemi) { G.vmHemi.color.setHex(def.hemi.sky); G.vmHemi.groundColor.setHex(def.hemi.ground); G.vmHemi.intensity = def.hemi.intensity * 1.05; }
   if (G.vmLight) { G.vmLight.color.setHex(def.sun.color); G.vmLight.intensity = def.sun.intensity * 0.62; }
   group.add(sun); group.add(sun.target);
+  if (def.after) def.after(group);
+  G.renderer.toneMappingExposure = def.exposure || 1.3; // night maps run darker
   G.scene.fog = new THREE.FogExp2(def.fog.color, def.fog.density);
   G.scene.fog.color.convertSRGBToLinear();
   G.scene.background = G.scene.fog.color.clone();

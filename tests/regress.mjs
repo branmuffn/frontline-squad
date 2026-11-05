@@ -1,7 +1,7 @@
 // Usage: node regress.mjs [seconds]  -> all modes x all maps, logic stub, deterministic stepping
 import { open } from './harness.mjs';
 const SECS = +process.argv[2] || 45;
-const MAPS = ['yard', 'outpost', 'atomic', 'gorge'], MODES = ['ffa', 'tdm', 'survival', 'sandbox'];
+const MAPS = ['yard', 'outpost', 'atomic', 'atomicnight', 'gorge'], MODES = ['ffa', 'tdm', 'survival', 'sandbox'];
 const { browser, page, errors } = await open({w:320,h:240});
 // static: spawns and pickups clear of colliders and on/near main nav
 const st = await page.evaluate((maps) => {
