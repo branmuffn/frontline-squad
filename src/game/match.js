@@ -312,7 +312,10 @@ export function endMatch(reason) {
   if (G.mp && G.mp.host) G.mp.hostEnded(reason);
   clearInput();
   // the play that ended it, replayed for everyone first (any key skips); then the end screen
-  if (m.finalEvent && startFinale(m.finalEvent)) { G.state = 'finale'; m.endReason = reason; hud.hideDeath(); toggleBoardOff(); return; }
+  // replay the play that decided it, but only if it just happened (a timer win replays nothing: it used to show old
+  // footage that looked like the match had restarted)
+  const fe = m.finalEvent, fresh = fe && G.now - fe.at < 5 && !(reason === 'time' && m.mode === 'infection');
+  if (fresh && startFinale(fe)) { G.state = 'finale'; m.endReason = reason; hud.hideDeath(); toggleBoardOff(); return; }
   finishEnd(reason);
 }
 const toggleBoardOff = () => { const b = document.getElementById('board'); if (b) b.classList.add('hidden'); };

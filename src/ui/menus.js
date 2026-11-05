@@ -370,10 +370,13 @@ export function showEnd(r) {
   $('endStats').innerHTML = tiles.map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join('');
   const row = (u) => `<tr class="${u === P ? 'me' : ''}"><td>${esc(u.name)}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${u.assists}</td></tr>`;
   const head = '<tr><th>Operator</th><th>K</th><th>D</th><th>A</th></tr>';
-  if (r.mode === 'tdm') {
-    $('endBoard').innerHTML = [0, 1].map((t) => `<div class="board-team t${t}"><div class="bt-name">${TEAMS[t].name}<b>${r.teamScores[t]}</b></div><table>${head}${G.units.filter((u) => u.team === t).sort((a, b) => b.kills - a.kills).map(row).join('')}</table></div>`).join('');
-  } else if (r.mode === 'ffa') $('endBoard').innerHTML = `<table>${head}${r.standings.map(row).join('')}</table>`;
-  else $('endBoard').innerHTML = '';
+  // the board for every mode: two team tables (team modes; Infection: survivors vs infected), the people (co-op), or everyone
+  const coopB = r.mode === 'survival' || r.mode === 'zombies' || r.mode === 'range';
+  if (m && m.teams) {
+    const names = (m.hook && m.hook.teamNames) || TEAMS.map((t) => t.name), inf = r.mode === 'infection';
+    $('endBoard').innerHTML = [0, 1].map((t) => { const us = G.units.filter((u) => u.team === t && !u.dummy); return `<div class="board-team t${t}"><div class="bt-name">${esc(names[t] && names[t].name ? names[t].name : names[t] || '')}<b>${inf ? us.length : r.teamScores[t]}</b></div><table>${head}${us.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths).map(row).join('')}</table></div>`; }).join('');
+  } else if (coopB) $('endBoard').innerHTML = `<table>${head}${G.units.filter((u) => u.isPlayer || u.remote || u.human).sort((a, b) => b.kills - a.kills).map(row).join('')}</table>`;
+  else $('endBoard').innerHTML = `<table>${head}${r.standings.filter((u) => !u.dummy).map(row).join('')}</table>`;
   const s = r.summary;
   $('xpLines').innerHTML = s.lines.map((l) => `<div><span>${esc(l.label)}${l.count > 1 ? ` ×${l.count}` : ''}</span><b>+${l.xp.toLocaleString()}</b></div>`).join('') + `<div class="total"><span>Total</span><b>+${s.total.toLocaleString()} XP</b></div>`;
   $('newBest').classList.toggle('hidden', !s.newBest);

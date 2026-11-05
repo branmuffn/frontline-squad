@@ -123,7 +123,11 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
   - Main menu fits at 720p (fit.mjs clean except the allowed 1024 settings body).
 - [x] Fix: soldiers spawned inside each other at the countdown (team spawns had fewer points than people): occupied spawn points cost -200, and a crowded point steps out to a free walkable spot 1.4-4 m away. tests/spawnsep.mjs (all modes x maps), tests/spawnshot.mjs.
 - [x] Zombies kill cam: orbit view (claws added to ORBIT) and a claw-swipe animation (one arm rears up and slashes; recorded in the footage, mirrored to joiners via snapshot flag 128). tests/kczombie.mjs.
-- [ ] 3e then 3f (see Rev 3 list above).
+- [x] 3e modes: Domination (A/B/C, 2 s ticks per owned zone, first to 150), King of the Hill (hill moves every 60 s, 1 pt/s for sole holders, first to 120), Search & Destroy (one life per round, attackers alternate, plant 3 s / defuse 5 s / fuse 35 s / round 100 s, first to 4). Objective points come from the map's spawns (or def.objectives). Bots play objectives; MP mirrored; joiners plant/defuse (hmsg obj). src/game/objectives.js; tests: p5, mpmodes, objshot.
+- [x] 3e weapons: SCAR-H (battle rifle), Vector (SMG), crossbow (95 m/s bolts, drop, near-silent); power weapons rocket launcher / grenade launcher (impact grenades, arc) / rail gun (through walls and every body in line); world + first-person models, generated sounds; power pickups: 2 symmetric spots, first after 25 s, cycle RPG/GL/rail, back 45 s after taken; Power weapons On/Off (menu match rules + MP lobby). Attachments (red dot, suppressor, extended mag, grip; up to 2 per primary on the loadout 'Attachments' tab), applied as the carrier's own copy of the gun's stats (P.attW). tests/w3e.mjs.
+- [x] Fix: Infection timer win replayed stale footage (looked like an auto restart): the end-of-match replay only plays if the deciding play happened in the last 5 s (never for an Infection timer win).
+- [x] End screen: K/D/A board in every mode (team tables in team modes and Infection, people in co-op, everyone otherwise). tests/endboard.mjs.
+- [ ] 3f (see Rev 3 list above).
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
 ## Next: roadmap
