@@ -174,6 +174,7 @@ const RECIPES = {
   defeat: (d, t) => { [523, 440, 349, 262].forEach((f, i) => tone(d, t + i * 0.22, 0.32, { type: 'triangle', f0: f, gain: 0.15 })); },
   heartbeat: (d, t) => { tone(d, t, 0.1, { f0: 62, gain: 0.5 }); tone(d, t + 0.17, 0.12, { f0: 55, gain: 0.38 }); },
   wave: (d, t) => { tone(d, t, 0.7, { type: 'sawtooth', f0: 220, gain: 0.08, attack: 0.08 }); tone(d, t, 0.7, { type: 'sawtooth', f0: 330, gain: 0.06, attack: 0.08 }); },
+  ping: (d, t) => { tone(d, t, 0.06, { type: 'sine', f0: 1320, gain: 0.12 }); tone(d, t + 0.07, 0.09, { type: 'sine', f0: 1760, gain: 0.1 }); },
   deny: (d, t) => tone(d, t, 0.12, { type: 'square', f0: 180, gain: 0.08 }),
 };
 

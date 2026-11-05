@@ -10,6 +10,7 @@ import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
 import { loadMap, setShadows, setShadowSize } from './world/maps/index.js';
+import { doPing, updatePings, clearPings } from './ui/ping.js';
 import { perfTick, perfFrameStart, initPower } from './engine/power.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { giveWeapons, spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
@@ -104,7 +105,7 @@ function applySetting(k) {
 function deploy(cfg) {
   if (!(G.mp && G.mp.live && G.mp.client)) G.spectating = null;
   if (cfg.mode === 'range') cfg = { ...cfg, map: 'range', count: 0 }; // the range is its own map
-  lastCfg = cfg; G.netPaused = false;
+  lastCfg = cfg; G.netPaused = false; clearPings();
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
   const veh = G.profile.lobby.vehicles; if (G.mp) G.profile.lobby.vehicles = !!cfg.vehicles; // multiplayer: the host's lobby setting
@@ -243,6 +244,7 @@ function onKeyDown(code, e) {
   else if (matches('equip', code)) useEquipment(G.player);
   else if (matches('interact', code)) { const H = G.match.hook; if (!(H && H.interact && H.interact()) && !openCrate(G.player) && !vehicleInteract(G.player) && !doorInteract(G.player)) tryPickup(); }
   else if (matches('armory', code) && (G.match.mode === 'sandbox' || G.match.mode === 'range')) openArmory();
+  else if (matches('ping', code)) doPing();
 }
 function onKeyUp(code) {
   if (matches('scoreboard', code)) toggleBoard(false);
@@ -317,7 +319,7 @@ function loop(t) {
     if (Math.abs(G.camera.fov - 62) > 0.1) { G.camera.fov = 62; G.camera.updateProjectionMatrix(); }
   }
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
-  updateFx(dt);
+  updateFx(dt); updatePings();
   render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive) || (G.state === 'finale' && finaleVM === true));
   perfTick();
 }

@@ -18,6 +18,7 @@ import { play } from '../engine/audio.js';
 import * as hud from '../ui/hud.js';
 import { awardKill } from '../game/progression.js';
 import { pickSpawn, endMatch } from '../game/match.js';
+import { showPing } from '../ui/ping.js';
 import { hostRoom, joinRoom, manualInvite, manualReply, routeOf } from './transport.js';
 import * as chat from '../ui/chat.js';
 import { vehSnap, vehApplySnap, vehInterp, vehLocal, vehHostApply, vehHostMsg, vehOk, vehRequest } from './netveh.js';
@@ -116,11 +117,45 @@ export function kick(slot) {
 }
 // joiner: ready toggle (the host starts once everyone is ready)
 export function setReady(on) { S.ready = !!on; if (S.client && S.link) S.link.send({ t: 'ready', on: S.ready }); }
+// ---- votes (host counts): /votekick NAME, /surrender (team modes; co-op: end the run), /yes, /no ----
+// Majority of the eligible people decides (kick: everyone but the target; surrender: the caller's team). 30 s to vote.
+function sys(msg) { chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }); hud.notice(msg); }
+function voters(v) { const all = [{ name: S.name, team: G.player ? G.player.team : 0 }].concat(S.remotes.filter((r) => r.hello && !r.spec).map((r) => ({ name: r.name, team: r.unit ? r.unit.team : 0 })));
+  return all.filter((p) => (v.kind === 'kick' ? p.name !== v.target : !G.match || !G.match.teams || p.team === v.team)).map((p) => p.name); }
+function tallyVote() {
+  const v = S.vote; if (!v) return; const el = voters(v), yes = el.filter((n) => v.yes.has(n)).length, no = el.filter((n) => v.no.has(n)).length, need = Math.floor(el.length / 2) + 1;
+  if (yes >= need) {
+    S.vote = null; sys(`Vote passed (${yes}/${el.length})`);
+    if (v.kind === 'kick') { const r = S.remotes.find((x) => x.name === v.target); if (r) kick(r.slot); }
+    else if (S.live && G.match && !G.match.ended) { const m = G.match; if (m.teams) { const o = 1 - v.team; m.teamScores[o] = Math.max(m.teamScores[o], m.teamScores[v.team] + 1); } endMatch('time'); }
+  } else if (no > el.length - need || now() > v.until) { S.vote = null; sys(`Vote failed (${yes} yes, ${no} no)`); }
+}
+function voteCmd(name, team, msg) {
+  const c = /^\/(votekick|surrender|yes|no)\b\s*(.*)$/i.exec(msg); if (!c) return false;
+  const k = c[1].toLowerCase(), say = (t) => { if (name === S.name) chat.add('', t, 'sys'); else { const r = S.remotes.find((x) => x.name === name); if (r) r.link.send({ t: 'chat', n: '', m: t, k: 'sys' }); } };
+  if (k === 'yes' || k === 'no') { if (!S.vote) { say('No vote running.'); return true; } (k === 'yes' ? S.vote.yes : S.vote.no).add(name); (k === 'yes' ? S.vote.no : S.vote.yes).delete(name); tallyVote(); return true; }
+  if (S.vote) { say('A vote is already running: /yes or /no'); return true; }
+  if (k === 'votekick') {
+    const target = clean(c[2] || ''), r = S.remotes.find((x) => x.name.toLowerCase() === target.toLowerCase());
+    if (!r) { say(target ? `No player called ${target}` : 'Usage: /votekick NAME'); return true; }
+    if (r.name === name) { say('You can’t vote to kick yourself.'); return true; }
+    S.vote = { kind: 'kick', target: r.name, yes: new Set([name]), no: new Set(), until: now() + 30 };
+    sys(`${name} started a vote to kick ${r.name}: type /yes or /no (30 s)`);
+  } else {
+    if (!S.live || !G.match) { say('Surrender works during a match.'); return true; }
+    if (G.match.hook && !G.match.teams && !COOP(G.match.mode)) { say('No surrendering in free-for-all modes.'); return true; }
+    if (!G.match.teams && !COOP(G.match.mode)) { say('No surrendering in free-for-all modes.'); return true; }
+    S.vote = { kind: 'surrender', team, yes: new Set([name]), no: new Set(), until: now() + 30 };
+    sys(`${name} wants to ${G.match.teams ? 'surrender' : 'end the run'}: ${G.match.teams ? 'their team types' : 'type'} /yes or /no (30 s)`);
+  }
+  tallyVote(); return true;
+}
 // chat: everyone sees every message (lobby and in match). The host relays and rate-limits.
 export function sendChat(text, team) {
   const m = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!m || !S.role) return;
   if (S.host) {
     const k = /^\/kick\s+(.+)$/i.exec(m); if (k) { const r = S.remotes.find((x) => x.name === clean(k[1])); if (r) kick(r.slot); else chat.add('', 'No player called ' + clean(k[1]), 'sys'); return; }
+    if (voteCmd(S.name, G.player ? G.player.team : 0, m)) return;
     const tm = G.player ? G.player.team : 0;
     chat.add(S.name, m, 'me', !!team); for (const r of S.remotes) if (r.hello && (!team || (r.unit && r.unit.team === tm))) r.link.send({ t: 'chat', n: S.name, m, tm, tt: team ? 1 : 0 });
   } else if (S.link) { chat.add(S.name, m, 'me', !!team); S.link.send({ t: 'chat', m, tt: team ? 1 : 0 }); }
@@ -313,6 +348,13 @@ S.barrel = (c, dmg) => { if (S.client && S.live) S.link.send({ t: 'brl', i: (G.w
 S.dropAdded = (d) => { if (S.host && S.live && !S.replay) { d.key = ++S.dropKey; bcast({ t: 'dr+', k: d.key, id: d.id, p: [r2(d.x), r2(d.y), r2(d.z)] }); } };
 S.dropRemoved = (d) => { if (S.host && S.live && d.key) bcast({ t: 'dr-', k: d.key }); };
 S.take = (d) => { S.link.send({ t: 'take', k: d.key }); };
+// pings: the host shows/relays them to the sender's team (everyone in co-op); FFA pings stay with the sender
+S.ping = (p) => { if (S.client && S.link) S.link.send({ t: 'png', ...p }); else if (S.host) relayPing({ ...p, n: S.name }, G.player ? G.player.team : 0, null); };
+function relayPing(p, team, from) {
+  const m = G.match, same = (t) => (m && (m.teams || COOP(m.mode))) && t === team;
+  if (from && same(G.player ? G.player.team : -1)) showPing(p);
+  for (const r of S.remotes) if (r !== from && r.hello && r.unit && same(r.unit.team)) r.link.send({ t: 'png', ...p });
+}
 S.bcast = (msg) => { if (S.host) bcast(msg); };
 S.toRemote = (u, msg) => { if (u.rec) u.rec.link.send(msg); };
 S.banner = (a, b, s) => { if (S.host && S.live) bcast({ t: 'bn', a, b, s }); };
@@ -340,6 +382,7 @@ function hostMsg(r, m) {
     case 'chat': {
       const t = now(); if (t - r.chatT < 0.4) return; r.chatT = t;
       const msg = String(m.m || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!msg) return;
+      if (voteCmd(r.name, u ? u.team : 0, msg)) return;
       const team = !!m.tt && !!u && !!(G.match && G.match.teams), mate = u && G.player && u.team === G.player.team && G.match && G.match.teams;
       if (!team || mate) chat.add(r.name, msg, mate ? 'ally' : '', team);
       for (const o of S.remotes) if (o !== r && o.hello && (!team || (o.unit && o.unit.team === u.team))) o.link.send({ t: 'chat', n: r.name, m: msg, tm: u ? u.team : 0, tt: team ? 1 : 0 });
@@ -376,6 +419,7 @@ function hostMsg(r, m) {
     case 'open': remoteOpenCrate(u, m.k); break;
     case 'chd': remoteChopperDamage(u, m); break;
     case 'ven': case 'vex': case 'vsw': case 'vdm': vehHostMsg(r, m); break;
+    case 'png': if (u && [m.x, m.y, m.z].every(Number.isFinite) && now() - (r.markT || 0) > 0.3) { r.markT = now(); relayPing({ x: m.x, y: m.y, z: m.z, k: ['enemy', 'here', 'danger'].includes(m.k) ? m.k : 'here', n: r.name }, u.team, r); } break;
     case 'hmsg': { const H = G.match.hook; if (H && H.netHostMsg) H.netHostMsg(u, m); break; }
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
@@ -420,6 +464,7 @@ function clientMsg(m) {
     case 'dr-': { const d = drops.find((x) => x.key === m.k); if (d) removeDrop(d); break; }
     case 'give': clientGive(m); break;
     case 'mode': { const H = G.match && G.match.hook; if (H && H.netMsg) H.netMsg(m); break; }
+    case 'png': showPing(m); break;
     case 'deny': if (m.msg) { play('deny'); hud.notice(m.msg); } break;
     case 'pk': if (m.k === 'ammo') { pickupAmmo(); hud.notice('Ammo resupplied'); } else hud.notice(`Medkit +${m.a} HP`); play('pickup'); break;
     case 'resupply': { const P = G.player; if (P.alive) { refillAmmo(); P.grenades = Math.max(P.grenades, m.g || 2); hud.setAmmo(P); } break; }
@@ -509,6 +554,7 @@ export function shotEnd(wid, x, y, z, dx, dy, dz) {
 
 // ---------------- per-frame ----------------
 export function update(dt) {
+  if (S.vote && S.host) tallyVote(); // expiry
   if (!S.live || !G.match) return;
   if (S.host) hostUpdate(dt); else clientUpdate(dt);
 }
