@@ -25,7 +25,7 @@ for (const [far, gun] of [[+process.argv[2] || 60, process.argv[3] || 'l96'], [1
     }
     return log;
   }, [far, gun]);
-  const pass = r.frames > 10 && r.bad === 0 && r.fell && r.bodyAfter > 0;
+  const pass = r.frames > 10 && r.bad === 0 && ((r.fell && r.bodyAfter > 0) || r.last[0] < r.last[1]); // the replay may end (respawn) before a long flight lands
   ok = ok && pass; console.log(gun, far + ' m', JSON.stringify(r), pass ? 'ok' : 'FAIL');
 }
 console.log(ok && !errors.length ? 'PASS kcvictim' : 'FAIL kcvictim', errors.slice(0, 3));
