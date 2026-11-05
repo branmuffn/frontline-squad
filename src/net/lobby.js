@@ -52,7 +52,7 @@ function fillSettings(cfg) {
     $(id).innerHTML = LM[k].map((v) => opt(v, k === 'score' ? (v === -1 ? 'Auto' : v === 0 ? 'No limit' : String(v)) : (v === 0 ? 'No limit' : v + ' min'), v === +cur[k])).join('');
   }
   $('mpScoreLabel').textContent = cfg.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
-  $('mpPick').value = cfg.pickups === false ? '0' : '1';
+  $('mpPick').value = cfg.pickups === false ? '0' : '1'; $('mpBig').value = cfg.big ? '1' : '0'; $('mpBig').disabled = !host;
   $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
   $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
@@ -62,7 +62,7 @@ function fillSettings(cfg) {
 function readSettings() {
   const c = saved.cfg;
   c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.zdiff = $('mpZdiff').value || 'normal'; c.difficulty = skillBand(c.skill);
-  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.pickups = $('mpPick').value === '1';
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.big = $('mpBig').value === '1'; c.pickups = $('mpPick').value === '1';
   c.limits = c.limits || {}; c.limits[c.mode] = { score: +$('mpScore').value, time: +$('mpTime').value };
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
@@ -105,8 +105,13 @@ export function initLobby(cb) {
     players: (list, cfg) => {
       const host = net.session.host, route = { relay: 'relayed', lan: 'LAN', direct: 'direct' };
       $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
-        + (list.length < net.MAX_PLAYERS ? `<li><i>Waiting for players… (up to ${net.MAX_PLAYERS})</i></li>` : '');
-      $('mpCount8').textContent = `${list.length}/${net.MAX_PLAYERS}`;
+        + (list.length < net.maxPlayers() ? `<li><i>Waiting for players… (up to ${net.maxPlayers()})</i></li>` : '');
+      $('mpCount8').textContent = `${list.length}/${net.maxPlayers()}`;
+      // big rooms: the host's upload grows with every player (each gets the whole match ~20-30 times a second)
+      const c = cfg || net.session.cfg || {}, n = list.length, units = n + (+c.count || 0), mbps = Math.max(0, n - 1) * (20 * units + 60) * (n > 8 ? 20 : 30) * 0.7 * 1.12 * 8 / 1e6;
+      const relayed = list.some((p) => p.route === 'relay');
+      $('mpNet').classList.toggle('hidden', n <= 8 && !c.big);
+      $('mpNet').textContent = `Big room: the host needs about ${mbps.toFixed(1)} Mbps upload. Best on wired or strong Wi-Fi, not a phone hotspot.` + (relayed ? ' Some players are relayed: they may lag.' : '');
       if (cfg && net.session.client) fillSettings(cfg);
       updateStart();
     },
@@ -128,7 +133,7 @@ export function initLobby(cb) {
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {

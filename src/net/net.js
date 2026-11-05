@@ -26,7 +26,10 @@ import { placeClaymore, netClaymore } from '../entities/gear.js';
 import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak, remoteOpenCrate, remoteChopperDamage, grantStreak, refillPlayer } from '../entities/streaks.js';
 
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 12;
+// room size: 12 normally, 16 with the host's 'Experimental' option (star topology: the host uploads to everyone)
+export function maxPlayers() { const c = S.host ? S.cfg : S.lobbyCfg; return c && c.big ? 16 : 12; }
+const humanCount = () => 1 + S.remotes.filter((r) => r.unit).length;
 export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'infection', 'range'];
 export const COOP = (mode) => mode === 'survival' || mode === 'zombies' || mode === 'range';
 export const BUILD = (typeof window !== 'undefined' && window.__BUILD) || 'dev build';
@@ -85,7 +88,7 @@ export async function hostAccept(reply) {
   const L = await inv.accept(reply); S.invite = null; addLink(L);
 }
 function addLink(L) {
-  if (!S.host || S.remotes.length >= MAX_PLAYERS - 1) { L.send({ t: 'full', why: 'Room is full.' }); setTimeout(() => L.close(), 500); return; }
+  if (!S.host || S.remotes.length >= maxPlayers() - 1) { L.send({ t: 'full', why: 'Room is full.' }); setTimeout(() => L.close(), 500); return; }
   const r = { link: L, slot: S.nextSlot++, name: 'PLAYER', rtt: 0, buf: [], unit: null, seq: 0, hello: false, ready: false, skin: cleanSkin(null), route: '', chatT: -9, team: 0 };
   if (L.pc) setTimeout(() => routeOf(L.pc).then((k) => { r.route = k; refreshUi(); bcast({ t: 'lobby', p: players(), cfg: S.cfg }); }), 1500);
   S.remotes.push(r);
@@ -539,7 +542,9 @@ function hostUpdate(dt) {
     bcast({ t: 'pg', p });
   }
   S.snapAcc += dt;
-  if (S.snapAcc >= SNAP_DT) { S.snapAcc = Math.min(S.snapAcc - SNAP_DT, SNAP_DT); sendSnap(); }
+  // above 8 players the host sends 20 snapshots a second instead of 30 (clients interpolate 120 ms instead of 100)
+  const sdt = humanCount() > 8 ? 1 / 20 : SNAP_DT;
+  if (S.snapAcc >= sdt) { S.snapAcc = Math.min(S.snapAcc - sdt, sdt); sendSnap(); }
 }
 function sendRoster(force) {
   const key = G.units.map((u) => `${u.id}:${u.team}:${u.soldier ? u.soldier.style : ''}`).join(',');
@@ -552,6 +557,13 @@ function vehDelta(key) {
   const all = vehSnap(), out = []; S.lastVh = S.lastVh || {};
   for (const a of all) { const k = a.join(','); if (key || S.lastVh[a[0]] !== k || a[14] || a[15] || Math.abs(a[8]) > 0.05 || a[12] > 0.05) out.push(a); S.lastVh[a[0]] = k; }
   return out;
+}
+function wanted(V, u) {
+  if (u === V || V.vehicle || !V.alive) return true;
+  const dx = u.x - V.x, dz = u.z - V.z, d = Math.hypot(dx, dz);
+  if (d < 30) return true;
+  const fx = -Math.sin(V.yaw), fz = -Math.cos(V.yaw), c = (dx * fx + dz * fz) / (d || 1);
+  return V.zoomIdx > 0 || V.adsT > 0.6 ? c > 0.5 : c > 0.2; // ~78 deg either side; scoped: a narrower cone but every distance
 }
 function sendSnap() {
   const us = [];
@@ -566,11 +578,16 @@ function sendSnap() {
   const key = (S.snapN = (S.snapN || 0) + 1) % 10 === 0, ws = dr.join(',') + '|' + br + '|' + pk, changed = key || ws !== S.lastWorld; S.lastWorld = ws; // world bits: on change + keyframes
   const mf = matchFields(), mk = JSON.stringify({ ...mf, time: 0 }), mSend = key || mk !== S.lastMf; S.lastMf = mk; // match state: on change + keyframes
   const snap = { t: 'sn', n: r3(G.now), u: us, m: mSend ? mf : undefined, dr: changed ? dr : undefined, br: changed ? br : undefined, pk: changed ? pk : undefined, vh: vehicles.length ? vehDelta(key) : undefined };
+  // interest management: each player gets everyone near them, in their view cone (or anything while scoped) every
+  // snapshot; units far away AND outside the view only every 3rd snapshot (10 Hz at 30 Hz); keyframes carry everyone
+  const full = key || S.snapN % 3 === 0;
   for (const r of S.remotes) {
     if (!r.hello || (!r.unit && !r.spec)) continue;
     snap.sh = r.unit ? S.shots.filter((s) => s[0] !== r.unit.id) : S.shots;
+    snap.u = full || !r.unit ? us : us.filter((a, i) => wanted(r.unit, G.units[i]));
     r.link.sendFast(snap);
   }
+  S.snapStats = S.snapStats || { all: 0, sent: 0 }; S.snapStats.all += us.length * S.remotes.length;
   S.shots = [];
 }
 
@@ -648,7 +665,7 @@ function proxyDie(u, killer) {
 function clientUpdate(dt) {
   const t = now();
   if (S.haveClock) G.now = t + S.offset;
-  const rt = G.now - INTERP;
+  const rt = G.now - (S.proxies.size + 1 > 8 ? 0.12 : INTERP); // big rooms: 20 Hz snapshots, a little more buffer
   for (const u of S.proxies.values()) {
     const st = sample(u.buf, rt);
     if (st) {

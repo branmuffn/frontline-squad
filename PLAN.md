@@ -112,7 +112,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
   - Zombies revives / difficulty | new | new (B1)
   - Skipped: Sandbox in MP (longer-term: MP Custom), end-of-match replay already in both.
   tests: mpmodes.mjs (gungame medals + bot count, range co-op).
-- [ ] B6 rooms: 12 normal, 16 Experimental; 10/30 Hz by distance + view (scope = always 30); delta vs last ack; 20 Hz above 8; bot fill shrinks; host-link warning.
+- [x] B6 rooms: 12 normal, 16 with lobby 'Room size: Up to 16 (experimental)'; interest management (per joiner: units within 30 m or in the ~78 deg view cone (scoped: 60 deg cone, any distance) every snapshot, others every 3rd; keyframes everyone); 20 Hz snapshots + 120 ms interpolation above 8 players; FFA bots capped so humans + bots <= 20; lobby estimate of host upload + warning for big rooms / relayed players. Measured (mp12.mjs): 12 players + 8 bots 0.86 Mbps host upload (~69 kbps per joiner); 16 players + 4 bots 1.16 Mbps. Delta-vs-ack skipped: binary snapshots + interest management already below the plan's target.
 - [ ] C picks: crosshair editor + codes, warm-up deathmatch in lobby, votes (host keeps direct kick; kick/surrender by majority), MVP card, then aim-trainer drills, ping wheel.
 - [ ] 3e then 3f (see Rev 3 list above).
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.

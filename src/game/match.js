@@ -64,7 +64,8 @@ export function startMatch(cfg) {
   G.units = [P]; G.bots = [];
   const names = shuffle(BOT_NAMES.slice());
   if (mpc) { /* the host runs every bot */ } else if (!m.teams && !waves) {
-    for (let i = 0; i < cfg.count; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
+    const nb = Math.min(cfg.count, Math.max(0, 20 - 1 - rt.length)); // big rooms: bots make way for people (20 units max)
+    for (let i = 0; i < nb; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
   } else if (m.teams) {
     const squads = cfg.mode === 'tdm' || mode.teamSize;
     let allies = squads ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies;

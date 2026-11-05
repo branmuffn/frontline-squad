@@ -191,7 +191,7 @@
 <section id="mp" class="screen hidden">
   <div class="panel wide fit" data-state="choose">
     <h2>Multiplayer</h2>
-    <p class="lede small">Up to 8 players, peer to peer, no account, works across different networks: co-op Survival or Zombies, or Free for All and Team Deathmatch (bots optional).</p>
+    <p class="lede small">Up to 12 players (16 experimental), peer to peer, no account, works across different networks: co-op Survival, Zombies or Practice range, or versus modes (bots optional).</p>
     <div class="pbody">
       <div class="mp-top">
         <label class="field mp-name"><span class="flabel">Your name</span><input id="mpName" maxlength="14" autocomplete="off" spellcheck="false"></label>
@@ -204,7 +204,7 @@
       <p id="mpStatus" class="mp-status"></p><p id="mpBuild" class="build-tag"></p>
       <div class="mp-room">
         <div class="cols">
-          <div class="mp-left"><div class="mp-plist"><span class="flabel">Players <i id="mpCount8"></i></span><ul id="mpPlayers" class="mp-players scroll-list"></ul></div>
+          <div class="mp-left"><div class="mp-plist"><span class="flabel">Players <i id="mpCount8"></i></span><ul id="mpPlayers" class="mp-players scroll-list"></ul><p id="mpNet" class="warn small hidden"></p></div>
             <div class="mp-chat"><div id="mpChatLog" class="mp-chatlog scroll-list"></div><input id="mpChatIn" maxlength="120" placeholder="Chat with the room… (Enter sends)" autocomplete="off" spellcheck="false"></div>
             <details class="mp-manual">
         <summary>No room code? Use copy-paste codes (also works offline on a LAN)</summary>
@@ -233,6 +233,7 @@
             <label class="field" id="mpScoreRow"><span class="flabel" id="mpScoreLabel">Kills to win</span><select id="mpScore"></select></label>
             <label class="field" id="mpTimeRow"><span class="flabel">Time limit</span><select id="mpTime"></select></label>
             <label class="field"><span class="flabel">Health &amp; ammo pickups</span><select id="mpPick"><option value="1">On</option><option value="0">Off</option></select></label>
+            <label class="field"><span class="flabel">Room size</span><select id="mpBig"><option value="0">Up to 12</option><option value="1">Up to 16 (experimental)</option></select></label>
             <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
           </div>
         </div>
