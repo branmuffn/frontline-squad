@@ -3,7 +3,7 @@ import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
 import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, MEDALS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
-import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile } from '../core/storage.js';
+import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile, applyQuality, detectQuality } from '../core/storage.js';
 import { input } from '../core/input.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
@@ -267,13 +267,29 @@ function refreshSettings() {
   const s = G.profile.settings;
   $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
   for (const [k, , , , , f] of SLIDERS) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
-  $('toggles').innerHTML = [['invertY', 'Invert vertical look'], ['shadows', 'Shadows'], ['showFps', 'Show frame rate'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim (snipers: 4× → 8× → off)'], ['autoRes', 'Auto resolution (drops render scale to hold the frame rate)']]
-    .map(([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${s[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
-  for (const k of ['invertY', 'shadows', 'showFps', 'killcam', 'scopeToggle', 'autoRes']) $('set_' + k).addEventListener('change', (e) => { s[k] = e.target.checked; cb.onSetting(k); saveProfile(); });
+  const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['showFps', 'Performance readout (fps, ms, draws)'],
+    ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1]];
+  const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
+  const tg = ([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
+  $('toggles').innerHTML = TOG.filter((t) => !t[2] && t[0] !== 'showFps' && t[0] !== 'killcam').map(tg).join(''); $('gfxToggles').innerHTML = TOG.filter((t) => t[2] || t[0] === 'showFps' || t[0] === 'killcam').map(tg).join('');
+  for (const [k, , gfx] of TOG) $('set_' + k).addEventListener('change', (e) => {
+    const v = e.target.checked;
+    if (k === 'shadowFull') s.shadowRate = v ? 'full' : 'half'; else if (k === 'previewSmooth') s.previewFps = v ? 60 : 30; else s[k] = v;
+    if (gfx) s.quality = detectQuality(s); cb.onSetting(k); saveProfile(); if (gfx) refreshSettings();
+  });
+  const gfx = (k, v) => { s[k] = v; s.quality = detectQuality(s); cb.onSetting(k); saveProfile(); refreshSettings(); };
+  seg($('qualSel'), [{ v: 'battery', html: 'Battery saver' }, { v: 'balanced', html: 'Balanced' }, { v: 'max', html: 'Max quality' }, { v: 'custom', html: 'Custom' }], s.quality, (v) => {
+    if (v === 'custom') { refreshSettings(); return; }
+    applyQuality(s, v); cb.onSetting('quality'); saveProfile(); refreshSettings();
+  });
+  $('qualHint').textContent = { battery: '· coolest, longest battery', balanced: '· recommended', max: '· sharpest, most heat', custom: '· your own mix' }[s.quality] || '';
+  seg($('pixSel'), [{ v: 1, html: '1×' }, { v: 1.25, html: '1.25' }, { v: 1.5, html: '1.5' }, { v: 2, html: '2×' }], s.pixelMax, (v) => gfx('pixelMax', Number(v)));
+  seg($('shadowSel'), [{ v: 'off', html: 'Off' }, { v: 'low', html: 'Low' }, { v: 'high', html: 'High' }], s.shadowQ, (v) => gfx('shadowQ', v));
+  seg($('partSel'), [{ v: 'reduced', html: 'Reduced' }, { v: 'full', html: 'Full' }], s.particles, (v) => gfx('particles', v));
   seg($('namesSel'), [{ v: 'real', html: 'Real' }, { v: 'fictional', html: 'Fictional' }], s.names, (v) => { s.names = v; cb.onSetting('names'); saveProfile(); });
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
-  seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Medium' }, { v: 1, html: 'Full' }], s.renderScale, (v) => { s.renderScale = Number(v); cb.onSetting('renderScale'); saveProfile(); });
-  seg($('fpsSel'), [{ v: 0, html: 'Display' }, { v: 30, html: '30' }, { v: 60, html: '60' }, { v: 120, html: '120' }, { v: 144, html: '144' }], s.fpsCap || 0, (v) => { s.fpsCap = Number(v); saveProfile(); });
+  seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Med' }, { v: 1, html: 'Full' }], s.renderScale, (v) => gfx('renderScale', Number(v)));
+  seg($('fpsSel'), [{ v: 0, html: 'Display' }, { v: 30, html: '30' }, { v: 60, html: '60' }, { v: 120, html: '120' }, { v: 144, html: '144' }], s.fpsCap || 0, (v) => gfx('fpsCap', Number(v)));
   $('crossSel').innerHTML = CROSS.map((c) => `<button type="button" class="${s.crosshair === c ? 'sel' : ''}" data-v="${c}" style="--c:${c}" aria-label="Crosshair colour ${c}"></button>`).join('');
   $('crossSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { s.crosshair = bt.dataset.v; cb.onSetting('crosshair'); saveProfile(); refreshSettings(); }));
   $('binds').innerHTML = Object.keys(DEFAULT_KEYS).map((a) => `<div class="bind"><span>${KEY_LABELS[a]}</span><button type="button" data-a="${a}">${esc(codeName(s.keys[a]))}</button></div>`).join('');
@@ -384,6 +400,7 @@ export function initMenus(callbacks) {
   // export / import profile
   const saveMsg = (t, ok) => { const m = $('saveMsg'); m.textContent = t; m.className = 'save-msg ' + (ok ? 'ok' : 'err'); };
   $('exportProfile').addEventListener('click', () => {
+    G.profile.backup.last = Date.now(); saveProfile();
     const txt = exportProfile(), name = 'frontline-profile-' + new Date().toISOString().slice(0, 10) + '.json';
     try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { /* downloads blocked */ }
     // the download can be blocked inside an embedded page, so the text also goes to the clipboard
@@ -402,7 +419,7 @@ export function initMenus(callbacks) {
   $('streaksDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
-  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'music', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names']) cb.onSetting(k); refreshSettings(); });
+  $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'music', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names', 'quality']) cb.onSetting(k); refreshSettings(); });
   $('resume').addEventListener('click', () => cb.onResume());
   $('freeLook').addEventListener('click', () => cb.onFreeLook());
   $('relock').addEventListener('click', () => { input.freeLook = false; cb.onResume(); });

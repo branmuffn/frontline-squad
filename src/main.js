@@ -9,7 +9,8 @@ import { initRenderer, render, resize } from './engine/render.js';
 import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
-import { loadMap, setShadows } from './world/maps/index.js';
+import { loadMap, setShadows, setShadowSize } from './world/maps/index.js';
+import { perfTick, perfFrameStart, initPower } from './engine/power.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
 import { updateRockets, rockets } from './entities/projectiles.js';
@@ -51,6 +52,7 @@ function boot() {
   initViewmodel();
   loadMap(G.profile.lobby.map);
   initHud();
+  initPower(() => applySetting('quality'), () => { const b = $('exportProfile'); if (b) b.click(); });
   applySetting('crosshair'); applySetting('showFps'); applySetting('scopeToggle'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
@@ -89,7 +91,9 @@ function applySetting(k) {
   if (k === 'volume') setVolume(s.volume);
   if (k === 'music') setMusicVolume(s.music);
   if (k === 'shadows') setShadows(s.shadows);
-  if (k === 'renderScale') resize();
+  if (k === 'renderScale' || k === 'pixelMax') resize();
+  if (k === 'shadowQ') { s.shadows = s.shadowQ !== 'off'; setShadows(s.shadows); setShadowSize(s.shadowQ === 'low' ? 1024 : 2048); }
+  if (k === 'quality') { resize(); s.shadows = s.shadowQ !== 'off'; setShadows(s.shadows); setShadowSize(s.shadowQ === 'low' ? 1024 : 2048); }
   if (k === 'scopeToggle') { input.aimToggle = !!s.scopeToggle; input.aim = false; }
   if (k === 'showFps') $('fps').classList.toggle('hidden', !s.showFps);
   if (k === 'crosshair') document.documentElement.style.setProperty('--ch', s.crosshair);
@@ -251,13 +255,19 @@ function autoRes(raw) {
 }
 function loop(t) {
   requestAnimationFrame(loop);
-  const cap = G.profile && G.profile.settings.fpsCap;
+  const st = G.profile && G.profile.settings;
+  // low-power menus: menus, pause and lobby draw at 30 fps without redrawing shadows (the match itself is untouched)
+  const low = !!(st && st.lowMenus && !isLive() && G.state !== 'finale');
+  if (low !== !!G.lowPowerFrame) { G.lowPowerFrame = low; G.shadowTick = 0; }
+  const cap = low ? (st.fpsCap ? Math.min(30, st.fpsCap) : 30) : st && st.fpsCap;
   if (cap && lastDraw && t - lastDraw < 1000 / cap - 1.5) return; // frame cap: skip this display refresh
+  perfFrameStart();
   if (cap) autoRes((t - lastDraw) / 1000); lastDraw = t;
   const raw = Math.max(0.0001, (t - prev) / 1000), dt = Math.min(0.05, raw); prev = t;
   G.realTime += dt;
   fpsAcc += raw; fpsN++; if (!cap) autoRes(raw);
   if (fpsAcc > 0.5) { G.fps = Math.round(fpsN / fpsAcc); setFps(G.fps); fpsAcc = 0; fpsN = 0; }
+  if (low) arAcc = arN = 0;
   if (isLive()) {
     G.now += dt;
     updateMatch(dt);
@@ -299,6 +309,7 @@ function loop(t) {
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
   updateFx(dt);
   render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive) || (G.state === 'finale' && finaleVM === true));
+  perfTick();
 }
 
 try { boot(); } catch (err) {

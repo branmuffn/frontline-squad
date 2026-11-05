@@ -141,36 +141,38 @@ export function enemyFlash(x, y, z) {
 const IMPACT = {
   water: [0.78, 0.86, 0.9], concrete: [0.62, 0.62, 0.6], adobe: [0.78, 0.66, 0.5], sand: [0.8, 0.7, 0.52], wood: [0.45, 0.33, 0.2], metal: [0.5, 0.52, 0.55], ground: [0.55, 0.55, 0.52],
 };
+// Particles setting: 'reduced' halves the cosmetic debris (gameplay smoke clouds are not touched)
+const few = (n) => G.profile && G.profile.settings.particles === 'reduced' ? Math.ceil(n * 0.5) : n;
 export function impact(x, y, z, nx, ny, nz, mat) {
   const c = IMPACT[mat] || IMPACT.concrete;
-  const n = mat === 'metal' ? 3 : 7;
+  const n = few(mat === 'metal' ? 3 : 7);
   for (let i = 0; i < n; i++) {
     smoke.spawn(x + nx * 0.05, y + ny * 0.05, z + nz * 0.05, nx * rand(0.6, 2) + rand(-0.6, 0.6), ny * rand(0.6, 2) + rand(0.1, 0.9), nz * rand(0.6, 2) + rand(-0.6, 0.6),
       rand(0.35, 0.7), rand(0.12, 0.22), 2.2, c[0], c[1], c[2], 0.55, 0.6, 2.5);
   }
-  const sparks = mat === 'metal' ? 8 : mat === 'concrete' ? 2 : 0;
+  const sparks = few(mat === 'metal' ? 8 : mat === 'concrete' ? 2 : 0);
   for (let i = 0; i < sparks; i++) glow.spawn(x, y, z, nx * rand(2, 6) + rand(-2.5, 2.5), ny * rand(2, 5) + rand(0, 3), nz * rand(2, 6) + rand(-2.5, 2.5), rand(0.1, 0.25), 0.05, 0, 1, 0.8, 0.4, 1, 9, 1);
   decal(x, y, z, nx, ny, nz, mat === 'metal' ? 0.1 : 0.14);
 }
 export function blood(x, y, z, dx, dz, head) {
-  for (let i = 0; i < (head ? 9 : 5); i++) smoke.spawn(x, y, z, dx * rand(0.5, 2) + rand(-0.6, 0.6), rand(-0.3, 1), dz * rand(0.5, 2) + rand(-0.6, 0.6), rand(0.25, 0.5), rand(0.12, 0.22), 1.8, 0.42, 0.06, 0.05, 0.75, 3, 3);
+  for (let i = 0, n = few(head ? 9 : 5); i < n; i++) smoke.spawn(x, y, z, dx * rand(0.5, 2) + rand(-0.6, 0.6), rand(-0.3, 1), dz * rand(0.5, 2) + rand(-0.6, 0.6), rand(0.25, 0.5), rand(0.12, 0.22), 1.8, 0.42, 0.06, 0.05, 0.75, 3, 3);
 }
 export function trail(x, y, z) {
   glow.spawn(x, y, z, rand(-0.3, 0.3), rand(-0.3, 0.3), rand(-0.3, 0.3), 0.08, 0.35, 0, 1, 0.75, 0.35, 1, 0, 0);
   smoke.spawn(x, y, z, rand(-0.25, 0.25), rand(0.1, 0.5), rand(-0.25, 0.25), rand(0.8, 1.4), 0.3, 3, 0.75, 0.74, 0.72, 0.5, -0.3, 1.5);
 }
-export function muzzleSmoke(x, y, z) { smoke.spawn(x, y, z, rand(-0.2, 0.2), rand(0.2, 0.6), rand(-0.2, 0.2), 0.6, 0.18, 3, 0.7, 0.7, 0.7, 0.18, -0.4, 1); }
+export function muzzleSmoke(x, y, z) { if (G.profile.settings.particles === 'reduced' && Math.random() < 0.5) return; smoke.spawn(x, y, z, rand(-0.2, 0.2), rand(0.2, 0.6), rand(-0.2, 0.2), 0.6, 0.18, 3, 0.7, 0.7, 0.7, 0.18, -0.4, 1); }
 
 export function explosion(x, y, z, big = 1) {
-  for (let i = 0; i < 26 * big; i++) {
+  for (let i = 0, n = few(26 * big); i < n; i++) {
     const a = rand(0, 6.28), up = rand(0.2, 1), sp = rand(2, 9) * big;
     glow.spawn(x, y + 0.3, z, Math.cos(a) * sp * (1 - up * 0.5), up * sp, Math.sin(a) * sp * (1 - up * 0.5), rand(0.25, 0.55), rand(0.9, 1.8) * big, 1.2, 1, rand(0.45, 0.7), 0.2, 1, -1, 3);
   }
-  for (let i = 0; i < 30 * big; i++) {
+  for (let i = 0, n = few(30 * big); i < n; i++) {
     const a = rand(0, 6.28), sp = rand(4, 16);
     glow.spawn(x, y + 0.2, z, Math.cos(a) * sp, rand(2, 10), Math.sin(a) * sp, rand(0.4, 0.9), 0.07, 0, 1, 0.75, 0.3, 1, 14, 0.5);
   }
-  for (let i = 0; i < 22 * big; i++) {
+  for (let i = 0, n = few(22 * big); i < n; i++) {
     const a = rand(0, 6.28), sp = rand(1, 4.5);
     const g = rand(0.22, 0.38);
     smoke.spawn(x + rand(-0.6, 0.6), y + rand(0.2, 1.2), z + rand(-0.6, 0.6), Math.cos(a) * sp, rand(0.8, 2.6), Math.sin(a) * sp, rand(1.6, 3), rand(1.4, 2.6) * big, 1.6, g, g * 0.95, g * 0.9, 0.7, -0.25, 1.4);

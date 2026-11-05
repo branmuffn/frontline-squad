@@ -1,5 +1,6 @@
 // Shared runtime context. Modules import G and read/write the parts they own.
 export const G = {
+  perf: { calls: 0, tris: 0, ms: 0, up: 0 },
   renderer: null, scene: null, camera: null, vmScene: null, vmCamera: null,
   world: null,        // current map runtime (colliders, nav, spawns...)
   mapGroup: null,

@@ -39,7 +39,7 @@ export function initRenderer(container) {
 export function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   const scale = (G.profile.settings.renderScale || 1) * (G.dynScale || 1); // dynScale: auto resolution
-  G.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5) * scale);
+  G.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, G.profile.settings.pixelMax || 1.25) * scale);
   G.renderer.setSize(w, h);
   G.camera.aspect = w / h; G.camera.updateProjectionMatrix();
   G.vmCamera.aspect = w / h; G.vmCamera.updateProjectionMatrix();
@@ -49,6 +49,10 @@ export function resize() {
 export function render(showViewmodel) {
   const r = G.renderer;
   r.clear();
+  // shadow pacing: the sun's shadow map is redrawn every frame (Max), every 2nd frame (half rate) or not at all in
+  // low-power menus (the last map stays on screen, so nothing visibly changes)
+  if (r.shadowMap.enabled) { const s = G.profile.settings; G.shadowTick = (G.shadowTick || 0) + 1; r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = G.lowPowerFrame ? G.shadowTick < 3 : s.shadowRate === 'full' || G.shadowTick % 2 === 0; }
   r.render(G.scene, G.camera);
+  G.perf.calls = r.info.render.calls; G.perf.tris = r.info.render.triangles;
   if (showViewmodel) { r.clearDepth(); r.render(G.vmScene, G.vmCamera); }
 }

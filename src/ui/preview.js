@@ -29,8 +29,12 @@ export function showPreview(host, look) {
   if (!live) { live = true; t0 = performance.now(); requestAnimationFrame(frame); }
 }
 export function stopPreview() { live = false; }
+let lastF = 0;
 function frame(t) {
   if (!live || !cvs.isConnected || !cvs.offsetParent) { live = false; return; }
+  // 30 fps by default (the turntable is slow); 60 with "Smooth loadout preview"
+  if ((G.profile.settings.previewFps || 30) < 50 && t - lastF < 30) { requestAnimationFrame(frame); return; }
+  lastF = t;
   const w = cvs.parentNode.clientWidth, h = cvs.parentNode.clientHeight;
   if (w > 10 && h > 10 && (cvs.width !== Math.round(w * R.getPixelRatio()) || cvs.height !== Math.round(h * R.getPixelRatio()))) { R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } // canvas is absolutely positioned (CSS): resizing it can never grow the page
   cam.position.set(0, 1.15, 4.9); cam.lookAt(0, 0.92, 0);

@@ -96,6 +96,18 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [ ] 3e modes & weapons (Domination, S&D, KotH; SCAR-H, Vector, crossbow; power weapons RPG/GL/rail gun; attachments)
 - [ ] 3f performance, maps & vehicles (batching, auto-res, snowbound radar base, harbour, night Atomic Acres, Kestrel flyer, ATV, map editor, A* worker)
 
+## Rev 4 (agreed 2026-11-05; build in order; scope: fun + easy to start, NO money/buying/shop features now or later)
+- [x] B0 performance & quality: presets Battery saver / Balanced (default) / Max / Custom (any change -> Custom); 60 fps default (Display/30/120/144 selectable; browsers can't exceed the display rate, so no 'Uncapped'); low-power menus (30 fps, no shadow redraw); sharpness 1/1.25/1.5/2x (default 1.25); shadows Off/Low/High + 'every frame' (default half rate); effects Reduced/Full; smooth preview toggle (default 30 fps); old profiles move to Balanced once (qv); perf readout (fps, CPU ms, draws, tris, host upload, auto-res %); battery prompt (Chrome only, once per session, 'Don't ask again'); persistent storage request; backup reminder (rank 2+, every 14 days since last export, max every 3 days). tests/power.mjs, tests/quick.sh.
+- [ ] B1 Zombies fair: slower than your sprint early, softer claws + hit grace, swarm size by round x players, more points/ammo; Zombies difficulty Easy/Normal/Hard/Nightmare; co-op revives (30 s bleed-out, hold E). Survival-time test.
+- [ ] B2 kill cam keeps the victim until the slug lands + short beat. kcshot.mjs snipe.
+- [ ] B3 solid walls on every map (colliders follow visuals; trim visuals where a collider would bump). Wall-sweep test.
+- [ ] B5 range rack: B opens it, tick any number of guns, wheel / 1-9 / Q cycle.
+- [ ] B4 MP parity: bots in Gun Game/CTF/Infection; joiner XP + medals; each joiner's own killstreak picks; vehicles in CTF; co-op practice range.
+- [ ] B6 rooms: 12 normal, 16 Experimental; 10/30 Hz by distance + view (scope = always 30); delta vs last ack; 20 Hz above 8; bot fill shrinks; host-link warning.
+- [ ] C picks: crosshair editor + codes, warm-up deathmatch in lobby, votes (host keeps direct kick; kick/surrender by majority), MVP card, then aim-trainer drills, ping wheel.
+- [ ] 3e then 3f (see Rev 3 list above).
+- Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
+
 ## Next: roadmap
 See docs/ONE_PAGER.md "Roadmap" (17 suggestions: netcode, performance, content, reach). Ask the user which to build first.
 

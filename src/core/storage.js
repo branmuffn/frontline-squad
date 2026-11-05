@@ -13,8 +13,18 @@ export const KEY_LABELS = {
   melee: 'Weapon 3 (knife unless Overkill)', slot4: 'Knife in Overkill (weapon 4)', grenade: 'Frag grenade (hold to cook)', streak: 'Use killstreak', swap: 'Last weapon (Q)', scoreboard: 'Scoreboard', armory: 'Weapon menu (Sandbox)', interact: 'Pick up weapon', zoom: 'Scope zoom (4× / 8×)', prone: 'Go prone / get up', chat: 'Chat to everyone (multiplayer; Enter also works)', teamChat: 'Chat to your team only (team modes)', equip: 'Equipment (claymore)',
 };
 
+// Quality presets: picking one fills in every graphics option; changing any one of them shows "Custom".
+export const QUALITY = {
+  battery: { fpsCap: 60, pixelMax: 1, renderScale: 0.8, autoRes: true, shadowQ: 'low', shadowRate: 'half', particles: 'reduced', lowMenus: true, previewFps: 30 },
+  balanced: { fpsCap: 60, pixelMax: 1.25, renderScale: 1, autoRes: true, shadowQ: 'high', shadowRate: 'half', particles: 'full', lowMenus: true, previewFps: 30 },
+  max: { fpsCap: 0, pixelMax: 1.5, renderScale: 1, autoRes: false, shadowQ: 'high', shadowRate: 'full', particles: 'full', lowMenus: false, previewFps: 60 },
+};
+export const QUALITY_KEYS = Object.keys(QUALITY.balanced);
+export function applyQuality(s, name) { if (QUALITY[name]) { Object.assign(s, QUALITY[name]); s.shadows = s.shadowQ !== 'off'; } s.quality = name; }
+export function detectQuality(s) { for (const [n, q] of Object.entries(QUALITY)) if (QUALITY_KEYS.every((k) => s[k] === q[k])) return n; return 'custom'; }
 export const DEFAULT_SETTINGS = {
-  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true, scopeToggle: false, fpsCap: 0, autoRes: true,
+  sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true, scopeToggle: false, fpsCap: 60, autoRes: true,
+  quality: 'balanced', pixelMax: 1.25, shadowQ: 'high', shadowRate: 'half', particles: 'full', lowMenus: true, previewFps: 30, batteryAsk: true, qv: 0,
   crosshair: '#eaf2e4', slots: 'classic', names: 'real', keys: { ...DEFAULT_KEYS },
 };
 
@@ -34,6 +44,7 @@ function freshProfile() {
     skin: { uniform: 'olive', pattern: 'plain', helmet: 'olive', op: 'rex' },
     streaks: { picks: ['uav', 'mortar', 'sentry'], kills: { uav: 3, cuav: 4, mortar: 5, care: 6, sentry: 7, chopper: 9, air: 11, gunship: 15 } },
     hints: {},
+    backup: { last: 0, nag: 0 },
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0, medals: { __open: true } },
     best: { ffa: 0, tdm: 0, survival: { recruit: 0, easy: 0, normal: 0, hard: 0, elite: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },
@@ -62,6 +73,8 @@ function fromSaved(saved) {
   p.preset = Math.max(0, Math.min(2, p.preset | 0));
   p.loadout = p.presets[p.preset];
   if (p.career.medals) delete p.career.medals.__open;
+  const st = p.settings; // build 67+: quality presets; older profiles move to Balanced once
+  if (st.qv !== 1) { if (st.shadows === false) { applyQuality(st, 'balanced'); st.shadowQ = 'off'; st.shadows = false; st.quality = 'custom'; } else applyQuality(st, 'balanced'); st.qv = 1; }
   const L = p.lobby; // bot skill 1-10 replaced the 3-step difficulty
   if (!(L.skill >= 1 && L.skill <= 10)) L.skill = { easy: 3, normal: 5, hard: 7 }[L.difficulty] || 5;
   return p;
@@ -105,6 +118,6 @@ export function saveProfile() {
 }
 
 export function resetSettings() {
-  G.profile.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  G.profile.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); G.profile.settings.qv = 1;
   saveProfile();
 }

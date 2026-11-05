@@ -362,4 +362,10 @@ function drawRadar() {
 }
 
 export function prompt(html) { set('prompt', 'html', html); }
-export function setFps(n) { set('fps', 'text', n + ' FPS'); }
+export function setFps(n) {
+  const p = G.perf, s = G.profile.settings;
+  if (!s.showFps) return;
+  if (s.perfHud === false) { set('fps', 'text', n + ' FPS'); return; }
+  const k = (v) => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(v);
+  set('fps', 'text', `${n} FPS · ${p.ms.toFixed(1)} ms · ${p.calls} draws · ${k(p.tris)} tris` + (p.host ? ` · host ${p.up.toFixed(2)} Mbps up` : '') + (G.dynScale && G.dynScale < 1 ? ` · res ${Math.round(G.dynScale * 100)}%` : ''));
+}

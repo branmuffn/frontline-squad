@@ -50,7 +50,7 @@ export function loadMap(id) {
   const sun = new THREE.DirectionalLight(def.sun.color, def.sun.intensity);
   sun.position.set(...def.sun.pos);
   sun.castShadow = shadows;
-  sun.shadow.mapSize.set(2048, 2048);
+  const sz = G.profile && G.profile.settings.shadowQ === 'low' ? 1024 : 2048; sun.shadow.mapSize.set(sz, sz);
   const s = def.sun.shadow;
   Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 190 });
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 2.2;
@@ -73,6 +73,11 @@ export function loadMap(id) {
   return G.world;
 }
 
+export function setShadowSize(n) {
+  const sun = G.world && G.world.sun; if (!sun || sun.shadow.mapSize.x === n) return;
+  sun.shadow.mapSize.set(n, n); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  G.shadowTick = 0;
+}
 export function setShadows(on) {
   if (!G.mapGroup) return;
   G.renderer.shadowMap.enabled = on;

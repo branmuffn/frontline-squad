@@ -50,7 +50,7 @@ export class Link {
   }
   _recv(data) { if (this.closed || !this.onmsg) return; let m; try { m = typeof data === 'string' ? JSON.parse(data) : decode(data); } catch { return; } if (!m) return; try { this.onmsg(m); } catch (e) { console.error(e); } }
   _end() { if (this.closed) return; this.closed = true; if (this.onclose) this.onclose(); }
-  send(o) { if (!this.closed && this._relOpen()) this._sendRel(JSON.stringify(o)); }
+  send(o) { if (!this.closed && this._relOpen()) { const j = JSON.stringify(o); this.bytesRel = (this.bytesRel || 0) + j.length; this._sendRel(j); } }
   sendFast(o) {
     const f = this.fast;
     if (f && f.readyState === 'open') {
