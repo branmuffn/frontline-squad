@@ -1,4 +1,5 @@
-import { restyleSoldier } from '../entities/soldier.js';
+import { restyleSoldier, setFlash } from '../entities/soldier.js';
+import { saveProfile } from '../core/storage.js';
 import { RANGE_TARGETS, RANGE_MOVERS } from '../world/maps/firingrange.js';
 // Phase 5 modes as hooks on top of the shared match flow (match.js calls these when present).
 // Hook fields: setup, weapons(u), onSpawn(u), onKill, onDamage, modDamage, update, result, score, botGoal, interact, prompting
@@ -423,6 +424,27 @@ const zombies = {
 };
 
 // ---------- practice range: dummies that stand still or ride a track, pop back up, never fight ----------
+// aim drills (range): flick = hit the lit target, a new one lights up; tracking = damage on the moving targets. 30 s.
+let drill = null;
+export function startDrill(kind) {
+  if (G.mp && G.mp.live && G.mp.client) { hud.notice('Drills run on the host’s range'); return; }
+  endDrill(true); drill = { kind, until: G.now + 30, score: 0, times: [], cur: null, litAt: G.now };
+  if (kind === 'flick') lightNext();
+  hud.banner(kind === 'flick' ? 'Flick drill' : 'Tracking drill', kind === 'flick' ? 'Hit the red target. 30 seconds.' : 'Keep your shots on the moving targets. 30 seconds.', 'wave'); play('wave', null, { important: true });
+}
+function lightNext() {
+  const pool = G.bots.filter((b) => b.alive && b.dummy && !b.dummy.rail && b !== drill.cur);
+  if (drill.cur && drill.cur.soldier) setFlash(drill.cur.soldier, 0);
+  drill.cur = pool[Math.floor(Math.random() * pool.length)] || null; drill.litAt = G.now;
+}
+function endDrill(silent) {
+  if (!drill) return; const d = drill; drill = null; hud.scoreChanged();
+  if (d.cur && d.cur.soldier) setFlash(d.cur.soldier, 0);
+  if (silent) return;
+  const best = G.profile.best, k = d.kind, score = Math.round(d.score), avg = d.times.length ? (d.times.reduce((a, b) => a + b, 0) / d.times.length).toFixed(2) : '–';
+  const nb = score > (best[k] || 0); if (nb) { best[k] = score; saveProfile(); }
+  hud.banner(`${k === 'flick' ? 'Flick' : 'Tracking'}: ${score}${k === 'flick' ? ' hits' : ' damage'}`, (k === 'flick' ? `avg ${avg} s per target · ` : '') + (nb ? 'new best!' : `best ${best[k]}`), 'streak'); play('streak', null, { important: true });
+}
 const rackOf = () => (G.profile.rangeRack || []).filter((id) => WEAPONS[id] && !WEAPONS[id].melee);
 const range = {
   noDrops: true, noStreaks: true,
@@ -435,6 +457,13 @@ const range = {
     for (const t of RANGE_TARGETS) { const b = G.spawnBot({ name: t.d + ' m', team: 9, weapon: 'knife', ...look }); b.dummy = { x: t.x, z: t.z }; }
     for (const r of RANGE_MOVERS) { const b = G.spawnBot({ name: r.d + ' m mover', team: 9, weapon: 'knife', ...look }); b.dummy = { x: r.x0, z: r.z, rail: r, dir: 1 }; }
   },
+  onDamage(v, a, dmg) {
+    if (!drill || a !== G.player || G.now > drill.until) return;
+    if (drill.kind === 'flick' && v === drill.cur) { drill.score++; drill.times.push(G.now - drill.litAt); play('pickup'); lightNext(); }
+    if (drill.kind === 'track' && v.dummy && v.dummy.rail) drill.score += dmg;
+    hud.scoreChanged();
+  },
+  cleanup() { endDrill(true); },
   spawnFor(u) { return u.dummy ? { x: u.dummy.x, y: 0, z: u.dummy.z, yaw: 0 } : null; },
   update(dt) {
     for (const b of G.bots) {
@@ -443,7 +472,11 @@ const range = {
       if (d.rail) { const r = d.rail; d.x += r.speed * d.dir * dt; if (d.x > r.x1) { d.x = r.x1; d.dir = -1; } if (d.x < r.x0) { d.x = r.x0; d.dir = 1; } b.moveSpeed = r.speed; }
       b.x = d.x; b.z = d.z; b.y = 0; b.yaw = 0; b.health = Math.max(b.health, 1);
     }
+    if (drill) { const tl = Math.ceil(drill.until - G.now); if (tl !== drill.lastT) { drill.lastT = tl; hud.scoreChanged(); } }
+    if (drill) { if (G.now > drill.until) endDrill(false); else if (drill.cur && (!drill.cur.alive || !drill.cur.soldier)) lightNext(); else if (drill.cur) setFlash(drill.cur.soldier, 0.55 + 0.25 * Math.sin(G.now * 9), 0xff3a28); }
   },
-  score() { return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B: range rack (carry any guns) · wheel / 1-9 / Q to switch' }; },
+  score() {
+    if (drill) return { an: drill.kind === 'flick' ? 'HITS' : 'DAMAGE', a: String(Math.round(drill.score)), bn: 'TIME', b: String(Math.max(0, Math.ceil(drill.until - G.now))), sub: drill.kind === 'flick' ? 'Flick drill · hit the red target' : 'Tracking drill · stay on the movers' };
+    return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B: range rack (carry any guns) · wheel / 1-9 / Q to switch' }; },
 };
 export const HOOKS = { gungame, infection, ctf, zombies, range };

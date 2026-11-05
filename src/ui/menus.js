@@ -384,7 +384,8 @@ export function showArmory() {
   if (isRange) {
     const rk = G.profile.rangeRack || [], rb = (id) => `<button type="button" data-r="${id}" class="${rk.includes(id) ? 'sel' : ''}"><b>${rk.includes(id) ? (rk.indexOf(id) + 1) + ' · ' : ''}${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
     $('armPrimary').innerHTML = ALL_PRIMARIES.map(rb).join(''); $('armSecondary').innerHTML = SECONDARIES.map(rb).join('');
-    $('armExtras').innerHTML = '<button type="button" data-r="all"><b>ALL GUNS</b><small>Carry every gun</small></button><button type="button" data-r="none"><b>CLEAR</b><small>Back to your loadout</small></button><button type="button" data-a="refill"><b>REFILL AMMO</b><small>Full ammo and three grenades</small></button><button type="button" data-a="close"><b>DONE</b><small>Back to the range</small></button>';
+    $('armExtras').innerHTML = '<button type="button" data-r="all"><b>ALL GUNS</b><small>Carry every gun</small></button><button type="button" data-r="none"><b>CLEAR</b><small>Back to your loadout</small></button><button type="button" data-a="refill"><b>REFILL AMMO</b><small>Full ammo and three grenades</small></button><button type="button" data-a="close"><b>DONE</b><small>Back to the range</small></button>'
+      + `<button type="button" data-a="drill:flick"><b>FLICK DRILL</b><small>30 s · best ${G.profile.best.flick || 0} hits</small></button><button type="button" data-a="drill:track"><b>TRACKING DRILL</b><small>30 s · best ${G.profile.best.track || 0} damage</small></button>`;
     $('armExtrasH').textContent = 'Rack';
     document.querySelectorAll('#armory .arm-grid button').forEach((bt) => bt.addEventListener('click', () => cb.onArmory(bt.dataset.r ? { rack: bt.dataset.r } : { action: bt.dataset.a })));
     showScreen('armory'); return;

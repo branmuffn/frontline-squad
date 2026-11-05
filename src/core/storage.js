@@ -48,7 +48,7 @@ function freshProfile() {
     rangeRack: [], // practice range: the guns you carry there (any number; empty = your loadout)
     xp: 0,
     career: { kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, matches: 0, wins: 0, bestStreak: 0, seconds: 0, knifeKills: 0, grenadeKills: 0, medals: { __open: true } },
-    best: { ffa: 0, tdm: 0, survival: { recruit: 0, easy: 0, normal: 0, hard: 0, elite: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },
+    best: { flick: 0, track: 0, ffa: 0, tdm: 0, survival: { recruit: 0, easy: 0, normal: 0, hard: 0, elite: 0 }, wave: 0, zombies: 0, gungame: 0, ctf: 0, infection: 0 },
   };
 }
 

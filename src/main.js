@@ -11,6 +11,7 @@ import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
 import { loadMap, setShadows, setShadowSize } from './world/maps/index.js';
 import { doPing, updatePings, clearPings } from './ui/ping.js';
+import { startDrill } from './game/modes.js';
 import { perfTick, perfFrameStart, initPower } from './engine/power.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { giveWeapons, spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
@@ -135,6 +136,7 @@ function onArmory(a) {
   }
   if (a.weapon) equipWeapon(a.weapon);
   else if (a.action === 'refill') { refillAmmo(); P.grenades = 3; }
+  else if (a.action && a.action.startsWith('drill:')) startDrill(a.action.slice(6));
   else if (a.action === 'heal') P.health = P.maxHealth;
   else if (a.action && a.action !== 'close') grantStreak(a.action);
   armoryOpen = false;
