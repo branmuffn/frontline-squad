@@ -31,7 +31,7 @@ export const MAX_PLAYERS = 12;
 // room size: 12 normally, 16 with the host's 'Experimental' option (star topology: the host uploads to everyone)
 export function maxPlayers() { const c = S.host ? S.cfg : S.lobbyCfg; return c && c.big ? 16 : 12; }
 const humanCount = () => 1 + S.remotes.filter((r) => r.unit).length;
-export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'infection', 'range'];
+export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'dom', 'koth', 'snd', 'infection', 'range'];
 export const COOP = (mode) => mode === 'survival' || mode === 'zombies' || mode === 'range';
 export const BUILD = (typeof window !== 'undefined' && window.__BUILD) || 'dev build';
 const VER = 1, SNAP_DT = 1 / 30, INTERP = 0.1;
@@ -206,7 +206,7 @@ export const notReady = () => joined().filter((r) => !r.ready && !r.spec).map((r
 export const canStart = () => S.host && joined().length > 0 && !notReady().length && MP_MODES.includes(S.cfg.mode);
 // teams are dealt when the match starts: TDM alternates by join order (host first), so sides stay even
 function dealTeams(mode) {
-  joined().filter((r) => !r.spec).sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) || mode === 'infection' ? 0 : mode === 'tdm' || mode === 'ctf' ? (S.cfg.sameTeam && mode === 'tdm' ? 0 : (i + 1) % 2) : 100 + r.slot; });
+  joined().filter((r) => !r.spec).sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) || mode === 'infection' ? 0 : ['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(mode) ? (S.cfg.sameTeam && mode === 'tdm' ? 0 : (i + 1) % 2) : 100 + r.slot; });
 }
 export function lookFor(team, slot, mode, skin) {
   const k = skin ? skinLook(skin) : null;
@@ -248,7 +248,7 @@ function lateJoin(r) {
   const cfg = S.liveCfg, mode = cfg.mode;
   if (r.spec) { r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
   const back = S.dropped[r.name];
-  if (COOP(mode)) r.team = 0; else if (mode === 'infection') r.team = 0; else if (mode === 'tdm' || mode === 'ctf') { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
+  if (COOP(mode)) r.team = 0; else if (mode === 'infection') r.team = 0; else if (['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(mode)) { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
   const [u] = makeRemoteUnits(mode, [r]);
   if (back) { u.kills = back.kills; u.deaths = back.deaths; delete S.dropped[r.name]; }
   spawnRemote(u, S.cb.pickSpawn(u), false);

@@ -10,7 +10,7 @@ import { VEHICLE_MODES } from '../entities/vehicles.js';
 
 const KEY = 'frontline_mp_v1';
 // bot counts in multiplayer (0 = humans only)
-const MP_COUNTS = { ffa: [0, 1, 2, 3, 5, 7, 9], tdm: [0, 2, 3, 4, 5, 6], ctf: [0, 2, 3, 4, 5, 6], gungame: [0, 1, 2, 3, 5, 7, 9], infection: [0, 3, 5, 7, 9, 11] };
+const MP_COUNTS = { ffa: [0, 1, 2, 3, 5, 7, 9], tdm: [0, 2, 3, 4, 5, 6], ctf: [0, 2, 3, 4, 5, 6], dom: [0, 2, 3, 4, 5, 6], koth: [0, 2, 3, 4, 5, 6], snd: [0, 2, 3, 4, 5], gungame: [0, 1, 2, 3, 5, 7, 9], infection: [0, 3, 5, 7, 9, 11] };
 let saved = null, show = null;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -37,8 +37,8 @@ function fillSettings(cfg) {
   $('mpCountRow').classList.toggle('hidden', !counts);
   if (counts) {
     if (!counts.includes(+cfg.count)) cfg.count = MODES[cfg.mode].defaultCount;
-    $('mpCountLabel').textContent = cfg.mode === 'tdm' || cfg.mode === 'ctf' ? 'Team size (bots fill)' : 'Bots';
-    $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' || cfg.mode === 'ctf' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
+    $('mpCountLabel').textContent = ['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode) ? 'Team size (bots fill)' : 'Bots';
+    $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode) ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
   }
   const host = !!net.session.host, noBots = !!counts && +cfg.count === 0 && !net.COOP(cfg.mode);
   const zm = cfg.mode === 'zombies' || cfg.mode === 'range'; // no bot skill: zombies have their own difficulty, the range has dummies

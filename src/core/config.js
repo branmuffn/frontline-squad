@@ -262,6 +262,7 @@ export const LIMITS = {
   ffa: { score: [10, 15, 20, 30, 50, 0], time: [5, 8, 10, 15, 20, 0] },
   tdm: { score: [-1, 25, 50, 75, 100, 0], time: [5, 10, 15, 20, 0] },
   ctf: { score: [1, 3, 5, 0], time: [5, 10, 15, 20, 0] },
+  dom: { score: [100, 150, 250, 0], time: [5, 10, 15, 20, 0] }, koth: { score: [60, 120, 180, 0], time: [5, 10, 15, 0] }, snd: { score: [2, 3, 4, 6] },
   gungame: { time: [5, 10, 15, 0] }, infection: { time: [3, 5, 8, 10] }, sandbox: { time: [0, 5, 10, 15] },
 };
 export const limitDefault = (mode, k) => k === 'score' ? (mode === 'tdm' ? -1 : MODES[mode].scoreLimit || 0) : Math.round((MODES[mode].time || 0) / 60);
@@ -289,6 +290,18 @@ export const MODES = {
   ctf: {
     id: 'ctf', name: 'CAPTURE THE FLAG', desc: 'Steal their flag and bring it home while yours is safe. Three captures win.',
     time: 600, scoreLimit: 3, teamSize: true, counts: [3, 4, 5, 6], defaultCount: 4, countLabel: 'Squad size',
+  },
+  dom: {
+    id: 'dom', name: 'DOMINATION', desc: 'Hold zones A, B and C. Every zone you own scores. First to 150.',
+    time: 600, scoreLimit: 150, teamSize: true, counts: [3, 4, 5, 6], defaultCount: 4, countLabel: 'Squad size',
+  },
+  koth: {
+    id: 'koth', name: 'KING OF THE HILL', desc: 'Hold the hill alone to score each second. It moves every minute.',
+    time: 600, scoreLimit: 120, teamSize: true, counts: [3, 4, 5, 6], defaultCount: 4, countLabel: 'Squad size',
+  },
+  snd: {
+    id: 'snd', name: 'SEARCH & DESTROY', desc: 'One life per round. Plant the bomb at A or B, or stop it. First to 4 rounds.',
+    time: 0, scoreLimit: 4, teamSize: true, counts: [2, 3, 4, 5], defaultCount: 4, countLabel: 'Squad size',
   },
   zombies: {
     id: 'zombies', name: 'ZOMBIES', desc: 'Endless undead rounds. Earn points, buy wall weapons, gamble on the mystery box.',

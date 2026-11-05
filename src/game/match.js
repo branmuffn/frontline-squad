@@ -74,6 +74,14 @@ export function startMatch(cfg) {
     for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
+  // round-based modes: everyone back to a spawn, full health (alive or not)
+  m.resetRound = () => {
+    for (const u of G.units) {
+      if (u.isPlayer) { if (G.state === 'dead') u.respawnAt = G.now; else { const s = pickSpawn(u); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(u); } }
+      else if (u.remote) G.mp.spawnRemote(u, pickSpawn(u));
+      else if (u.brain) { const s = pickSpawn(u); resetBotForSpawn(u, s.x, s.y, s.z, s.yaw); hookSpawn(u); }
+    }
+  };
   if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
   if (m.warmup) setTimeout(() => hud.banner('Warm-up', 'Free for all · no score, no XP · the host starts the real match', 'wave'), 2500);
   const remotes = rt.length ? G.mp.makeRemoteUnits(cfg.mode) : [];
@@ -192,6 +200,7 @@ export function onKill(credited, victim, info) {
     victim.respawnAt = G.now + 3; // same delay as the player
     if (m.mode === 'survival') m.alive = Math.max(0, (m.alive || 0) - 1);
   }
+  if (m.hook && m.hook.holdRespawn && m.hook.holdRespawn(victim)) { victim.respawnAt = 1e9; if (victim.isPlayer) hud.waitRound(); } // one life per round
   if (hookEnd === 'end') { setTimeout(() => endMatch('limit'), 300); hud.scoreChanged(); return; }
   if (m.mode === 'ffa' && credited && credited.kills >= m.scoreLimit) endMatch('limit');
   if (m.mode === 'tdm' && (m.teamScores[0] >= m.scoreLimit || m.teamScores[1] >= m.scoreLimit)) endMatch('limit');

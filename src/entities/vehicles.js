@@ -16,7 +16,7 @@ import { play, audioCtx, masterNode } from '../engine/audio.js';
 import { keyName } from '../ui/hud.js';
 import * as hud from '../ui/hud.js';
 
-export const VEHICLE_MODES = ['ffa', 'tdm', 'sandbox', 'ctf'];
+export const VEHICLE_MODES = ['ffa', 'tdm', 'sandbox', 'ctf', 'dom', 'koth'];
 const JEEP = { hw: 1.02, hd: 2.15, y0: 0.32, y1: 1.28, hp: 560, crew: 0.85, maxF: 17, maxR: 6, accel: 9, brake: 24, wheelbase: 2.5, steerMax: 0.55, respawn: 20 };
 // seat offsets in jeep space (x right, z backwards): driver front-left, gunner standing at the back on the gun ring
 const SEATS = [{ x: -0.45, y: 0.45, z: -0.15, crouch: 0.75 }, { x: 0, y: 0.72, z: 1.05, crouch: 0 }];

@@ -174,6 +174,7 @@ export function showDeath(killer, info, respawnAt) {
   } else { $('deathTitle').textContent = 'You died'; $('deathSub').textContent = info.weapon === 'frag' ? 'Your own grenade' : ''; }
   if (respawnAt >= 99 && G.match.mode === 'survival') $('deathTimer').textContent = 'No lives left';
 }
+export function waitRound() { if (deathInfo) deathInfo.respawnAt = 1e9; set('deathTimer', 'text', 'Out until the next round'); }
 export function hideDeath() { $('death').classList.add('hidden'); deathInfo = null; }
 
 export function toggleBoard(open) { boardOpen = open; $('board').classList.toggle('hidden', !open); if (open) drawBoard(); }

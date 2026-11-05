@@ -35,7 +35,7 @@ const out = {}, fail = [];
 const check = (n, ok, info) => { out[n] = ok ? 'ok' : 'FAIL ' + JSON.stringify(info); if (!ok) fail.push(n); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ev = (p, f, a) => p.evaluate(f, a);
-for (const mode of only ? [only] : ['gungame', 'infection', 'ctf', 'zombies', 'range']) {
+for (const mode of only ? [only] : ['gungame', 'infection', 'ctf', 'zombies', 'range', 'dom', 'koth', 'snd']) {
   const H = await mk('HOST'), C = await mk('C1'), all = [H, C];
   const run = async (frames) => { for (let i = 0; i < frames; i += 2) { for (const p of all) await p.evaluate(() => window.__step(2)); if (i % 20 === 0) await sleep(5); } };
   await ev(H, (m) => window.__frontline.net.hostOpen('ALPHA', { mode: m, map: 'yard', skill: 5, count: 4, bots: {} }), mode);
@@ -63,6 +63,20 @@ for (const mode of only ? [only] : ['gungame', 'infection', 'ctf', 'zombies', 'r
     const r = await ev(C, () => [window.__frontline.G.player.team, window.__frontline.G.player.weapons.join(',')]);
     const h = await ev(H, () => window.__frontline.G.units.find((u) => u.remote).team);
     check('infection turns joiner', r[0] === 1 && h === 1 && r[1] === 'knife', [r, h]);
+  } else if (mode === 'dom' || mode === 'koth') {
+    const h = await ev(H, () => JSON.stringify(window.__frontline.G.match.hook.netState())), c = await ev(C, () => JSON.stringify(window.__frontline.G.match.hook.netState()));
+    check(mode + ' zones mirrored', h === c || (mode === 'koth' && JSON.parse(h)[0] === JSON.parse(c)[0]), [h, c]);
+  } else if (mode === 'snd') {
+    // the joiner (attacker or defender) — make them the attacker's side by checking who attacks, then plant from a site
+    const st = await ev(H, () => window.__frontline.G.match.hook.netState()), cs = await ev(C, () => window.__frontline.G.match.hook.netState());
+    check('snd round mirrored', st[0] === cs[0] && st[1] === cs[1], [st, cs]);
+    await ev(H, (att) => { const G = window.__frontline.G; const r = G.units.find((u) => u.remote); r.team = att; for (const b of G.bots) b.brain.target = null; }, st[1]);
+    const site = await ev(H, () => { const G = window.__frontline.G, sp = G.match.hook.botGoal({ team: G.match.hook.netState()[1], id: 0, x: 0, z: 0 }); return sp; });
+    await ev(C, (s) => { const F = window.__frontline, P = F.G.player; P.x = s.x; P.y = s.y; P.z = s.z; P.protectUntil = 1e9; F.input.keys[F.G.profile.settings.keys.interact] = true; }, site);
+    await run(260);
+    await ev(C, () => { const F = window.__frontline; F.input.keys[F.G.profile.settings.keys.interact] = false; });
+    const b = await ev(H, () => window.__frontline.G.match.hook.netState()[4]), cb = await ev(C, () => window.__frontline.G.match.hook.netState()[4]);
+    check('snd joiner plants (bomb mirrored)', Array.isArray(b) && Array.isArray(cb), [b, cb]);
   } else if (mode === 'range') {
     // co-op practice range: same map + dummies on both sides; the joiner's hits land on the host's dummies, numbers show
     const h = await ev(H, () => [window.__frontline.G.world.id, window.__frontline.G.bots.length]);
