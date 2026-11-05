@@ -1,7 +1,7 @@
 import { VEHICLE_MODES } from '../entities/vehicles.js';
 import { MapBuilder } from '../world/builder.js';
 import { G } from '../core/state.js';
-import { MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, MEDALS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
+import { ATTACH, ATTACH_OK, MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIES, CAMOS, RANKS, TEAMS, DIFFICULTY, LIMITS, MEDALS, NADES, EQUIPMENT, VESTS, BELTS, OPERATORS, SKINS, skinLook, SANDBOX_RULES, SKILL_BANDS, skillBand, BOT_RULES, STREAKS, STREAK_RULES, weaponPower, SLOT_MODES, ALL_GUNS, loadoutGuns } from '../core/config.js';
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile, applyQuality, detectQuality } from '../core/storage.js';
 import { input } from '../core/input.js';
@@ -107,6 +107,7 @@ function refreshMatchOpts() {
   }
   $('scoreLimLabel').textContent = L.mode === 'ctf' ? 'Captures to win' : L.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
   $('limNone').classList.toggle('hidden', !!(LM.score || LM.time));
+  seg($('powerSel'), [{ v: 'on', html: 'On' }, { v: 'off', html: 'Off' }], L.power === false ? 'off' : 'on', (v) => { L.power = v === 'on'; saveProfile(); });
   seg($('pickupSel'), [{ v: 'on', html: 'On' }, { v: 'off', html: 'Off' }], L.pickups ? 'on' : 'off', (v) => { L.pickups = v === 'on'; saveProfile(); });
 }
 function refreshSandbox() {
@@ -196,6 +197,7 @@ function refreshLoadout() {
   const labels = mode === 'classic' ? ['Primary', 'Sidearm'] : ['Weapon 1', 'Weapon 2', 'Weapon 3'];
   const tabs = [...labels.slice(0, nGuns).map((l, i) => ['g' + i, l, WEAPONS[guns[i]].name]), ['nade', 'Grenade', NADES[lo.grenade].name], ['equip', 'Equipment', EQUIPMENT[lo.equip].name],
     ['vest', 'Vest', VESTS[lo.vest].name], ['belt', 'Belt', BELTS[lo.belt].name], ['op', 'Operator', op.name], ['camo', 'Camo', camo.name]];
+  if (ATTACH_OK(guns[0])) tabs.splice(nGuns, 0, ['att', 'Attachments', ((lo.att || {})[guns[0]] || []).map((a) => ATTACH[a].name).join(' + ') || 'None']);
   if (!tabs.some((t) => t[0] === loTab)) loTab = 'g0';
   $('loTabs').innerHTML = tabs.map(([i, l, v]) => `<button type="button" role="tab" aria-selected="${i === loTab}" class="${i === loTab ? 'sel' : ''}" data-t="${i}"><b>${l}</b><small>${esc(v)}</small></button>`).join('');
   $('loTabs').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { loTab = bt.dataset.t; refreshLoadout(); }));
@@ -208,6 +210,11 @@ function refreshLoadout() {
     pick(pool.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="lo-card ${guns[i] === id ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><img alt="" src="${gunThumb(id)}"><b>${w.name}</b><small>${w.cls}</small>${statBars(w)}</button>`; }), (id) => {
       const other = guns.indexOf(id); if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; lo[keys[i]] = id;
     });
+  } else if (loTab === 'att') {
+    const id = guns[0], w = WEAPONS[id]; lo.att = lo.att || {}; const cur = lo.att[id] || [];
+    $('loDetail').textContent = `Up to two for your ${w.name}. Click to fit or remove.`;
+    pick(Object.entries(ATTACH).map(([k, a]) => { const no = a.no(w), on = cur.includes(k); return `<button type="button" class="lo-card ${on ? 'sel' : ''}" data-v="${k}" ${no ? 'disabled' : ''} title="${esc(a.desc)}"><b>${a.name}</b><small>${no ? 'Not for this gun' : esc(a.desc)}</small></button>`; }),
+      (k) => { const l = (lo.att[id] || []).slice(), i = l.indexOf(k); if (i >= 0) l.splice(i, 1); else { l.push(k); if (l.length > 2) l.shift(); } lo.att[id] = l; });
   } else if (loTab === 'nade') { $('loDetail').textContent = 'G throws it (hold to cook a frag). Free for now.'; pick(Object.entries(NADES).map(([k, d]) => gearCard(k, d, lo.grenade === k)), (v) => { lo.grenade = v; }); }
   else if (loTab === 'equip') { $('loDetail').textContent = `${keyName('equip')} sets it down where you look.`; pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
   else if (loTab === 'vest') { $('loDetail').textContent = 'Armour against speed.'; pick(Object.entries(VESTS).map(([k, d]) => gearCard(k, d, lo.vest === k)), (v) => { lo.vest = v; }); }
@@ -428,7 +435,7 @@ export function initMenus(callbacks) {
   $('loadoutDone').addEventListener('click', () => {
     if (!prematch) { showScreen('menu'); return; }
     const L = G.profile.lobby;
-    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, zdiff: L.zdiff, bots: { ...L.bots }, pickups: L.pickups, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
+    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, zdiff: L.zdiff, bots: { ...L.bots }, pickups: L.pickups, power: L.power !== false, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
   // export / import profile

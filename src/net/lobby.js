@@ -52,7 +52,7 @@ function fillSettings(cfg) {
     $(id).innerHTML = LM[k].map((v) => opt(v, k === 'score' ? (v === -1 ? 'Auto' : v === 0 ? 'No limit' : String(v)) : (v === 0 ? 'No limit' : v + ' min'), v === +cur[k])).join('');
   }
   $('mpScoreLabel').textContent = cfg.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
-  $('mpPick').value = cfg.pickups === false ? '0' : '1'; $('mpBig').value = cfg.big ? '1' : '0'; $('mpBig').disabled = !host;
+  $('mpPick').value = cfg.pickups === false ? '0' : '1'; $('mpBig').value = cfg.big ? '1' : '0'; $('mpPower').value = cfg.power === false ? '0' : '1'; $('mpPower').disabled = !host; $('mpBig').disabled = !host;
   $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
   $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
@@ -62,7 +62,7 @@ function fillSettings(cfg) {
 function readSettings() {
   const c = saved.cfg;
   c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.zdiff = $('mpZdiff').value || 'normal'; c.difficulty = skillBand(c.skill);
-  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.big = $('mpBig').value === '1'; c.pickups = $('mpPick').value === '1';
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.big = $('mpBig').value === '1'; c.power = $('mpPower').value === '1'; c.pickups = $('mpPick').value === '1';
   c.limits = c.limits || {}; c.limits[c.mode] = { score: +$('mpScore').value, time: +$('mpTime').value };
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
@@ -134,7 +134,7 @@ export function initLobby(cb) {
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig', 'mpPower']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {

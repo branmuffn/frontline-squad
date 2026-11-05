@@ -175,6 +175,9 @@ const RECIPES = {
   heartbeat: (d, t) => { tone(d, t, 0.1, { f0: 62, gain: 0.5 }); tone(d, t + 0.17, 0.12, { f0: 55, gain: 0.38 }); },
   wave: (d, t) => { tone(d, t, 0.7, { type: 'sawtooth', f0: 220, gain: 0.08, attack: 0.08 }); tone(d, t, 0.7, { type: 'sawtooth', f0: 330, gain: 0.06, attack: 0.08 }); },
   ping: (d, t) => { tone(d, t, 0.06, { type: 'sine', f0: 1320, gain: 0.12 }); tone(d, t + 0.07, 0.09, { type: 'sine', f0: 1760, gain: 0.1 }); },
+  bow: (d, t) => { noise(d, t, 0.09, { type: 'bandpass', f0: 900, f1: 500, q: 1.2, gain: 0.35, attack: 0.002 }); tone(d, t, 0.18, { type: 'triangle', f0: 140, f1: 90, gain: 0.22 }); },
+  gl: (d, t) => { noise(d, t, 0.25, { type: 'lowpass', f0: 600, f1: 200, q: 0.8, gain: 0.7, attack: 0.005 }); tone(d, t, 0.2, { type: 'sine', f0: 90, f1: 45, gain: 0.5 }); },
+  rail: (d, t) => { tone(d, t, 0.35, { type: 'sawtooth', f0: 300, f1: 2400, gain: 0.18 }); noise(d, t, 0.3, { type: 'highpass', f0: 2000, f1: 4000, q: 0.7, gain: 0.3, attack: 0.003 }); tone(d, t + 0.02, 0.4, { type: 'sine', f0: 70, f1: 40, gain: 0.45 }); },
   deny: (d, t) => tone(d, t, 0.12, { type: 'square', f0: 180, gain: 0.08 }),
 };
 

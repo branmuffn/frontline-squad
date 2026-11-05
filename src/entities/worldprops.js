@@ -60,7 +60,7 @@ export const drops = [];
 let ringGeo = null, ringMat = null, gunMat = null;
 export function clearDrops() { for (const d of drops) G.scene.remove(d.mesh); drops.length = 0; hud.prompt(''); }
 
-export function dropWeapon(id, x, y, z, ammo) {
+export function dropWeapon(id, x, y, z, ammo, power) {
   const w = WEAPONS[id]; if (!w || w.melee) return;
   if (!ringGeo) {
     ringGeo = new THREE.RingGeometry(0.42, 0.5, 20);
@@ -71,10 +71,10 @@ export function dropWeapon(id, x, y, z, ammo) {
   const gun = gunModel(g, id, gunMat); gun.rotation.set(0, 0, Math.PI / 2); gun.position.y = 0.06; gun.scale.setScalar(1.15);
   const ring = new THREE.Mesh(ringGeo, ringMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring);
   g.position.set(x, y, z); g.rotation.y = Math.random() * 6.28; G.scene.add(g);
-  const dr = { id, x, y, z, mesh: g, until: G.now + 30, ammo: ammo || { mag: w.mag, res: Math.round(w.reserve * 0.5) } };
+  const dr = { id, x, y, z, mesh: g, power: !!power, until: power ? Infinity : G.now + 30, ammo: ammo || { mag: w.mag, res: Math.round(w.reserve * 0.5) } };
   drops.push(dr);
   if (G.mp) G.mp.dropAdded(dr);
-  while (drops.length > 10) removeDrop(drops[0]);
+  while (drops.length > 10) { const old = drops.find((q) => !q.power); if (!old) break; removeDrop(old); }
 }
 
 export function removeDrop(d) { G.scene.remove(d.mesh); const i = drops.indexOf(d); if (i >= 0) drops.splice(i, 1); if (G.mp) G.mp.dropRemoved(d); }
@@ -96,6 +96,7 @@ export function tryPickup() {
     takeWeapon(d.id, d.ammo);
     if (old && !WEAPONS[old].melee) dropWeapon(old, P.x, P.y + 0.02, P.z, oldAmmo);
   }
+  if (d.power && G.match && G.match.powerTaken) G.match.powerTaken(d);
   removeDrop(d);
   play('pickup');
 }

@@ -417,6 +417,7 @@ function hostMsg(r, m) {
     case 'take': {
       const d = drops.find((x) => x.key === m.k);
       if (!d || !u.alive || Math.hypot(d.x - u.x, d.z - u.z) > 2.5) { r.link.send({ t: 'deny', msg: '' }); break; }
+      if (d.power && G.match.powerTaken) G.match.powerTaken(d);
       removeDrop(d); r.link.send({ t: 'give', id: d.id, ammo: d.ammo, drop: 1 });
       break;
     }
@@ -551,7 +552,7 @@ function replaySpawn(m, owner) {
   const a = m.a;
   S.replay = true;
   if (m.t === 'gr') { throwGrenade(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6], m.k || 'frag'); }
-  else { fireRocket(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6]); play(WEAPONS.rpg.sound, { x: a[0], y: a[1], z: a[2] }, { occlude: true }); }
+  else { fireRocket(owner, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7] ? 'gl' : 'rpg'); play(a[7] ? 'gl' : WEAPONS.rpg.sound, { x: a[0], y: a[1], z: a[2] }, { occlude: true }); }
   S.replay = false;
 }
 // end point of a shot for the mirror (projectile rifles: where the bullet would meet the world)

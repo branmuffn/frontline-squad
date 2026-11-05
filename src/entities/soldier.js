@@ -196,7 +196,7 @@ const GUN_DEF = {
   knife: { grip: [0, 0, 0.0], fore: null, hold: [0.2, 0.12, -0.32] },
   none: { grip: null, fore: null, hold: [0, 0, 0] },
 };
-const KIND = { m4: 'rifle', ak47: 'rifle', mp5: 'smg', m870: 'shotgun', spas12: 'shotgun', m249: 'lmg', mk14: 'sniper', l96: 'sniper', barrett: 'sniper', usp: 'pistol', deagle: 'pistol', rpg: 'rocket', knife: 'knife', none: 'none' };
+const KIND = { scarh: 'rifle', vector: 'smg', crossbow: 'rifle', gl: 'rocket', rail: 'sniper', m4: 'rifle', ak47: 'rifle', mp5: 'smg', m870: 'shotgun', spas12: 'shotgun', m249: 'lmg', mk14: 'sniper', l96: 'sniper', barrett: 'sniper', usp: 'pistol', deagle: 'pistol', rpg: 'rocket', knife: 'knife', none: 'none' };
 const gunCache = new Map();
 let gunMat = null;
 function gunGeometry(id) {
@@ -213,6 +213,16 @@ function gunGeometry(id) {
       if (!ak) { box(0.026, 0.035, 0.08, K, 0, 0.062, -0.04); box(0.008, 0.03, 0.01, K, 0, 0.06, -0.42); } else box(0.012, 0.03, 0.02, K, 0, 0.055, -0.6);
       break;
     }
+    case 'scarh': box(0.058, 0.09, 0.34, TAN, 0, 0, -0.04); box(0.066, 0.07, 0.26, TAN, 0, -0.004, -0.33); tube(0.013, 0.2, K, 0, 0.005, -0.55); tube(0.02, 0.06, K, 0, 0.005, -0.67);
+      box(0.046, 0.1, 0.22, K, 0, -0.01, 0.24); box(0.04, 0.11, 0.045, K, 0, -0.085, 0.06, 0.3); box(0.044, 0.12, 0.07, K, 0, -0.1, -0.11, -0.1); box(0.026, 0.035, 0.08, K, 0, 0.065, -0.05); break;
+    case 'vector': box(0.06, 0.11, 0.24, K, 0, -0.005, -0.06); box(0.05, 0.05, 0.12, D, 0, 0.02, -0.22); tube(0.012, 0.06, K, 0, 0.02, -0.31); box(0.04, 0.16, 0.05, K, 0, -0.12, -0.1, 0.05);
+      box(0.035, 0.1, 0.045, K, 0, -0.09, 0.04, 0.3); box(0.03, 0.06, 0.2, K, 0, 0.0, 0.17); box(0.022, 0.03, 0.06, K, 0, 0.06, -0.06); break;
+    case 'crossbow': box(0.05, 0.07, 0.5, WD, 0, 0, -0.08); box(0.04, 0.1, 0.18, WD, 0, -0.02, 0.27); box(0.035, 0.1, 0.045, K, 0, -0.08, 0.05, 0.3);
+      b.add(0, rbox(0.62, 0.025, 0.03, 0.01, 1), K, [0, 0.01, -0.34], [0, 0, 0]); box(0.6, 0.004, 0.004, ST, 0, 0.012, -0.24); tube(0.006, 0.4, ST, 0, 0.045, -0.2); box(0.024, 0.03, 0.06, K, 0, 0.06, -0.02); break;
+    case 'gl': tube(0.05, 0.36, D, 0, 0.0, -0.25, 10); b.add(0, cyl(0.075, 0.075, 0.18, 10), K, [0, -0.02, -0.04], [Math.PI / 2, 0, 0]); box(0.045, 0.1, 0.22, K, 0, -0.02, 0.2);
+      box(0.04, 0.11, 0.045, K, 0, -0.1, 0.06, 0.3); box(0.035, 0.1, 0.045, K, 0, -0.08, -0.25, 0.1); break;
+    case 'rail': box(0.07, 0.1, 0.5, ST, 0, 0, -0.1); box(0.03, 0.03, 0.6, 0x3fb8ff, 0, 0.04, -0.3); box(0.03, 0.03, 0.6, 0x3fb8ff, 0, -0.04, -0.3); box(0.05, 0.12, 0.22, K, 0, -0.02, 0.26);
+      box(0.04, 0.11, 0.045, K, 0, -0.1, 0.08, 0.3); tube(0.025, 0.2, K, 0, 0.085, -0.05); break;
     case 'mp5': box(0.05, 0.08, 0.3, K, 0, 0, -0.04); box(0.058, 0.06, 0.16, D, 0, -0.005, -0.25); tube(0.012, 0.08, K, 0, 0.005, -0.37);
       box(0.035, 0.12, 0.04, K, 0, -0.1, -0.1, -0.35); box(0.04, 0.1, 0.045, K, 0, -0.08, 0.06, 0.3); box(0.03, 0.06, 0.18, K, 0, -0.01, 0.2); break;
     case 'm870': case 'spas12':

@@ -267,6 +267,44 @@ function build() {
   hands(g, [0, -0.1, 0.08], [0, -0.05, -0.32]);
   models.barrett = { g, mag, sight: V(0, 0.11, -0.06), muzzle: V(0, 0.01, -0.98), port: V(0.04, 0.02, -0.02), hip: V(0.2, -0.235, -0.4), adsDist: 0.25, scope: true };
 
+  // ---- SCAR-H (tan battle rifle) ----
+  const tan = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.6, metalness: 0.2 }), blue = new THREE.MeshBasicMaterial({ color: 0x5fd0ff }); tan.color.convertSRGBToLinear(); M.steel2 = tan;
+  g = new THREE.Group();
+  b(g, tan, 0.062, 0.095, 0.32, 0, 0, -0.1); b(g, tan, 0.07, 0.078, 0.32, 0, -0.004, -0.42);
+  cyl(g, M.black, 0.013, 0.2, 0, -0.004, -0.66); cyl(g, M.black, 0.02, 0.06, 0, -0.004, -0.79);
+  b(g, M.black, 0.05, 0.1, 0.22, 0, -0.012, 0.17); b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, 0.0, 0.3);
+  mag = b(g, M.black, 0.045, 0.13, 0.075, 0, -0.11, -0.17, 0.05);
+  b(g, M.black, 0.03, 0.014, 0.42, 0, 0.056, -0.22);
+  sight = dotSight(g, -0.13); trigger(g, -0.035); hands(g, [0, -0.09, 0.0], [0, -0.03, -0.44]);
+  models.scarh = { g, mag, sight, muzzle: V(0, -0.004, -0.83), port: V(0.036, 0.015, -0.07), hip: V(0.19, -0.215, -0.4), adsDist: 0.44 };
+  // ---- Vector ----
+  g = new THREE.Group();
+  b(g, M.poly, 0.064, 0.12, 0.26, 0, -0.01, -0.12); b(g, M.black, 0.052, 0.05, 0.14, 0, 0.022, -0.3); cyl(g, M.black, 0.012, 0.06, 0, 0.022, -0.4);
+  b(g, M.poly, 0.035, 0.08, 0.2, 0, -0.005, 0.12); mag = b(g, M.black, 0.04, 0.18, 0.05, 0, -0.14, -0.17, 0.05);
+  b(g, M.black, 0.04, 0.1, 0.05, 0, -0.09, -0.02, 0.3);
+  sight = dotSight(g, -0.12); trigger(g, -0.055, -0.06); hands(g, [0, -0.09, -0.02], [0, -0.05, -0.28]);
+  models.vector = { g, mag, sight, muzzle: V(0, 0.022, -0.44), port: V(0.034, 0.02, -0.12), hip: V(0.18, -0.205, -0.38), adsDist: 0.42 };
+  // ---- Crossbow ----
+  g = new THREE.Group();
+  b(g, M.wood, 0.05, 0.07, 0.5, 0, 0, -0.16); b(g, M.wood, 0.045, 0.1, 0.2, 0, -0.02, 0.16);
+  b(g, M.black, 0.66, 0.025, 0.035, 0, 0.012, -0.4); b(g, M.steel, 0.64, 0.004, 0.004, 0, 0.016, -0.3);
+  mag = new THREE.Group(); g.add(mag); const xbolt = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.42, 6), M.steel); xbolt.rotation.x = Math.PI / 2; xbolt.position.set(0, 0.045, -0.24); mag.add(xbolt);
+  b(g, M.black, 0.04, 0.1, 0.05, 0, -0.08, 0.02, 0.3);
+  sight = dotSight(g, -0.06); trigger(g, 0.0); hands(g, [0, -0.08, 0.02], [0, -0.04, -0.32]);
+  models.crossbow = { g, mag, sight, muzzle: V(0, 0.045, -0.46), hip: V(0.19, -0.21, -0.4), adsDist: 0.42, launcher: true };
+  // ---- Grenade launcher ----
+  g = new THREE.Group();
+  cyl(g, M.dark, 0.05, 0.4, 0, 0, -0.3); const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.18, 12), M.black); drum.rotation.x = Math.PI / 2; drum.position.set(0, -0.02, -0.06); g.add(drum);
+  b(g, M.black, 0.05, 0.1, 0.22, 0, -0.02, 0.17); b(g, M.black, 0.04, 0.11, 0.05, 0, -0.1, 0.03, 0.3); b(g, M.black, 0.04, 0.1, 0.05, 0, -0.08, -0.3, 0.1);
+  b(g, M.black, 0.012, 0.04, 0.012, 0, 0.068, -0.36); b(g, M.black, 0.03, 0.03, 0.012, 0, 0.068, -0.05);
+  hands(g, [0, -0.1, 0.03], [0, -0.08, -0.3]);
+  models.gl = { g, mag: drum, sight: V(0, 0.084, -0.2), muzzle: V(0, 0, -0.52), hip: V(0.2, -0.21, -0.44), adsDist: 0.45 };
+  // ---- Rail gun ----
+  g = new THREE.Group();
+  b(g, M.steel, 0.072, 0.1, 0.5, 0, 0, -0.16); b(g, blue, 0.03, 0.025, 0.62, 0, 0.042, -0.38); b(g, blue, 0.03, 0.025, 0.62, 0, -0.042, -0.38);
+  b(g, M.black, 0.05, 0.12, 0.22, 0, -0.02, 0.17); b(g, M.black, 0.04, 0.11, 0.05, 0, -0.1, 0.02, 0.3); mag = b(g, M.black, 0.045, 0.1, 0.07, 0, -0.1, -0.12);
+  sight = dotSight(g, -0.08); trigger(g, -0.02); hands(g, [0, -0.1, 0.02], [0, -0.05, -0.36]);
+  models.rail = { g, mag, sight, muzzle: V(0, 0, -0.7), port: V(0.04, 0.02, -0.05), hip: V(0.2, -0.22, -0.42), adsDist: 0.45 };
   // ---- RPG-7 ----
   g = new THREE.Group();
   cyl(g, M.olive, 0.034, 0.9, 0, 0.02, -0.2);

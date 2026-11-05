@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js';
+import { withAttachments, PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
@@ -37,12 +37,16 @@ export function createPlayer(team) {
 }
 
 const cur = () => P.weapons[P.slot];
-const W = () => WEAPONS[cur()];
+const W = () => wOf(cur());
+// the player's gun stats with their attachments (3e); models/names still come from the id
+export const wOf = (id) => (P && P.attW && P.attW[id]) || WEAPONS[id];
 export const raised = () => G.now >= P.switchStart + P.switchDur;
 const reloading = () => P.reloadStart >= 0;
 
 export function refillAmmo() {
-  for (const id of P.weapons) { const w = WEAPONS[id]; if (!w.melee) P.ammo[id] = { mag: w.mag, res: w.reserve }; }
+  P.attW = {}; const att = (G.profile.loadout && G.profile.loadout.att) || {}; // attachments picked on the loadout screen
+  for (const id of P.weapons) if (att[id] && att[id].length) P.attW[id] = withAttachments(id, att[id]);
+  for (const id of P.weapons) { const w = wOf(id); if (!w.melee) P.ammo[id] = { mag: w.mag, res: w.reserve }; }
 }
 
 export function spawnPlayer(x, y, z, yaw) {
@@ -158,7 +162,7 @@ export const scopeMag = () => { const w = P && W(); return w && w.mags ? w.mags[
 export function cycleWeapon(dir) { const n = P.weapons.length; switchTo((P.slot + (dir > 0 ? 1 : n - 1)) % n); }
 
 export function startReload() {
-  const id = cur(), w = WEAPONS[id], a = P.ammo[id];
+  const id = cur(), w = wOf(id), a = P.ammo[id];
   if (w.melee || reloading() || !a || a.mag >= w.mag || a.res <= 0 || !raised() || P.meleeStart >= 0) return;
   P.reloadStart = G.now; P.reloadSfx = 0;
   if (w.shells) { P.reloadKind = 'shell'; P.shellNext = G.now + w.reloadStart + w.shellReload; }
@@ -171,7 +175,7 @@ function updateReload() {
     if (P.autoReloadAt > 0 && G.now >= P.autoReloadAt) { P.autoReloadAt = -1; startReload(); }
     return;
   }
-  const id = cur(), w = WEAPONS[id], a = P.ammo[id];
+  const id = cur(), w = wOf(id), a = P.ammo[id];
   if (P.reloadKind === 'shell') {
     while (G.now >= P.shellNext && a.mag < w.mag && a.res > 0) { a.mag++; a.res--; play('shell'); P.shellNext += w.shellReload; }
     if (a.mag >= w.mag || a.res <= 0) { P.reloadStart = -1; P.pumpStart = G.now; play('magIn', null, { gain: 0.6 }); }
@@ -202,7 +206,7 @@ function muzzleWorld() {
 }
 
 function fireOnce() {
-  const id = cur(), w = WEAPONS[id], a = P.ammo[id];
+  const id = cur(), w = wOf(id), a = P.ammo[id];
   if (a.mag <= 0) {
     if (G.now > P.dryAt) { play('dry'); P.dryAt = G.now + 0.35; }
     if (a.res > 0) startReload(); else hud.notice('Out of ammo. Switch weapons or find an ammo crate.');
@@ -222,7 +226,7 @@ function fireOnce() {
   const dir = { x: 0, y: 0, z: 0 };
   if (w.projectile) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
-    fireRocket(P, o.x + dir.x * 0.8, o.y + dir.y * 0.8 - 0.05, o.z + dir.z * 0.8, dir.x, dir.y, dir.z);
+    fireRocket(P, o.x + dir.x * 0.8, o.y + dir.y * 0.8 - 0.05, o.z + dir.z * 0.8, dir.x, dir.y, dir.z, w.lob ? 36 : 55, w.lob ? 'gl' : 'rpg');
   }
   for (let k = 0; k < (w.projectile ? 0 : w.pellets); k++) {
     coneDir(_d.x, _d.y, _d.z, spread, dir);
@@ -231,7 +235,7 @@ function fireOnce() {
     traceSegment(s, dir.x, dir.y, dir.z, w.range);
     if (s.hit) { anyHit = true; hitHead = hitHead || s.hit.head; }
     if (!e0) e0 = [s.x, s.y, s.z];
-    if (Math.random() < w.tracer) tracer(mx, my, mz, s.x, s.y, s.z, 0xffe0a0, 420);
+    if (Math.random() < w.tracer) tracer(mx, my, mz, s.x, s.y, s.z, w.railBeam ? 0x7fe6ff : 0xffe0a0, w.railBeam ? 900 : 420);
   }
   if (anyHit) G.match.stats.hits++;
   if (hitHead) G.match.stats.headHits++;
@@ -246,7 +250,7 @@ function fireOnce() {
   G.muzzleLight.position.set(mx, my, mz); G.muzzleLight.intensity = big ? 3 : 2;
   if (Math.random() < 0.3) muzzleSmoke(mx, my, mz);
   G.shake = Math.min(0.03, (G.shake || 0) + (big ? 0.012 : 0.0025));
-  play(w.sound, null, { important: true, send: 0.25 });
+  play(w.sound, null, { important: true, send: 0.25, gain: w.suppressed ? 0.35 : 1 });
   if (!w.projectile && !w.pump && Math.random() < 0.5) play('casing', null, { delay: 0.35 + Math.random() * 0.2, gain: 0.8 });
   noise(P.x, P.y + 1.5, P.z, w.noise, P);
   if (w.pump) P.pumpStart = G.now + 0.14;
@@ -332,7 +336,7 @@ export function grenadeRelease() {
 }
 
 export function pickupAmmo() {
-  for (const id of P.weapons) { const w = WEAPONS[id]; if (!w.melee) P.ammo[id].res = Math.max(P.ammo[id].res, w.reserve); }
+  for (const id of P.weapons) { const w = wOf(id); if (!w.melee) P.ammo[id].res = Math.max(P.ammo[id].res, w.reserve); }
   P.grenades = Math.min(3, P.grenades + 1);
   hud.setAmmo(P);
 }

@@ -1,5 +1,7 @@
+import { objectivePoints } from './objectives.js';
+import { dropWeapon, drops } from '../entities/worldprops.js';
 import { G } from '../core/state.js';
-import { loadoutGuns, SLOT_MODES, ALL_GUNS } from '../core/config.js';
+import { POWER, WEAPONS, loadoutGuns, SLOT_MODES, ALL_GUNS } from '../core/config.js';
 import { rankFor } from './progression.js';
 import { LIMITS, MODES, BOT_NAMES, UNIFORMS, ACCENTS, TEAMS, DIFFICULTY, botSkill, skillBand, skillFor, botRulesDefault } from '../core/config.js';
 import { rand, randInt, pick, shuffle, chance } from '../core/util.js';
@@ -75,6 +77,10 @@ export function startMatch(cfg) {
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
   // round-based modes: everyone back to a spawn, full health (alive or not)
+  m.powerOn = cfg.power !== false && ['ffa', 'tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode) && !(G.mp && G.mp.live && G.mp.client);
+  m.powerSpots = []; m.powerI = 0;
+  if (m.powerOn) for (const p of objectivePoints(2)) m.powerSpots.push({ x: p.x, y: p.y, z: p.z, next: 25, drop: null });
+  m.powerTaken = (d) => { const s = m.powerSpots.find((q) => q.drop === d); if (s) { s.drop = null; s.next = G.now + 45; } };
   m.resetRound = () => {
     for (const u of G.units) {
       if (u.isPlayer) { if (G.state === 'dead') u.respawnAt = G.now; else { const s = pickSpawn(u); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(u); } }
@@ -279,6 +285,10 @@ export function updateMatch(dt) {
     if (m.time <= 0) { m.time = 0; endMatch('time'); return; }
   } else if (m.mode === 'survival') updateSurvival();
   if (m.hook && m.hook.update && m.hook.update(dt) === 'end') { endMatch('limit'); return; }
+  for (const s of m.powerSpots || []) if (!s.drop && G.now >= s.next) {
+    const id = POWER[m.powerI++ % POWER.length]; dropWeapon(id, s.x, s.y + 0.02, s.z, null, true); s.drop = drops[drops.length - 1];
+    hud.notice(`Power weapon up: ${WEAPONS[id].name}`); play('radio', null, { important: true });
+  }
   if (m.mode !== 'survival' && !(m.hook && m.hook.waves)) {
     for (const b of G.bots) {
       if (!b.alive && b.respawnAt && G.now >= b.respawnAt) { const s = pickSpawn(b); resetBotForSpawn(b, s.x, s.y, s.z, s.yaw); hookSpawn(b); }

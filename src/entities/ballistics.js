@@ -51,7 +51,7 @@ function waterSurface(wh) {
 
 // One bullet state, shared by hitscan traces and projectiles in flight.
 export function newShot(shooter, wid, x, y, z, mul, k = 0) {
-  const s = { shooter, wid, w: WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false, kills: 0 };
+  const s = { shooter, wid, w: (shooter && shooter.attW && shooter.attW[wid]) || WEAPONS[wid], x, y, z, mul, k, travelled: 0, pens: 0, walls: 0, mulPen: 1, done: false, hit: null, whizzed: false, kills: 0 };
   if (shooter && shooter.isPlayer) { s.ads = shooter.adsT || 0; s.scopedFor = shooter.scopedAt ? G.now - shooter.scopedAt : 99; s.spin = shooter.spinAcc || 0; s.air = !shooter.grounded && !shooter.onLadder; }
   recordShot(s);
   return s;
@@ -63,20 +63,22 @@ export function traceSegment(s, dx, dy, dz, len) {
   len = Math.min(len, w.range - s.travelled);
   if (len <= 0) { s.done = true; return true; }
   whizCheck(s, dx, dy, dz, len);
-  for (let guard = 0; guard < 6; guard++) {
+  for (let guard = 0; guard < (w.pen === 'rail' ? 16 : 6); guard++) {
     const wh = rayWorld(s.x, s.y, s.z, dx, dy, dz, len);
     const ch = chopperHit(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len);
     if (ch) { const t = ch.t; damageChopper(ch.c, w.damage * falloff(w, s.travelled + t) * s.mul * (w.pen === 'heavy' ? 2 : 1), s.shooter); impact(s.x + dx * t, s.y + dy * t, s.z + dz * t, -dx, -dy, -dz, 'metal'); s.x += dx * t; s.y += dy * t; s.z += dz * t; s.travelled += t; s.done = true; return true; }
     const tr = tailRotorHit(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len);
     if (tr && !tr.v.seats.includes(s.shooter)) { const t = tr.t, dist = s.travelled + t; damageVehicle(tr.v, w.damage * falloff(w, dist) * s.mul * s.mulPen * 3, s.shooter); if (isP) { play('impactMetal', { x: s.x + dx * t, y: s.y + dy * t, z: s.z + dz * t }, { gain: 0.6 }); } impact(s.x + dx * t, s.y + dy * t, s.z + dz * t, -dx, -dy, -dz, 'metal'); s.x += dx * t; s.y += dy * t; s.z += dz * t; s.travelled = dist; s.done = true; return true; }
-    const uh = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len, (u) => u === s.shooter || !isEnemy(s.shooter, u));
+    const uh = rayUnits(s.x, s.y, s.z, dx, dy, dz, wh ? wh.t : len, (u) => u === s.shooter || !isEnemy(s.shooter, u) || (s.through && s.through.has(u)));
     if (uh) {
       const t = uh.t, ex = s.x + dx * t, ey = s.y + dy * t, ez = s.z + dz * t, head = uh.zone === 'head', dist = s.travelled + t;
       const zm = head ? w.headMul : uh.zone === 'legs' ? w.legMul : 1;
       damage(uh.unit, w.damage * falloff(w, dist) * zm * s.mul * s.mulPen, s.shooter, { weapon: s.wid, zone: uh.zone, headshot: head, sx: s.shooter.x, sz: s.shooter.z, dist, shot: s, pen: s.walls > 0 });
       if (!uh.unit.isPlayer) blood(ex, ey, ez, dx, dz, head);
       if (isP) play('bodyHit', { x: ex, y: ey, z: ez }, { gain: 0.6 });
-      s.hit = { unit: uh.unit, head }; s.x = ex; s.y = ey; s.z = ez; s.travelled = dist; s.done = true;
+      s.hit = { unit: uh.unit, head };
+      if (w.pen === 'rail') { (s.through = s.through || new Set()).add(uh.unit); s.kills = s.kills || 0; continue; } // rail: on through everyone in the line
+      s.x = ex; s.y = ey; s.z = ez; s.travelled = dist; s.done = true;
       return true;
     }
     if (!wh) { s.x += dx * len; s.y += dy * len; s.z += dz * len; s.travelled += len; return s.travelled >= w.range - 1e-3 ? (s.done = true) : false; }
