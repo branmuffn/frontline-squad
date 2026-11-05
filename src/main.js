@@ -30,6 +30,7 @@ import { initMenus, showScreen, showPause, showArmory, showLoadout } from './ui/
 import * as physics from './world/physics.js';
 import * as nav from './world/nav.js';
 import { toggleColliderDebug, syncColliderDebug } from './world/debugcol.js';
+import { kcDebug } from './game/killcam.js';
 import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
 import { finishFinale } from './game/match.js';
 import { unitFoley } from './entities/units.js';
@@ -78,7 +79,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { streakState, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { kcDebug, streakState, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

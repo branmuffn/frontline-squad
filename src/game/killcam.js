@@ -8,7 +8,7 @@ import { WEAPONS, TEAMS } from '../core/config.js';
 import { damp, clamp, lerp } from '../core/util.js';
 import { down } from '../core/input.js';
 import { losClear } from '../world/physics.js';
-import { makeSoldier, setSoldierGun, poseSoldier, setFlash } from '../entities/soldier.js';
+import { makeSoldier, setSoldierGun, poseSoldier, setFlash, startDeath } from '../entities/soldier.js';
 import * as THREE from 'three';
 import { tracer, blood } from '../engine/fx.js';
 import { play, setListener } from '../engine/audio.js';
@@ -112,6 +112,8 @@ export function onDeathCam(P, killer, info = {}) {
 }
 export const killcamActive = () => !!(cam && cam.phase === 'replay');
 export const deathCamActive = () => !!cam;
+// tests: replay time, victim hold/fall state, body + slug visibility
+export const kcDebug = () => { const r = cam && cam.phase === "replay" && cam.replay; return r ? { t: r.t, hitT: r.hitT, fell: r.fell, body: !!(body && body.s.root.visible), slug: !!(slug && slug.visible), flight: r.flight, vp: cam.victim === G.player, end: r.end, st: sample(G.player, r.t), dA: cam.deathAt, orbit: !!r.orbit } : null; };
 export function skipKillcam() { if (cam && cam.phase === 'replay') { endReplay(); cam.phase = 'free'; cam.t = 0; return true; } return false; }
 
 function startReplay() {
@@ -121,7 +123,9 @@ function startReplay() {
   r.shotI = shots.findIndex((e) => e.t >= r.start); if (r.shotI < 0) r.shotI = shots.length;
   // the round that did it: shown as a glowing slug (slow motion while it flies; long shots get a bullet-follow camera)
   const kill = cam.killer && !ORBIT.has((cam.info || {}).weapon) ? shots.filter((e) => e.s.shooter === cam.killer && e.s.k === 0 && e.t <= cam.deathAt + 0.06 && e.t >= r.start).pop() : null;
-  if (kill) { const d = Math.hypot(kill.s.x - kill.x0, kill.s.y - kill.y0, kill.s.z - kill.z0); r.kill = kill; r.flight = Math.max(0.16, d / 140); r.bulletCam = d > 22; r.end = Math.max(r.end, kill.t + r.flight + 0.45); }
+  if (kill) { const d = Math.hypot(kill.s.x - kill.x0, kill.s.y - kill.y0, kill.s.z - kill.z0); r.kill = kill; r.flight = Math.max(0.16, d / 140); r.bulletCam = d > 22; r.end = Math.max(r.end, kill.t + r.flight + 0.8); }
+  // the victim stays up until the round lands (+ a short beat), then falls: footage timing ≠ slug flight timing
+  r.hitT = (kill ? kill.t + r.flight : cam.deathAt) + 0.08; r.fell = false;
   ensureBody(G.player);
   showTag(true);
 }
@@ -135,8 +139,9 @@ function endReplay() {
   showTag(false);
   cam.replay = null;
 }
-function snapPose(s) { return { px: s.pose.rotation.x, pz: s.pose.rotation.z, py: s.pose.position.y, hy: s.hips.position.y, tr: s.torso.rotation.x, ty: s.torso.rotation.y, hr: s.head.rotation.x, legs: s.legs.map((L) => [L.thigh.rotation.x, L.knee.rotation.x]), arms: s.arms.map((A) => A.sh.rotation.z), ry: s.root.position.y }; }
+function snapPose(s) { return { dT: s.deathT, px: s.pose.rotation.x, pz: s.pose.rotation.z, py: s.pose.position.y, hy: s.hips.position.y, tr: s.torso.rotation.x, ty: s.torso.rotation.y, hr: s.head.rotation.x, legs: s.legs.map((L) => [L.thigh.rotation.x, L.knee.rotation.x]), arms: s.arms.map((A) => A.sh.rotation.z), ry: s.root.position.y }; }
 function restorePose(s, p) {
+  if (p.dT !== undefined) s.deathT = p.dT;
   s.pose.rotation.x = p.px; s.pose.rotation.z = p.pz; s.pose.position.y = p.py; s.hips.position.y = p.hy; s.torso.rotation.x = p.tr; s.torso.rotation.y = p.ty; s.head.rotation.x = p.hr;
   s.legs.forEach((L, i) => { L.thigh.rotation.x = p.legs[i][0]; L.knee.rotation.x = p.legs[i][1]; }); s.arms.forEach((A, i) => { A.sh.rotation.z = p.arms[i]; }); s.root.position.y = p.ry;
 }
@@ -171,6 +176,12 @@ export function updateDeathCam(dt, P, mdx, mdy) {
   return false;
 }
 
+function victimFall(s, ghost, dt) {
+  const r = cam.replay;
+  s.root.visible = true; setFlash(s, 0.4 + 0.15 * Math.sin(G.realTime * 8), 0xff3a28);
+  if (!r.fell) { r.fell = true; startDeath(s, true); }
+  poseSoldier(s, ghost, dt);
+}
 function replayStep(dt, P) {
   const r = cam.replay;
   const q = r.slow, inSlow = !!q && r.t >= cam.deathAt - q.pre && r.t < Math.max(cam.deathAt + q.post, r.kill ? r.kill.t + r.flight + 0.05 : 0);
@@ -180,9 +191,13 @@ function replayStep(dt, P) {
   const k = cam.killer, sp = inSlow ? q.k : r.speed;
   // pose every soldier from the recording; units not in the recording keep their live pose
   for (const u of G.units) {
-    const st = sample(u, r.t);
+    let st = sample(u, r.t);
+    const isV = u === cam.victim || (u.isPlayer && !cam.victim && !cam.finale); // own death: the victim is you
+    if (isV && st && !st.alive && r.t < r.hitT) { const a = sample(u, Math.min(r.t, cam.deathAt - 0.06)); if (a && a.alive) st = a; }
     if (u.isPlayer) {
       const b = ensureBody(P);
+      if (isV && st && !st.alive && r.t >= r.hitT && !(u === k && !r.orbit)) { victimFall(b.s, b.ghost, dt * sp); continue; }
+      if (isV && st && st.alive) b.s.deathT = -1;
       if (!st || !st.alive || (u === k && !r.orbit)) continue; // (finale: we may be looking through our own eyes)
       b.s.root.visible = true;
       if (st.w && st.w !== b.gun && WEAPONS[st.w] && !WEAPONS[st.w].melee) { setSoldierGun(b.s, st.w); b.gun = st.w; }
@@ -193,7 +208,9 @@ function replayStep(dt, P) {
     }
     if (!u.soldier || !st) continue;
     if (u === k && !r.orbit) { u.soldier.root.visible = false; continue; } // we are looking through the killer's eyes
+    if (isV && !st.alive && r.t >= r.hitT) { u.soldier.root.visible = true; victimFall(u.soldier, u._kcGhost || {}, dt * sp); continue; }
     u.soldier.root.visible = st.alive;
+    if (st.alive && u.soldier.deathT >= 0) u.soldier.deathT = -1; // alive in the footage: no death pose (restored afterwards)
     if (u === cam.victim) setFlash(u.soldier, 0.4 + 0.15 * Math.sin(G.realTime * 8), 0xff3a28);
     if (st.alive) { u._kcGhost = Object.assign(u._kcGhost || {}, { x: st.x, y: st.y, z: st.z, yaw: st.yaw, aimPitch: st.pitch, crouchT: st.crouchT, moveSpeed: st.speed }); poseSoldier(u.soldier, u._kcGhost, dt * sp); }
   }
