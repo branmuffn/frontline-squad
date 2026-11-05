@@ -1,49 +1,50 @@
-I'm continuing development of "Frontline: Solo Ops", a single-player browser FPS (Three.js r128) built over previous chats. The full project is attached as frontline-solo-ops-vite.zip: source (src/), PLAN.md (task list with every decision already made), README.md, scripts/build-standalone.mjs, the headless test harness (tests/), and git history (one commit per item).
+# Frontline: Solo Ops — handoff prompt (build 66 → next)
 
-## Status (update this line each session)
-Round A, Round B, Phases 1–7 (7a/7b/7c: up to 8 players, ready-up, kick, chat, skins, ping), bot skill 1–10 + bot rules, joiner killstreaks + kill cam (slow-mo, orbit view), killable vehicle crews, vehicles in MP, TURN relay for cross-network play are DONE. Next: pick from the roadmap in docs/ONE_PAGER.md. New tests: bots, mp3, mpstreaks, mpveh, vehcrew, kcshot, skins, uishot (see tests/README.md).
+I'm continuing "Frontline: Solo Ops", a browser FPS (Three.js r128, one offline HTML file, P2P multiplayer) built over many chats. Attached: `frontline-solo-ops-vite.zip` (source, git history with one commit per item, tests, docs), `frontline_solo_ops.html` (build 66), `ONE_PAGER.md` + `frontline_overview.png` (status), `HOSTING.md`. I host it on Netlify (drag-and-drop deploys).
 
-## Core working rules (most important)
-- I'm token-limited (5-hour session cap and a weekly cap). Be efficient: short replies (what changed, what was tested, what's next), brief reasoning, read files with targeted grep/sed instead of whole files, batch related edits into one python/sed call, don't re-read code you already know.
-- Still build high-quality work: test it, screenshot visual changes and review them before calling something done.
-- Commit early and often, including mid-item when a big item is half done, so nothing is lost if a limit hits. After each finished item ALWAYS: run tests, commit, tick it in PLAN.md, rebuild, copy the HTML to /mnt/user-data/outputs/, update the artifact, re-zip. If I run out of tokens, I keep the last finished item.
+## FIRST: planning phase only. Do NOT build until I say "all clear".
+1. Set up (below), read `PLAN.md`, `docs/ONE_PAGER.md`, `docs/ARCHITECTURE.md`, `tests/README.md`, `git log --oneline | head -40`.
+2. Answer my questions (section A) briefly and concretely.
+3. Present a build plan for section B (order, approach, risks, how you'll test each), plus the parity audit table (B4) and the Valorant/CS idea list (C).
+4. Ask only questions that truly block you, all at once, then wait for "all clear".
+
+## Working rules (I'm token-limited: 5-hour and weekly caps)
+- Be efficient: short replies, targeted `grep`/`sed` reads (files have long lines: use `cut -c1-250`), batch edits in one python script with `assert old in s` before each replace, don't re-read code you know, avoid big outputs.
+- Commit early and often (mid-item too). After each finished item: run its test + quick regression, commit, tick `PLAN.md`, then `sh tests/ship.sh "msg"` (builds, commits, copies HTML + `frontline_site.zip` + docs to outputs, re-zips) and publish the artifact (https://claude.ai/artifact/PKJoK4eySfhpVtZKeEexSd, Artifact tool, publish with that url, file = the artifact container copy; if that fails publish new and tell me).
+- **Every time you stop (even at a tool/turn limit): present the files** (HTML, `frontline_site.zip`, project zip, `ONE_PAGER.md`, `frontline_overview.png`) and end with this summary format: **New this turn** (what changed, plain words) · **Everything done so far** · **Near-term to-do** · **Longer-term to-do**. Only re-render the infographic (`node /tmp/render.mjs` from `docs/overview.html`) at milestones, not every stop.
+- Screenshot visual changes and look at them before calling them done. Headless tests can't reach the PeerJS broker (manual codes only), so say clearly what was not testable.
+- Keep it lightweight and snappy; single-player fully offline; the only network use is matchmaking/STUN/TURN. Only original names for maps/modes/vehicles; real gun names default with the Fictional toggle; vehicles default OFF; all audio/art generated in code.
 
 ## Setup
-1. Unzip to /home/claude/frontline (if it unzips to a nested folder, flatten it), `npm install`, `sh tests/setup.sh`, `node scripts/build-standalone.mjs`. `npx vite build` must also keep working.
-2. Read PLAN.md, README.md, docs/ARCHITECTURE.md, tests/README.md and `git log --oneline` before changing anything.
-3. Headless tests (details in tests/README.md): Playwright Chromium with SwiftShader; `node tests/regress.mjs 25` covers FFA/TDM/Survival/Sandbox × 4 maps; `node tests/p5.mjs <gungame|infection|ctf|zombies> <map> 35` covers Phase 5 modes; `tests/shot.mjs` for screenshots. Keep each command under the 300 s tool limit. `sh tests/ship.sh "message"` builds, commits, copies the HTML to outputs and re-zips.
-4. Update the same artifact every time: https://claude.ai/artifact/PKJoK4eySfhpVtZKeEexSd (Artifact tool, action publish with that url). If that fails, publish a new one and tell me the link.
+Unzip to `/home/claude/frontline` (flatten if nested), `npm install`, `sh tests/setup.sh`, `node scripts/build-standalone.mjs` (`npx vite build` must also work). Tests: `node tests/regress.mjs 10` (all modes × maps), `tests/fit.mjs` (every screen at 4 sizes), MP: `mp.mjs`, `mp3.mjs`, `mplate.mjs`, `mpmodes.mjs`, `mpmigrate.mjs`, `mpveh.mjs`, `mpstreaks.mjs`; feature tests listed in `tests/README.md`. Keep each command under 300 s.
 
-## What to build (all decisions are in PLAN.md; build without re-asking unless truly ambiguous)
-Phase 7 multiplayer is APPROVED. Build in order, one commit per sub-step, shipping after each:
-1. 7a 2-player co-op Zombies and Survival (WebRTC data channels, host-authoritative; room code via a free public signaling broker with the library inlined, Google public STUN; fallback to manual copy-paste offer/answer codes; LAN works offline with manual codes).
-2. 7b FFA and TDM between players with lag compensation (snapshots ~30 Hz unreliable channel, events on reliable channel, client prediction for own movement/shooting, interpolation for others).
-3. 7c Up to 4-8 players, text chat, skins (uniform colours/patterns, helmets, unlocked by rank), ready-up lobby, kick, ping on scoreboard.
-Single-player must stay fully offline; signaling is the only allowed network use. Multiplayer may not work inside the claude.ai artifact preview; it must work in the downloaded HTML. Add a headless test that runs host + client in two pages (Playwright can open two pages and pass the manual codes).
+## Known pitfalls (learned the hard way)
+- `G.player` is a new object after each `deploy()`; re-read it. `page.evaluate(fn, arg)`: don't forget the arg.
+- Real-render loops (`shotSession`) can crash SwiftShader on long runs: logic in stub mode, one real render for screenshots (harness keeps `renderer.__orig`).
+- Profile merge only keeps keys that exist in defaults; free-form maps need `{ __open: true }` (see `career.medals`). Arrays are copied whole.
+- Anything with consequences in MP (damage, deaths, rewards, seats, flags, tiers) has exactly one owner: the host. Mirrors must include visuals. New modes need hook `netState/netApply/netMsg`.
+- `classList.toggle(x, undefined)` flips; pass booleans. r128 renderer methods are per instance.
+- Self-sizing elements must never feed back into layout (the loadout preview canvas grew the page forever; now absolutely positioned; `tests/lostable.mjs`).
+- Spawns/pickups are validated against colliders + nav (`regress.mjs`). Visual-only "skins" (Gorge cliff/scree) sit in front of flat colliders.
 
-## Architecture notes (read the code for details)
-- src/core: config.js (all tuning: weapons incl. falloff/pen/velocity, PENETRATION, SLOT_MODES, modes, difficulty, streaks, explosions), storage.js (localStorage profile with merge; presets A/B/C), input.js, state.js (shared `G`), util.js.
-- src/world: physics.js (AABB colliders; `pass: true` blocks movement but not bullets; blocked, supportHeight, moveBody, updateVertical (fall height), depenetrate, rayWorld, rayUnits, losClear), nav.js (2 m grid graph, navExtra waypoints, ladder links, A* + string-pulling that keeps ladder ends), builder.js (merged static geometry; material colours MUST go through convertSRGBToLinear), maps/*.js (yard, outpost, atomic, gorge).
-- src/entities: player.js (slots, giveWeapons, pickupSlot), ai.js (bots: perception, states, ladders, loot, gun switching, convertBot, alwaysHunt, objectives), ballistics.js (shared hitscan + sniper projectiles, falloff, penetration by calibre), units.js (damage/kill, mode damage hooks), soldier.js (models, setSoldierGun), viewmodel.js, streaks.js (player and bot killstreaks with owners), worldprops.js (barrels, drops), pickups.js, grenades.js, projectiles.js (rockets).
-- src/game: match.js (shared flow, calls mode hooks), modes.js (Gun Game, Infection, CTF, Zombies hooks), progression.js.
-- src/engine: render.js, audio.js, music.js (procedural menu music + stingers), fx.js.
-- src/ui: hud.js, menus.js (pre-match loadout, Killstreaks page), badges.js; index.html holds all screens; src/styles.css.
-- `window.__frontline` exposes G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene.
+## A. Answer these first (planning phase)
+1. **Heat/load:** my M4 MacBook Pro gets hot under the keyboard. Netlify only serves the file; the game runs entirely on my machine. Estimate RAM/CPU/GPU load and explain why it heats up (e.g. uncapped frame rate at ProMotion 120 Hz, shadows, main-thread AI/physics, second WebGL context on the loadout screen, chopper/smoke effects). Propose fixes (e.g. default 60 fps cap on laptops/battery, a "Battery saver" preset, cheaper shadows, pausing rendering in menus, an on-screen perf readout) and their trade-offs.
+2. **Bigger rooms** (now 8): how far can we go (12? 16?) with the star topology while keeping lag low? Consider host upload per player, per-client interest management (far units at lower rate), delta vs last-acked snapshot, snapshot rate scaling, host CPU. Recommend a cap and plan.
+3. **How I can iterate better/more efficiently** (process, tooling, session sizing; e.g. Claude Code locally on the repo, smaller sessions with a written plan, a `tests/quick.sh` smoke suite, milestone-only infographic).
 
-## Known pitfalls
-- r128 WebGLRenderer defines render() per instance; stub it on the instance, not the prototype.
-- `classList.toggle(x, undefined)` flips every call; always pass a boolean.
-- Rays that start inside a hitbox must still count as hits.
-- Spawns and pickups must be validated against colliders and the nav graph (regress.mjs checks this).
-- Units outside map bounds count as blocked and get depenetrated back inside; place test units within bounds.
-- Scripted mouse events nudge free-look yaw; reset yaw before firing tests. `G.player` is a new object after each deploy.
+## B. Build list (after "all clear"), suggested order
+1. **Zombies is impossibly hard.** Diagnose (zombie speed/damage/health/count per round, points, ammo, buy prices, spawn distances, co-op scaling) and make it fair: gentler early rounds, scaling with the bot skill setting, more ammo/points, maybe a Zombies difficulty option and co-op revives. Verify with a headless survival-time test.
+2. **Kill cam bullet timing:** my body disappears before the slug arrives. Keep the victim's ghost alive/visible until the slug impacts (+ a short beat), then play the death. Test with `tests/kcshot.mjs snipe`.
+3. **Canyon walls are not solid everywhere:** I can get behind/between the walls. Make all Gorge cliff faces, rock skins, spurs and ledges collide where they look solid (or keep visuals inside colliders); write a test that sweeps a player along every wall and checks they can't pass or end up inside; check the other maps for gaps too.
+4. **Multiplayer parity (sanity-checked):** bots option (count + skill + rules) in every MP mode including Infection, Gun Game and CTF; port single-player features that make sense (medals/XP for joiners, practice range co-op?, sandbox rules?, gear effects on joiners, end-of-match replay, etc.). First show a table: feature → in SP? → in MP? → plan or reason to skip.
+5. **Practice range weapons:** cycle through and select many guns (as many as I want): e.g. a "range rack" picker with all guns + attachments later, quick-swap keys, and an option to carry any number of guns in the range.
+6. **Bigger rooms** per the agreed plan from A2.
+7. Then the rest of Rev 3:
+   - **3e:** Domination, Search & Destroy, King of the Hill; SCAR-H, Vector, crossbow; power-weapon pickups (rocket launcher, grenade launcher, rail gun); attachments (optic, suppressor, extended mag, grip).
+   - **3f:** batched drawing + bot pathfinding in a worker; maps: snowbound radar base (large, vehicles), harbour, night Atomic Acres; vehicles: Kestrel flyer (original Banshee-like), ATV; in-game map editor (place, test, export/import JSON).
 
-## Hard constraints
-- The single HTML file must keep working; from B2 on it must run fully offline (no external scripts, fonts or requests).
-- Lightweight: target 60 fps on a typical laptop; fast load.
-- Only original names, maps and assets. Never use "Combat Arms", "Call of Duty", "Nuketown", "Halo" or "Kill Creek" anywhere in the game.
-- All audio and music generated in code.
-- Real gun names stay the default, with the Fictional toggle.
-- Vehicles must have an On/Off match setting, default OFF.
+## C. Suggest only (don't build until I approve)
+Ideas drawn from Valorant and Counter-Strike, e.g. round-based S&D with buy phase/economy, agent-style abilities, learnable spray patterns, ping wheel and map callouts, crosshair editor/codes, warm-up deathmatch, round MVP, surrender/timeout votes, replays/demos, aim-trainer drills in the range. Give each a one-line value and effort (S/M/L).
 
-Start by unzipping, setting up, running a quick smoke test and the regression, read docs/ARCHITECTURE.md, then begin 7a.
+## Longer-term (keep on the list)
+Gamepad + touch, installable app (PWA), colour-blind options, coin shop (prices exist, all free now), light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration (current one keeps scores/time but respawns everyone). Voice chat: skipped by choice.
