@@ -35,7 +35,7 @@ const out = {}, fail = [];
 const check = (n, ok, info) => { out[n] = ok ? 'ok' : 'FAIL ' + JSON.stringify(info); if (!ok) fail.push(n); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ev = (p, f, a) => p.evaluate(f, a);
-for (const mode of only ? [only] : ['gungame', 'infection', 'ctf']) {
+for (const mode of only ? [only] : ['gungame', 'infection', 'ctf', 'zombies', 'range']) {
   const H = await mk('HOST'), C = await mk('C1'), all = [H, C];
   const run = async (frames) => { for (let i = 0; i < frames; i += 2) { for (const p of all) await p.evaluate(() => window.__step(2)); if (i % 20 === 0) await sleep(5); } };
   await ev(H, (m) => window.__frontline.net.hostOpen('ALPHA', { mode: m, map: 'yard', skill: 5, count: 4, bots: {} }), mode);
@@ -50,16 +50,29 @@ for (const mode of only ? [only] : ['gungame', 'infection', 'ctf']) {
   if (mode === 'gungame') {
     const w0 = await ev(C, () => window.__frontline.G.player.weapons[0]);
     const bid = await ev(H, () => window.__frontline.G.bots.find((b) => b.alive).id);
-    await ev(C, (a) => { const F = window.__frontline, u = F.net.session.proxies.get(a[0]); u.protectUntil = 0; F.damage(u, 999, F.G.player, { weapon: a[1], zone: 'head', headshot: true, dist: 8 }); }, [bid, w0]);
+    await ev(C, (a) => { const F = window.__frontline, u = F.net.session.proxies.get(a[0]); u.protectUntil = 0; F.G.profile.career.medals = {}; F.damage(u, 999, F.G.player, { weapon: a[1], zone: 'head', headshot: true, dist: 45 }); }, [bid, w0]);
     await run(30);
     const r = await ev(C, () => [window.__frontline.G.player.gg, window.__frontline.G.player.weapons[0]]);
     check('gungame tier up', r[0] === 1 && r[1] !== w0, [w0, r]);
+    const md = await ev(C, () => window.__frontline.G.profile.career.medals), nb = await ev(H, () => window.__frontline.G.bots.length);
+    check('joiner medals from own claim (headshot + longshot)', md.headshot >= 1 && md.longshot >= 1, md);
+    check('gungame bots = lobby count', nb === 4, nb);
   } else if (mode === 'infection') {
     await ev(H, () => { const F = window.__frontline, G = F.G, inf = G.units.find((u) => u.team === 1 && !u.remote) || G.bots[0], r = G.units.find((u) => u.remote); inf.team = 1; r.protectUntil = 0; F.damage(r, 999, inf, { weapon: 'knife', melee: true }); });
     await run(260);
     const r = await ev(C, () => [window.__frontline.G.player.team, window.__frontline.G.player.weapons.join(',')]);
     const h = await ev(H, () => window.__frontline.G.units.find((u) => u.remote).team);
     check('infection turns joiner', r[0] === 1 && h === 1 && r[1] === 'knife', [r, h]);
+  } else if (mode === 'range') {
+    // co-op practice range: same map + dummies on both sides; the joiner's hits land on the host's dummies, numbers show
+    const h = await ev(H, () => [window.__frontline.G.world.id, window.__frontline.G.bots.length]);
+    const c = await ev(C, () => [window.__frontline.G.world.id, window.__frontline.net.session.proxies.size, window.__frontline.G.bots.length]);
+    const id = await ev(H, () => window.__frontline.G.bots.find((b) => b.alive && !b.dummy.rail).id);
+    const hp0 = await ev(H, (id) => window.__frontline.G.units.find((u) => u.id === id).health, id);
+    await ev(C, (id) => { const F = window.__frontline, u = F.net.session.proxies.get(id); u.protectUntil = 0; F.damage(u, 30, F.G.player, { weapon: 'm4', dist: 10 }); }, id);
+    await run(20);
+    const hp1 = await ev(H, (id) => window.__frontline.G.units.find((u) => u.id === id).health, id), num = await ev(C, () => document.querySelectorAll('.dmgnum').length);
+    check('range co-op', h[0] === 'range' && c[0] === 'range' && h[1] === 13 && c[2] === 0 && c[1] >= 13 && hp1 < hp0 && num > 0, [h, c, hp0, hp1, num]);
   } else if (mode === 'zombies') {
     // co-op revive: a lethal hit downs the joiner; the host holds E next to them; bleed-out kills; joiner revives host
     const E = (p, on) => ev(p, (on) => { const F = window.__frontline; F.input.keys[F.G.profile.settings.keys.interact] = on; }, on);

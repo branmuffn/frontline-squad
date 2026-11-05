@@ -27,8 +27,8 @@ import { onDeathCam, recordNetShot } from '../game/killcam.js';
 import { checkStreak, netStreak, netSentryShot, remoteUseStreak, remoteOpenCrate, remoteChopperDamage, grantStreak, refillPlayer } from '../entities/streaks.js';
 
 export const MAX_PLAYERS = 8;
-export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'infection'];
-export const COOP = (mode) => mode === 'survival' || mode === 'zombies';
+export const MP_MODES = ['survival', 'zombies', 'ffa', 'tdm', 'gungame', 'ctf', 'infection', 'range'];
+export const COOP = (mode) => mode === 'survival' || mode === 'zombies' || mode === 'range';
 export const BUILD = (typeof window !== 'undefined' && window.__BUILD) || 'dev build';
 const VER = 1, SNAP_DT = 1 / 30, INTERP = 0.1;
 const WIDS = Object.keys(WEAPONS);
@@ -277,6 +277,8 @@ S.clientDamage = (victim, amount, attacker, info) => {
   if (victim === G.player && !attacker && info.weapon === 'fall') { S.link.send({ t: 'self', a: r2(amount), w: 'fall' }); return amount; }
   if (attacker !== G.player || !victim.proxy || info.explosive || !isEnemy(attacker, victim)) return 0;
   if (victim.protectUntil > G.now) return 0;
+  (S.claims = S.claims || new Map()).set(victim.id, { ...info, at: G.now });
+  if (G.match.mode === 'range') hud.dmgNumber(victim, amount, info);
   S.link.send({ t: 'hit', id: victim.hid, a: r2(amount), w: info.weapon, z: info.zone, h: !!info.headshot, m: !!info.melee, d: r2(info.dist || 0) });
   hud.hitMarker(info.headshot ? 'head' : 'hit');
   play(info.headshot ? 'headshot' : 'hit', null, { important: true });
@@ -468,7 +470,8 @@ function onKillEv(m) {
   } else if (v.proxy && v.alive) proxyDie(v, k);
   if (k === G.player && v !== G.player) {
     hud.hitMarker('kill'); play('kill', null, { important: true, delay: 0.06 });
-    awardKill(v, { weapon: m.w, headshot: m.h }, 0);
+    const ci = S.claims && S.claims.get(v.id); // the claim we sent carries the medal details (scope, distance, zone, wallbang)
+    awardKill(v, ci && G.now - ci.at < 3 ? { ...ci, weapon: m.w, headshot: m.h } : { weapon: m.w, headshot: m.h }, 0);
   }
 }
 

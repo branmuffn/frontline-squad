@@ -102,7 +102,16 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] B2 kill cam: the victim (you, or the victim in the end-of-match replay) stays up until the killing round lands (+0.08 s), then falls (death animation, still highlighted); units alive in the footage no longer show their corpse pose (deathT saved/restored). tests/kcvictim.mjs.
 - [x] B3 solid walls: audit of every standable spot (0.5 m grid, every floor) vs the visual geometry (winding-agnostic). Fixed: Gorge rock spurs had no collision (now colFit boxes + exact hull), cliff rock skin stood up to 0.85 m in front of the flat wall (1x1 m cells follow the skin, minus body radius, skipped on chutes), ledge shelves overlapping the next one (z scale), Atomic Acres upper roof layers visual-only (now solid), Range sandbags had length 0 (no collision). All maps 0 gaps. tests/walls.mjs (builder records visuals when globalThis.__recordVis).
 - [x] B5 range rack: in the practice range B opens 'Range rack' (tick any guns on/off, All guns, Clear = back to your loadout, Refill, Done); you carry all ticked guns at once, wheel / Q / 1-9 switch (1-9 by rack position when carrying 5+), HUD shows 'n/total'; remembered in the profile (rangeRack) and kept on respawn. tests/rack.mjs.
-- [ ] B4 MP parity: bots in Gun Game/CTF/Infection; joiner XP + medals; each joiner's own killstreak picks; vehicles in CTF; co-op practice range.
+- [x] B4 MP parity. Audit: feature | SP | MP before | now
+  - Bot count in Gun Game / CTF / Infection | yes | hidden (stale count used) | lobby picker (GG 0-9, CTF team size 0-6 'bots fill', Infection 0-11); skill + rules shown with bots
+  - Joiner XP / rank / career | yes | yes (end of match) | unchanged
+  - Joiner medals | yes | only headshot (kill event lacked details) | full: the joiner's own hit claim (scope state, distance, zone, wallbang, collateral, airborne) is kept per victim and used on the kill event
+  - Joiner killstreak picks | yes | yes (sent with gear) | unchanged
+  - Vehicles in CTF | yes | yes (VEHICLE_MODES) | unchanged
+  - Practice range | yes | no | co-op mode 'Practice range': host runs the dummies, joiners claim hits, damage numbers for everyone, range rack for everyone
+  - Zombies revives / difficulty | new | new (B1)
+  - Skipped: Sandbox in MP (longer-term: MP Custom), end-of-match replay already in both.
+  tests: mpmodes.mjs (gungame medals + bot count, range co-op).
 - [ ] B6 rooms: 12 normal, 16 Experimental; 10/30 Hz by distance + view (scope = always 30); delta vs last ack; 20 Hz above 8; bot fill shrinks; host-link warning.
 - [ ] C picks: crosshair editor + codes, warm-up deathmatch in lobby, votes (host keeps direct kick; kick/surrender by majority), MVP card, then aim-trainer drills, ping wheel.
 - [ ] 3e then 3f (see Rev 3 list above).

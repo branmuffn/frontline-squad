@@ -10,7 +10,7 @@ import { VEHICLE_MODES } from '../entities/vehicles.js';
 
 const KEY = 'frontline_mp_v1';
 // bot counts in multiplayer (0 = humans only)
-const MP_COUNTS = { ffa: [0, 1, 2, 3, 5, 7, 9], tdm: [0, 2, 3, 4, 5, 6] };
+const MP_COUNTS = { ffa: [0, 1, 2, 3, 5, 7, 9], tdm: [0, 2, 3, 4, 5, 6], ctf: [0, 2, 3, 4, 5, 6], gungame: [0, 1, 2, 3, 5, 7, 9], infection: [0, 3, 5, 7, 9, 11] };
 let saved = null, show = null;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -30,19 +30,20 @@ const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(
 
 function fillSettings(cfg) {
   $('mpMode').innerHTML = net.MP_MODES.map((m) => opt(m, MODES[m].name + (net.COOP(m) ? ' (co-op)' : ' (versus)'), m === cfg.mode)).join('');
-  $('mpMap').innerHTML = Object.entries(MAPS).map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
+  $('mpMap').innerHTML = Object.entries(MAPS).filter(([id]) => id !== 'range').map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
+  $('mpMap').closest('.field').classList.toggle('hidden', cfg.mode === 'range'); // the range is its own map
   $('mpDiff').innerHTML = Array.from({ length: 10 }, (_, i) => opt(i + 1, `${i + 1} · ${DIFFICULTY[skillBand(i + 1)].label}`, i + 1 === +cfg.skill)).join('');
   const counts = MP_COUNTS[cfg.mode];
   $('mpCountRow').classList.toggle('hidden', !counts);
   if (counts) {
     if (!counts.includes(+cfg.count)) cfg.count = MODES[cfg.mode].defaultCount;
-    $('mpCountLabel').textContent = cfg.mode === 'tdm' ? 'Team size (bots fill)' : 'Bots';
-    $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
+    $('mpCountLabel').textContent = cfg.mode === 'tdm' || cfg.mode === 'ctf' ? 'Team size (bots fill)' : 'Bots';
+    $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' || cfg.mode === 'ctf' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
   }
   const host = !!net.session.host, noBots = !!counts && +cfg.count === 0 && !net.COOP(cfg.mode);
-  const zm = cfg.mode === 'zombies';
+  const zm = cfg.mode === 'zombies' || cfg.mode === 'range'; // no bot skill: zombies have their own difficulty, the range has dummies
   $('mpZdiff').innerHTML = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard'], ['nightmare', 'Nightmare']].map(([v, l]) => opt(v, l, v === (cfg.zdiff || 'normal'))).join('');
-  $('mpZdiff').disabled = !host; $('mpZdiff').closest('.field').classList.toggle('hidden', !zm);
+  $('mpZdiff').disabled = !host; $('mpZdiff').closest('.field').classList.toggle('hidden', cfg.mode !== 'zombies');
   $('mpDiff').closest('.field').classList.toggle('hidden', noBots || zm); $('mpBotRules').closest('.field').classList.toggle('hidden', noBots || zm);
   const LM = LIMITS[cfg.mode] || {}; cfg.limits = cfg.limits || {}; const cur = cfg.limits[cfg.mode] = cfg.limits[cfg.mode] || {};
   for (const [k, id] of [['score', 'mpScore'], ['time', 'mpTime']]) {

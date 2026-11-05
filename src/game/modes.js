@@ -430,6 +430,7 @@ const range = {
   weapons(u) { const r = rackOf(); return u.isPlayer && r.length ? [...r, 'knife'] : null; },
   setup(m) {
     m.rules = { infAmmo: true, passive: true };
+    if (G.mp && G.mp.live && G.mp.client) return; // co-op range: the host runs the dummies
     const look = { uniform: 0x8a7a58, accent: 0xb8402e, helmet: 0x3b4034 };
     for (const t of RANGE_TARGETS) { const b = G.spawnBot({ name: t.d + ' m', team: 9, weapon: 'knife', ...look }); b.dummy = { x: t.x, z: t.z }; }
     for (const r of RANGE_MOVERS) { const b = G.spawnBot({ name: r.d + ' m mover', team: 9, weapon: 'knife', ...look }); b.dummy = { x: r.x0, z: r.z, rail: r, dir: 1 }; }
