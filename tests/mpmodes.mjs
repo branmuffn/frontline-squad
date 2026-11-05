@@ -60,6 +60,33 @@ for (const mode of only ? [only] : ['gungame', 'infection', 'ctf']) {
     const r = await ev(C, () => [window.__frontline.G.player.team, window.__frontline.G.player.weapons.join(',')]);
     const h = await ev(H, () => window.__frontline.G.units.find((u) => u.remote).team);
     check('infection turns joiner', r[0] === 1 && h === 1 && r[1] === 'knife', [r, h]);
+  } else if (mode === 'zombies') {
+    // co-op revive: a lethal hit downs the joiner; the host holds E next to them; bleed-out kills; joiner revives host
+    const E = (p, on) => ev(p, (on) => { const F = window.__frontline; F.input.keys[F.G.profile.settings.keys.interact] = on; }, on);
+    await ev(H, () => { const F = window.__frontline, G = F.G; for (const b of G.bots) b.alive && F.damage(b, 9999, null, {}); G.match.toSpawn = 0; G.match.roundState = 'break'; G.match.nextRoundAt = G.now + 999;
+      const r = G.units.find((u) => u.remote); r.protectUntil = 0; F.damage(r, 999, null, { weapon: 'claws', melee: true }); });
+    await run(30);
+    const d1 = await ev(H, () => { const r = window.__frontline.G.units.find((u) => u.remote); return [r.alive, r.downed > 0]; });
+    const c1 = await ev(C, () => { const P = window.__frontline.G.player; return [P.alive, P.downed > 0, P.prone]; });
+    const L0 = await ev(H, () => window.__frontline.G.match.lives); console.log('lives after down', L0);
+    check('zombies joiner downed', d1[0] && d1[1] && c1[0] && c1[1] && c1[2], [d1, c1]);
+    await ev(H, () => { const G = window.__frontline.G, r = G.units.find((u) => u.remote), P = G.player; P.x = r.x + 1; P.z = r.z; P.y = r.y; });
+    await E(H, true); await run(220); await E(H, false);
+    const d2 = await ev(H, () => { const r = window.__frontline.G.units.find((u) => u.remote); return [r.downed || 0, r.health]; });
+    const c2 = await ev(C, () => { const P = window.__frontline.G.player; return [P.downed || 0, P.prone, P.health]; });
+    check('zombies host revives joiner', d2[0] === 0 && d2[1] === 50 && c2[0] === 0 && !c2[1] && c2[2] === 50, [d2, c2]);
+    // the joiner revives the host
+    await ev(H, () => { const F = window.__frontline, P = F.G.player; P.protectUntil = 0; F.damage(P, 999, null, { weapon: 'claws', melee: true }); });
+    await run(20);
+    await ev(C, () => { const F = window.__frontline, G = F.G, h = F.net.session.proxies.get([...F.net.session.proxies.keys()].find((k) => F.net.session.proxies.get(k).name === 'ALPHA')); const P = G.player; P.x = h.x + 1; P.z = h.z; P.y = h.y; });
+    await run(20); await E(C, true); await run(240); await E(C, false);
+    const d3 = await ev(H, () => { const P = window.__frontline.G.player; return [P.alive, P.downed || 0, P.health]; });
+    check('zombies joiner revives host', d3[0] && d3[1] === 0 && d3[2] === 50, d3);
+    // bleed-out
+    await ev(H, () => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote); F.damage(r, 999, null, { weapon: 'claws' }); r.downed = G.now + 0.2; });
+    await run(40);
+    const d4 = await ev(H, () => { const G = window.__frontline.G, r = G.units.find((u) => u.remote); return [r.alive, G.match.lives]; });
+    check('zombies bleed-out uses a life', !d4[0] && d4[1] === 2, d4);
   } else {
     const team = await ev(C, () => window.__frontline.G.player.team);
     await ev(C, (t) => { const F = window.__frontline, s = F.G.match.hook.netState()[1 - t], P = F.G.player; P.x = s[2]; P.y = s[3]; P.z = s[4]; P.protectUntil = 1e9; }, team);

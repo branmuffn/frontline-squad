@@ -46,6 +46,7 @@ export function startMatch(cfg) {
     time: mode.time || 0, timed: !!mode.time, pickupsOn: cfg.pickups !== false, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
+    zdiff: ['easy', 'normal', 'hard', 'nightmare'].includes(cfg.zdiff) ? cfg.zdiff : 'normal',
     rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
   };
   const m = G.match, lim = (cfg.limits && cfg.limits[cfg.mode]) || {}, LM = LIMITS[cfg.mode] || {};

@@ -47,6 +47,8 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `mpmigrate.mjs` — host quits mid-match: succession list, first joiner re-hosts with time, team scores and kills kept.
 - `skins.mjs` — screenshot of skin combinations (/tmp/skins.png).
 - `power.mjs` — B0: quality presets, migration to Balanced, low-power menus (30 renders/s), perf readout, settings UI (/tmp/settings_b0.png).
+- `zsurvive.mjs [secs] [diffs] [map]` — B1: a stand-still pistol 'turret' player per Zombies difficulty: rounds, first death, game over, zombie speed vs your sprint.
+- `mpmodes.mjs zombies` — co-op revives: joiner downed, host revives, joiner revives host, bleed-out uses a life.
 - `quick.sh` — smoke suite: build, power, regress 6, mp.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

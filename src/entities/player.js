@@ -308,6 +308,7 @@ export function toggleProne() {
   P.prone = true; P.crouch = false; play('cloth', null, { gain: 0.9 });
 }
 function standUp() {
+  if (P.downed) return; // downed in co-op Zombies: stay on the ground until revived
   if (!canCrouch(P)) return; // no room: stay down
   P.prone = false; P.crouch = !canStand(P); play('cloth', null, { gain: 0.7 });
 }

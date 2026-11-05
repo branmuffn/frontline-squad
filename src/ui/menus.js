@@ -55,7 +55,7 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkillVis(); $('mapSel').parentElement.classList.toggle('hidden', v === 'range'); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkill(); refreshSkillVis(); $('mapSel').parentElement.classList.toggle('hidden', v === 'range'); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
   $('modeDesc').textContent = MODES[L.mode].desc;
   refreshSkill(); refreshSkillVis();
   if (!$('matchRulesBtn').dataset.on) { $('matchRulesBtn').dataset.on = '1'; $('matchRulesBtn').addEventListener('click', () => { $('matchOpts').classList.toggle('hidden'); $('botOpts').classList.add('hidden'); refreshMatchOpts(); }); $('matchOptsX').addEventListener('click', () => $('matchOpts').classList.add('hidden')); }
@@ -81,8 +81,11 @@ function refreshVehicles() {
   if (show) seg($('vehSel'), [{ v: 'off', html: 'Off' }, { v: 'on', html: 'On' }], L.vehicles ? 'on' : 'off', (v) => { L.vehicles = v === 'on'; saveProfile(); });
 }
 // Bot skill: five named bands on the main menu, 1-10 fine tune and what bots may do under "Rules"
+const ZD = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard'], ['nightmare', 'Nightmare']];
 function refreshSkill() {
-  const L = G.profile.lobby;
+  const L = G.profile.lobby, z = L.mode === 'zombies';
+  $('diffLabel').textContent = z ? 'Zombies difficulty' : 'Bot skill'; $('botRulesBtn').classList.toggle('hidden', z);
+  if (z) { seg($('diffSel'), ZD.map(([v, html]) => ({ v, html })), L.zdiff || 'normal', (v) => { L.zdiff = v; saveProfile(); }); $('botOpts').classList.add('hidden'); return; }
   seg($('diffSel'), SKILL_BANDS.map(([k, a]) => ({ v: k, html: DIFFICULTY[k].label })), skillBand(L.skill), (v) => { L.skill = SKILL_BANDS.find((b) => b[0] === v)[1]; L.difficulty = v; saveProfile(); refreshBest(); refreshBotOpts(); });
 }
 function refreshBotOpts() {
@@ -394,7 +397,7 @@ export function initMenus(callbacks) {
   $('loadoutDone').addEventListener('click', () => {
     if (!prematch) { showScreen('menu'); return; }
     const L = G.profile.lobby;
-    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, bots: { ...L.bots }, pickups: L.pickups, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
+    cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, zdiff: L.zdiff, bots: { ...L.bots }, pickups: L.pickups, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
   // export / import profile

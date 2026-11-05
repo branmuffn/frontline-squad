@@ -39,7 +39,7 @@ function freshProfile() {
       { primary: 'ak47', secondary: 'deagle', third: 'm870', camo: 'std', grenade: 'sticky', equip: 'claymore', vest: 'heavy', belt: 'bandolier' },
       { primary: 'l96', secondary: 'usp', third: 'mp5', camo: 'std', grenade: 'smoke', equip: 'claymore', vest: 'light', belt: 'quickdraw' },
     ],
-    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', skill: 0, bots: { grenades: true, streaks: true, snipers: true, vehicles: true, loot: true, tactics: true }, vehicles: false, pickups: true, limits: { ffa: { score: 20, time: 8 }, tdm: { score: -1, time: 10 }, ctf: { score: 3, time: 10 }, gungame: { time: 10 }, infection: { time: 5 }, sandbox: { time: 0 } }, counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
+    lobby: { mode: 'ffa', map: 'yard', difficulty: 'normal', zdiff: 'normal', skill: 0, bots: { grenades: true, streaks: true, snipers: true, vehicles: true, loot: true, tactics: true }, vehicles: false, pickups: true, limits: { ffa: { score: 20, time: 8 }, tdm: { score: -1, time: 10 }, ctf: { score: 3, time: 10 }, gungame: { time: 10 }, infection: { time: 5 }, sandbox: { time: 0 } }, counts: { ffa: 5, tdm: 5, sandbox: 5, gungame: 5, infection: 7, ctf: 4 },
       sandbox: { teams: false, infAmmo: true, god: false, lowGrav: false, oneShot: false, headshots: false, knife: false, passive: false } },
     skin: { uniform: 'olive', pattern: 'plain', helmet: 'olive', op: 'rex' },
     streaks: { picks: ['uav', 'mortar', 'sentry'], kills: { uav: 3, cuav: 4, mortar: 5, care: 6, sentry: 7, chopper: 9, air: 11, gunship: 15 } },

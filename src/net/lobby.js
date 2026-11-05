@@ -40,7 +40,10 @@ function fillSettings(cfg) {
     $('mpCount').innerHTML = counts.map((c) => opt(c, c ? (cfg.mode === 'tdm' ? `${c} v ${c}` : String(c)) : 'No bots', c === +cfg.count)).join('');
   }
   const host = !!net.session.host, noBots = !!counts && +cfg.count === 0 && !net.COOP(cfg.mode);
-  $('mpDiff').closest('.field').classList.toggle('hidden', noBots); $('mpBotRules').closest('.field').classList.toggle('hidden', noBots);
+  const zm = cfg.mode === 'zombies';
+  $('mpZdiff').innerHTML = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard'], ['nightmare', 'Nightmare']].map(([v, l]) => opt(v, l, v === (cfg.zdiff || 'normal'))).join('');
+  $('mpZdiff').disabled = !host; $('mpZdiff').closest('.field').classList.toggle('hidden', !zm);
+  $('mpDiff').closest('.field').classList.toggle('hidden', noBots || zm); $('mpBotRules').closest('.field').classList.toggle('hidden', noBots || zm);
   const LM = LIMITS[cfg.mode] || {}; cfg.limits = cfg.limits || {}; const cur = cfg.limits[cfg.mode] = cfg.limits[cfg.mode] || {};
   for (const [k, id] of [['score', 'mpScore'], ['time', 'mpTime']]) {
     $(id + 'Row').classList.toggle('hidden', !LM[k]); if (!LM[k]) continue;
@@ -57,7 +60,7 @@ function fillSettings(cfg) {
 }
 function readSettings() {
   const c = saved.cfg;
-  c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.difficulty = skillBand(c.skill);
+  c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.zdiff = $('mpZdiff').value || 'normal'; c.difficulty = skillBand(c.skill);
   c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.pickups = $('mpPick').value === '1';
   c.limits = c.limits || {}; c.limits[c.mode] = { score: +$('mpScore').value, time: +$('mpTime').value };
   fillSettings(c); persist();
@@ -124,7 +127,7 @@ export function initLobby(cb) {
   };
   $('mpJoin').addEventListener('click', join);
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {

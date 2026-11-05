@@ -308,6 +308,7 @@ S.barrel = (c, dmg) => { if (S.client && S.live) S.link.send({ t: 'brl', i: (G.w
 S.dropAdded = (d) => { if (S.host && S.live && !S.replay) { d.key = ++S.dropKey; bcast({ t: 'dr+', k: d.key, id: d.id, p: [r2(d.x), r2(d.y), r2(d.z)] }); } };
 S.dropRemoved = (d) => { if (S.host && S.live && d.key) bcast({ t: 'dr-', k: d.key }); };
 S.take = (d) => { S.link.send({ t: 'take', k: d.key }); };
+S.bcast = (msg) => { if (S.host) bcast(msg); };
 S.toRemote = (u, msg) => { if (u.rec) u.rec.link.send(msg); };
 S.banner = (a, b, s) => { if (S.host && S.live) bcast({ t: 'bn', a, b, s }); };
 S.bcast = (o) => bcast(o);
@@ -370,6 +371,7 @@ function hostMsg(r, m) {
     case 'open': remoteOpenCrate(u, m.k); break;
     case 'chd': remoteChopperDamage(u, m); break;
     case 'ven': case 'vex': case 'vsw': case 'vdm': vehHostMsg(r, m); break;
+    case 'hmsg': { const H = G.match.hook; if (H && H.netHostMsg) H.netHostMsg(u, m); break; }
     case 'buy': { const H = G.match.hook; if (H && H.netBuy) H.netBuy(u, m.s, m.have || []); break; }
   }
 }

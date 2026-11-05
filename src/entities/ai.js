@@ -225,7 +225,7 @@ function think(u, cfg) {
   const fx = -Math.sin(u.yaw), fz = -Math.cos(u.yaw);
   let best = null, bestScore = -1e9;
   for (const t of G.units) {
-    if (!t.alive || !isEnemy(u, t)) continue;
+    if (!t.alive || t.downed || !isEnemy(u, t)) continue;
     const dx = t.x - u.x, dz = t.z - u.z, d = Math.hypot(dx, dz);
     if (d > 80) continue;
     const dot = (dx * fx + dz * fz) / (d || 1);
@@ -263,7 +263,7 @@ function think(u, cfg) {
   // zombies and the infected always sense the nearest living enemy
   if (b.alwaysHunt && !b.visible && G.now > (b.huntPing || 0)) {
     let best = null, bd = Infinity;
-    for (const t of G.units) if (t.alive && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
+    for (const t of G.units) if (t.alive && !t.downed && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
     if (best) { b.huntPing = G.now + 1.5; b.target = best; b.lastSeen = Math.max(b.lastSeen, G.now - 2); b.lastKnown = { x: best.x, y: best.y, z: best.z }; }
   }
   // hearing
@@ -323,7 +323,7 @@ function think(u, cfg) {
   if (b.uavUntil > G.now && !b.visible && !b.target && G.now > (b.uavPing || 0)) {
     b.uavPing = G.now + 3;
     let best = null, bd = Infinity;
-    for (const t of G.units) if (t.alive && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
+    for (const t of G.units) if (t.alive && !t.downed && isEnemy(u, t)) { const d = Math.hypot(t.x - u.x, t.z - u.z); if (d < bd) { bd = d; best = t; } }
     if (best) { b.target = best; b.lastSeen = G.now - 2; b.lastKnown = { x: best.x, y: best.y, z: best.z }; }
   }
 
@@ -496,10 +496,14 @@ export function updateBots(dt) {
     if (canShoot) {
       const w = WEAPONS[b.weapon];
       if (b.melee) {
-        if (Math.hypot(t.x - u.x, t.z - u.z) < 1.9 && Math.abs(t.y - u.y) < 1.3 && G.now >= b.nextShot) {
-          b.nextShot = G.now + 0.75;
+        if (t.downed) b.target = null;
+        else if (Math.hypot(t.x - u.x, t.z - u.z) < 1.9 && Math.abs(t.y - u.y) < 1.3 && G.now >= b.nextShot) {
+          // zombie claws: own damage (difficulty + round), slower swing, short grace after each hit so a swarm can't
+          // delete you in one frame
+          b.nextShot = G.now + (u.clawDmg ? 0.9 : 0.75);
           play('knife', { x: u.x, y: u.y + 1.4, z: u.z }, { gain: 0.8 });
-          damage(t, WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: b.T.claws ? 'claws' : 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 });
+          if (u.clawDmg && G.now < (t.clawGrace || 0)) { /* grace */ } else { if (u.clawDmg) t.clawGrace = G.now + 0.6;
+          damage(t, u.clawDmg || WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: b.T.claws ? 'claws' : 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 }); }
         }
       } else if (b.scoped) {
         if (!b.aimStart) b.aimStart = G.now;

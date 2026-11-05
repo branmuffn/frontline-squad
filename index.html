@@ -26,7 +26,7 @@
     <div class="field"><span class="flabel">Mode <button id="matchRulesBtn" class="flink" type="button">Match rules…</button></span><div id="modeSel" class="modes"></div><p id="modeDesc" class="mode-desc"></p></div>
     <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps"></div></div>
     <div class="row2">
-      <div class="field"><span class="flabel">Bot skill <button id="botRulesBtn" class="flink" type="button">Rules…</button></span><div id="diffSel" class="seg"></div></div>
+      <div class="field"><span class="flabel"><span id="diffLabel">Bot skill</span> <button id="botRulesBtn" class="flink" type="button">Rules…</button></span><div id="diffSel" class="seg"></div></div>
       <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
       <div class="field hidden" id="vehRow"><span class="flabel">Vehicles</span><div id="vehSel" class="seg"></div></div>
     </div>
@@ -226,6 +226,7 @@
             <label class="field"><span class="flabel">Mode</span><select id="mpMode"></select></label>
             <label class="field"><span class="flabel">Map</span><select id="mpMap"></select></label>
             <label class="field"><span class="flabel">Bot skill</span><select id="mpDiff"></select></label>
+            <label class="field hidden"><span class="flabel">Zombies difficulty</span><select id="mpZdiff"></select></label>
             <label class="field" id="mpCountRow"><span class="flabel" id="mpCountLabel">Bots</span><select id="mpCount"></select></label>
             <div class="field mp-botrules"><span class="flabel">Bots may</span><div id="mpBotRules" class="chips small"></div></div>
             <label class="field hidden" id="mpVehRow"><span class="flabel">Vehicles</span><select id="mpVeh"><option value="0">Off</option><option value="1">On</option></select></label>

@@ -84,11 +84,11 @@ await C.evaluate((id) => { const F = window.__frontline, u = F.net.session.proxi
 await run(40); s = await st();
 check('kill credited', s.c.P.k >= 1 && s.h.r.k >= 1, [s.c.P.k, s.h.r.k]);
 // host-side damage to the remote player
-await H.evaluate(() => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote), b = G.bots.find((x) => x.alive); r.protectUntil = 0; F.damage(r, 30, b, { weapon: 'm4', sx: b.x, sz: b.z }); });
+await H.evaluate(() => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote), b = G.bots.find((x) => x.alive) || G.spawnBot({ name: 'ZOMBIE', team: 1, weapon: 'knife' }); r.protectUntil = 0; F.damage(r, 30, b, { weapon: 'm4', sx: b.x, sz: b.z }); });
 await run(10); s = await st();
 check('hurt', Math.abs(s.c.P.hp - 70) < 1, s.c.P.hp);
 // death and respawn of the client
-await H.evaluate(() => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote), b = G.bots.find((x) => x.alive); r.protectUntil = 0; F.damage(r, 999, b, { weapon: 'm4', sx: b.x, sz: b.z }); });
+await H.evaluate(() => { const F = window.__frontline, G = F.G, r = G.units.find((u) => u.remote), b = G.bots.find((x) => x.alive) || G.spawnBot({ name: 'ZOMBIE', team: 1, weapon: 'knife' }); r.protectUntil = 0; const keep = G.player.downed; G.player.downed = G.now + 99; F.damage(r, 999, b, { weapon: 'm4', sx: b.x, sz: b.z }); G.player.downed = keep; if (false)F.damage(r, 999, b, { weapon: 'm4', sx: b.x, sz: b.z }); });
 await run(20); s = await st();
 check('client died', s.c.state === 'dead' && !s.c.P.alive, [s.c.state, s.c.P.alive]);
 await run(50);

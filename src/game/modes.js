@@ -7,7 +7,9 @@ import { G } from '../core/state.js';
 import { WEAPONS, ALL_GUNS, TEAMS } from '../core/config.js';
 import { rand, randInt, pick, shuffle, chance } from '../core/util.js';
 import { supportHeight, blocked } from '../world/physics.js';
-import { isEnemy } from '../entities/units.js';
+import { isEnemy, kill } from '../entities/units.js';
+import { PHYS } from '../core/config.js';
+import { input } from '../core/input.js';
 import { gunModel } from '../entities/soldier.js';
 import { setBotWeapon, convertBot } from '../entities/ai.js';
 import { giveWeapons, refillAmmo } from '../entities/player.js';
@@ -188,13 +190,25 @@ export const ctfFlags = () => flags;
 
 // =========================== ZOMBIES ===========================
 // Endless rounds of melee undead. Points for hits and kills buy wall weapons and mystery box rolls; power-ups drop.
-const Z = { hit: 10, kill: 60, head: 100, knife: 130, box: 950, maxAlive: 12 };
+const Z = { hit: 10, kill: 80, head: 120, knife: 150, box: 950, revive: 100 };
+// Zombies difficulty (separate from bot skill: zombies don't aim). spd = speed factor, dmg = claws, hp = health,
+// alive = how many at once, pts = points per hit/kill.
+export const ZDIFF = {
+  easy: { label: 'Easy', spd: 0.85, dmg: 0.6, hp: 0.8, alive: 0.75, pts: 1.3 },
+  normal: { label: 'Normal', spd: 1, dmg: 1, hp: 1, alive: 1, pts: 1 },
+  hard: { label: 'Hard', spd: 1.08, dmg: 1.3, hp: 1.2, alive: 1.2, pts: 1 },
+  nightmare: { label: 'Nightmare', spd: 1.18, dmg: 1.6, hp: 1.4, alive: 1.4, pts: 0.9 },
+};
+const zd = () => ZDIFF[G.match.zdiff] || ZDIFF.normal;
+const humans = () => G.units.filter((u) => u.isPlayer || u.remote);
+// zombie sprint as a share of your sprint: 50% in round 1, ~90% by round 11, your full sprint only from round ~14
+const zFrac = (r) => Math.min(1.1, 0.5 + 0.04 * (r - 1));
+const zClaw = (r) => (22 + Math.min(18, Math.max(0, r - 5) * 1.5)) * zd().dmg;
 const WALL = ['mp5', 'm870', 'm4', 'ak47', 'spas12', 'm249', 'mk14', 'l96', 'deagle'];
 const COST = { usp: 300, deagle: 600, mp5: 1000, m870: 1200, m4: 1400, ak47: 1500, spas12: 1500, m249: 2200, mk14: 1700, l96: 1800 };
 const POWERUPS = [['maxammo', 'MAX AMMO', 0x66d0ff], ['insta', 'INSTA-KILL', 0xff5a4a], ['double', 'DOUBLE POINTS', 0xffd34d]];
 let stations = [], powerups = [], boxRoll = null;
-const zHealth = (r) => r < 10 ? 100 + (r - 1) * 60 : Math.round(640 * Math.pow(1.1, r - 9));
-const zSpeed = (r) => Math.min(1.3, 0.55 + r * 0.09);
+const zHealth = (r) => (r < 10 ? 75 + (r - 1) * 62 : Math.round(640 * Math.pow(1.1, r - 9))) * zd().hp;
 function labelSprite(text, color = '#ffe2a6') {
   const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
   x.fillStyle = 'rgba(10,12,14,0.75)'; x.fillRect(0, 0, 256, 64); x.fillStyle = color; x.font = 'bold 26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
@@ -236,7 +250,7 @@ function zGive(id) {
   giveWeapons([...guns, 'knife'], id);
 }
 function spend(n) { const m = G.match; if (m.points < n) { play('deny'); hud.notice('Not enough points'); return false; } m.points -= n; hud.scoreChanged(); return true; }
-function addPoints(n) { const m = G.match; m.points += n * (G.now < m.doubleUntil ? 2 : 1); hud.scoreChanged(); }
+function addPoints(n) { const m = G.match; m.points += Math.round(n * (m.mode === 'zombies' ? zd().pts : 1)) * (G.now < m.doubleUntil ? 2 : 1); hud.scoreChanged(); }
 let puKey = 0;
 function spawnPowerup(x, y, z, forced, key) {
   const [id, name, col] = forced || pick(POWERUPS);
@@ -255,21 +269,59 @@ function stationPrompt(P) {
   else if (s.kind === 'box') hud.prompt(boxRoll ? 'The box is spinning…' : `<kbd>${keyE()}</kbd> Mystery box · ${Z.box}`);
   else { const owned = P.weapons.includes(s.id); hud.prompt(`<kbd>${keyE()}</kbd> ${owned ? 'Ammo for' : 'Buy'} ${WEAPONS[s.id].name} · ${owned ? Math.round(s.cost / 2) : s.cost}`); }
 }
+function squadResupply() {
+  const P = G.player; if (P.alive) { refillAmmo(); hud.setAmmo(P); }
+  for (const u of G.units) if (u.remote && u.alive) G.mp.toRemote(u, { t: 'resupply', g: 2 });
+  hud.notice('Between rounds: ammo refilled');
+}
+function goDown(v) {
+  v.downed = G.now + 30; v.reviveT = 0; v.health = v.maxHealth || 100;
+  if (v.isPlayer) { v.prone = true; v.crouch = false; hud.banner('You’re down!', 'A teammate can revive you · hold on 30 s', 'wave'); play('hurt'); }
+  else if (v.remote) G.mp.toRemote(v, { t: 'mode', dn: 1 });
+  G.mp.bcast && G.mp.bcast({ t: 'bn', a: `${v.name} is down`, b: 'Hold E next to them to revive' });
+  if (!v.isPlayer) hud.notice(`${v.name} is down · hold ${keyE()} next to them to revive`);
+}
+function revive(v, by) {
+  v.downed = 0; v.reviveT = 0; v.health = Math.round((v.maxHealth || 100) * 0.5);
+  if (v.isPlayer) { v.prone = false; hud.banner('Revived', by ? `by ${by.name}` : 'Round survived', 'streak'); }
+  else if (v.remote) G.mp.toRemote(v, { t: 'mode', dn: 0, hp: v.health });
+  if (by) { addPoints(Z.revive); if (!v.isPlayer) hud.notice(`${by.name} revived ${v.name}`); }
+}
+const nearDowned = (u) => G.units.find((d) => d !== u && d.downed && d.alive && Math.hypot(d.x - u.x, d.z - u.z) < 1.9 && Math.abs(d.y - u.y) < 1.5);
+function reviveTick(dt) {
+  const P = G.player, ups = humans().filter((h) => h.alive && !h.downed);
+  for (const v of humans()) {
+    if (!v.alive || !v.downed) continue;
+    if (!ups.length || G.now > v.downed) { v.downed = 0; if (v.remote) G.mp.toRemote(v, { t: 'mode', dn: 0 }); kill(v, null, { weapon: 'bleed' }); continue; }
+    const by = ups.find((h) => (h.isPlayer ? !!input.keys[G.profile.settings.keys.interact] : h.revHold) && Math.hypot(h.x - v.x, h.z - v.z) < 1.9);
+    v.reviveT = by ? v.reviveT + dt : Math.max(0, v.reviveT - dt * 2);
+    if (by && v.reviveT >= 3) revive(v, by);
+  }
+  if (P.alive && P.downed) hud.prompt(`You’re down · ${Math.ceil(P.downed - G.now)} s` + (P.reviveT > 0 ? ` · reviving ${Math.round(P.reviveT / 3 * 100)}%` : ''));
+  else if (P.alive) { const d = nearDowned(P); if (d) hud.prompt(`Hold <kbd>${keyE()}</kbd> to revive ${d.name}` + (d.reviveT > 0 ? ` · ${Math.round(d.reviveT / 3 * 100)}%` : '')); }
+}
 function zombieName(r) { return r >= 8 && chance(0.2) ? 'BRUTE' : 'ZOMBIE'; }
 const zombies = {
   noDrops: true, noStreaks: true, noPickups: true, waves: true, prompting: true,
-  setup(m) { m.points = 500; m.round = 0; m.wave = 0; m.roundState = 'none'; m.insta = 0; m.doubleUntil = 0; m.lives = 3; buildStations(); disposeAll(powerups); boxRoll = null; },
+  setup(m) { for (const u of G.units) u.downed = 0; m.points = 500; m.round = 0; m.wave = 0; m.roundState = 'none'; m.insta = 0; m.doubleUntil = 0; m.lives = 3; buildStations(); disposeAll(powerups); boxRoll = null; },
   cleanup() { disposeAll(stations); disposeAll(powerups); boxRoll = null; },
   weapons(u) { return u.isPlayer ? ['usp', 'knife'] : ['knife']; },
-  modDamage(v, a, amt) { return coop(a) && v.zombie && G.now < G.match.insta ? v.health + 1 : amt; },
+  modDamage(v, a, amt) {
+    if (coop(a) && v.zombie && G.now < G.match.insta) return v.health + 1;
+    if (v.downed) return 0;
+    // co-op revives: a lethal hit downs a player instead while another teammate is still up (host decides)
+    if (coop(v) && amt >= v.health && G.mp && G.mp.live && !G.mp.client && humans().some((h) => h !== v && h.alive && !h.downed)) { goDown(v); return 0; }
+    return amt;
+  },
   onDamage(v, a, dmg, info) { if (coop(a) && v.zombie && v.alive) addPoints(Z.hit); },
   onKill(c, v, info) {
     if (!v.zombie) return;
     G.match.alive = Math.max(0, (G.match.alive || 0) - 1);
     if (coop(c)) addPoints(info.melee ? Z.knife : info.headshot ? Z.head : Z.kill);
-    if (chance(0.035)) spawnPowerup(v.x, v.y, v.z);
+    if (chance(G.match.round <= 5 ? 0.06 : 0.045)) spawnPowerup(v.x, v.y, v.z);
   },
   interact() {
+    if (G.player.downed || nearDowned(G.player)) return true; // E is the revive key here
     const s = nearStation(); if (!s) return false;
     if (G.mp && G.mp.live && G.mp.client) { G.mp.send({ t: 'buy', s: stations.indexOf(s), have: G.player.weapons }); return true; } // the host keeps the squad's points
     if (s.kind === 'wall') {
@@ -298,23 +350,46 @@ const zombies = {
     if (m.a === '+') spawnPowerup(m.x, m.y, m.z, POWERUPS.find((p) => p[0] === m.id), m.k);
     else { const i = powerups.findIndex((p) => p.key === m.k); if (i >= 0) { G.scene.remove(powerups[i].mesh); powerups.splice(i, 1); } }
   },
-  clientUpdate() { spinPowerups(); stationPrompt(G.player); },
+  clientUpdate() {
+    spinPowerups(); stationPrompt(G.player);
+    const P = G.player, d = P.alive && !P.downed && nearDowned(P), hold = !!(d && input.keys[G.profile.settings.keys.interact]);
+    if (hold !== !!P.revSent) { P.revSent = hold; G.mp.send({ t: 'hmsg', rev: hold ? 1 : 0 }); }
+    if (P.alive && P.downed) hud.prompt(`You’re down · ${Math.max(0, Math.ceil(P.downed - G.now))} s · a teammate can revive you`);
+    else if (d) hud.prompt(`Hold <kbd>${keyE()}</kbd> to revive ${d.name}`);
+  },
+  // downed players are mirrored (who, seconds left) so everyone sees the prompt
+  netState() { return G.units.filter((u) => u.downed && u.alive).map((u) => [u.id, Math.max(0, Math.round(u.downed - G.now))]); },
+  netApply(s, find) {
+    const on = new Map(); for (const [id, t] of s) { const u = find(id); if (u) on.set(u, t); }
+    for (const u of G.units) if (u !== G.player) u.downed = on.has(u) ? G.now + on.get(u) : 0;
+    const P = G.player; if (P) { if (on.has(P)) P.downed = G.now + on.get(P); else if (P.downed && !P._dnMsg) P.downed = 0; }
+  },
+  netMsg(m) {
+    const P = G.player; if (m.dn == null) return;
+    if (m.dn) { P.downed = G.now + 30; P.prone = true; P.crouch = false; hud.banner('You’re down!', 'A teammate can revive you · hold on 30 s', 'wave'); play('hurt'); }
+    else { P.downed = 0; P.prone = false; if (m.hp) { P.health = m.hp; hud.banner('Revived', '', 'streak'); } }
+  },
+  netHostMsg(u, m) { if (u) u.revHold = !!m.rev; },
   update() {
     const m = G.match, P = G.player;
     // rounds
     if (m.roundState === 'none' || (m.roundState === 'break' && G.now >= m.nextRoundAt)) {
-      m.round++; m.wave = m.round; m.roundState = 'fighting'; m.toSpawn = Math.min(60, 6 + m.round * 3); m.nextSpawnAt = G.now + 1;
+      m.round++; m.wave = m.round; m.roundState = 'fighting';
+      const np = Math.max(1, humans().length);
+      m.toSpawn = Math.min(90, Math.round((5 + m.round * 2.2) * (1 + 0.6 * (np - 1)))); m.nextSpawnAt = G.now + 1.5;
+      m.maxAlive = Math.max(4, Math.min(24, Math.round((4 + m.round) * (1 + 0.5 * (np - 1)) * zd().alive)));
       hud.banner(`Round ${m.round}`, m.round === 1 ? 'They’re coming. Buy weapons off the walls with points.' : `${m.toSpawn} undead`, 'wave'); play('wave', null, { important: true });
     }
     for (let i = G.bots.length - 1; i >= 0; i--) { const b = G.bots[i]; if (!b.alive && G.now > b.respawnAt + 0.8) G.removeBot(b); }
     const alive = G.bots.filter((b) => b.alive).length;
     if (m.roundState === 'fighting') {
-      if (m.toSpawn > 0 && alive < Z.maxAlive && G.now >= m.nextSpawnAt) {
-        m.nextSpawnAt = G.now + Math.max(0.35, 1.6 - m.round * 0.1); m.toSpawn--; m.alive = alive + 1;
+      if (m.toSpawn > 0 && alive < (m.maxAlive || 6) && G.now >= m.nextSpawnAt) {
+        m.nextSpawnAt = G.now + Math.max(0.5, 2.2 - m.round * 0.1); m.toSpawn--; m.alive = alive + 1;
         const name = zombieName(m.round), b = G.spawnBot({ name, team: 1, weapon: 'knife', type: 'zombie', uniform: pick([0x4a4a3c, 0x3d4436, 0x56493a]), accent: 0x2b2b26, skin: 0x7f8a66, noHelmet: true });
-        b.zombie = true; b.maxHealth = b.health = Math.round(zHealth(m.round) * (name === 'BRUTE' ? 2 : 1)); b.brain.speedMul = zSpeed(m.round) * (name === 'BRUTE' ? 0.8 : 1); b.brain.alwaysHunt = true;
+        b.zombie = true; b.maxHealth = b.health = Math.round(zHealth(m.round) * (name === 'BRUTE' ? 2 : 1)); b.brain.speedMul = zFrac(m.round) * zd().spd * (name === 'BRUTE' ? 0.85 : 1) * (PHYS.walk * PHYS.sprintMul * 0.95) / (PHYS.walk * WEAPONS.knife.speed * (G.match.ai.speed || 1) * PHYS.sprintMul); b.brain.alwaysHunt = true;
+        b.clawDmg = zClaw(m.round) * (name === 'BRUTE' ? 1.5 : 1);
       }
-      if (m.toSpawn <= 0 && alive === 0) { m.roundState = 'break'; m.nextRoundAt = G.now + 8; hud.banner(`Round ${m.round} survived`, 'Next round in 8 seconds', 'streak'); play('streak', null, { important: true }); }
+      if (m.toSpawn <= 0 && alive === 0) { m.roundState = 'break'; m.nextRoundAt = G.now + 10; if (m.round <= 5 || m.round % 5 === 0) squadResupply(); for (const h of humans()) if (h.downed) revive(h, null); hud.banner(`Round ${m.round} survived`, 'Next round in 8 seconds', 'streak'); play('streak', null, { important: true }); }
     }
     m.remaining = m.toSpawn + alive;
     // box roll
@@ -338,6 +413,7 @@ const zombies = {
       }
     }
     stationPrompt(P);
+    reviveTick(1 / 60);
   },
   score() {
     const m = G.match, fx = [G.now < m.insta ? 'Insta-kill' : '', G.now < m.doubleUntil ? 'Double points' : ''].filter(Boolean).join(' · ');
