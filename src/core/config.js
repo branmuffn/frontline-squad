@@ -28,6 +28,7 @@ export const PENETRATION = {
   light: { max: 1, wood: 0.5, wall: 0, walls: 0, woodMul: 0.6, wallMul: 1 },              // pistols, SMGs: thin wood only
   rifle: { max: 2, wood: 0.6, wall: 0.35, walls: 1, woodMul: 0.7, wallMul: 0.5 },         // rifles: thin wood + one thin wall
   heavy: { max: 3, wood: 1.2, wall: 0.8, walls: 3, woodMul: 0.85, wallMul: 0.65 },        // .50 cal: most cover
+  rail: { max: 8, wood: 9, wall: 9, walls: 8, woodMul: 0.95, wallMul: 0.9 },             // rail gun: through almost anything
 };
 export const WEAPONS = {
   m4: {
@@ -118,6 +119,54 @@ export const WEAPONS = {
     desc: 'Semi-auto shotgun. Less punch per shell than the {m870}, far faster follow-ups.',
     stats: { damage: 0.75, rate: 0.5, accuracy: 0.25, range: 0.18, mobility: 0.6 },
   },
+  scarh: {
+    id: 'scarh', slot: 0, name: 'SCAR-H', cls: 'Battle rifle', auto: true, rate: 0.11, mag: 20, reserve: 120,
+    damage: 40, headMul: 2.0, legMul: 0.8, falloff: [40, 160, 0.65], pellets: 1, range: 160, pen: 'rifle',
+    spread: { hip: 0.036, ads: 0.004, move: 0.026, air: 0.06, bloom: 0.007, bloomMax: 0.036, recover: 0.08 },
+    recoil: { v: 0.019, h: 0.0065, drift: 0.0014, recover: 6 },
+    reload: 2.3, reloadEmpty: 2.8, draw: 0.62, speed: 0.94, adsZoom: 0.76, adsTime: 0.19,
+    sound: 'ak', noise: 42, tracer: 1, sight: 'dot',
+    desc: 'Heavy 7.62 rifle: three hits to the body, but every shot kicks.',
+    stats: { damage: 0.76, rate: 0.55, accuracy: 0.66, range: 0.78, mobility: 0.52 },
+  },
+  vector: {
+    id: 'vector', slot: 0, name: 'VECTOR', cls: 'Submachine gun', auto: true, rate: 0.05, mag: 25, reserve: 150,
+    damage: 19, headMul: 1.9, legMul: 0.85, falloff: [15, 55, 0.45], pellets: 1, range: 55, pen: 'light',
+    spread: { hip: 0.02, ads: 0.006, move: 0.01, air: 0.045, bloom: 0.0035, bloomMax: 0.026, recover: 0.12 },
+    recoil: { v: 0.0062, h: 0.0042, drift: -0.0004, recover: 10 },
+    reload: 1.9, reloadEmpty: 2.3, draw: 0.4, speed: 1.06, adsZoom: 0.82, adsTime: 0.13,
+    sound: 'smg', noise: 30, tracer: 1, sight: 'dot',
+    desc: 'Blistering fire rate, tiny recoil, short range. Melts at close quarters.',
+    stats: { damage: 0.34, rate: 0.98, accuracy: 0.68, range: 0.32, mobility: 0.86 },
+  },
+  crossbow: {
+    id: 'crossbow', slot: 0, name: 'CROSSBOW', cls: 'Crossbow', auto: false, bolt: true, rate: 0.6, mag: 1, reserve: 14,
+    damage: 105, headMul: 1.6, legMul: 0.8, falloff: [120, 120, 1], pellets: 1, range: 160, pen: 'none', velocity: 95,
+    spread: { hip: 0.03, ads: 0.0, move: 0.03, air: 0.08, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.012, h: 0.003, drift: 0, recover: 6 },
+    reload: 1.7, reloadEmpty: 1.7, draw: 0.6, speed: 0.98, adsZoom: 0.7, adsTime: 0.2,
+    sound: 'bow', noise: 6, tracer: 1, sight: 'dot', silent: true,
+    desc: 'Near-silent bolts that drop over distance and kill in one body hit. Lead your target.',
+    stats: { damage: 0.92, rate: 0.12, accuracy: 0.85, range: 0.6, mobility: 0.7 },
+  },
+  gl: {
+    id: 'gl', slot: 0, name: 'GRENADE LAUNCHER', cls: 'Power weapon', auto: false, projectile: true, lob: true, rate: 0.75, mag: 6, reserve: 6,
+    damage: 120, headMul: 1, legMul: 1, falloff: [999, 1000, 1], pellets: 1, range: 120,
+    spread: { hip: 0.02, ads: 0.006, move: 0.02, air: 0.04, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.035, h: 0.008, drift: 0, recover: 5 },
+    reload: 3.2, reloadEmpty: 3.2, draw: 0.7, speed: 0.92, adsZoom: 0.85, adsTime: 0.2, heavy: true, power: true,
+    sound: 'gl', noise: 40, tracer: 0, sight: 'iron',
+    desc: 'Power weapon: lobs grenades that burst on impact. Arc them over cover.',
+  },
+  rail: {
+    id: 'rail', slot: 0, name: 'RAIL GUN', cls: 'Power weapon', auto: false, bolt: true, rate: 1.4, mag: 4, reserve: 4,
+    damage: 160, headMul: 1.5, legMul: 1, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'rail',
+    spread: { hip: 0.02, ads: 0.0, move: 0.02, air: 0.05, bloom: 0, bloomMax: 0, recover: 1 },
+    recoil: { v: 0.05, h: 0.01, drift: 0, recover: 5 },
+    reload: 3.0, reloadEmpty: 3.0, draw: 0.7, speed: 0.92, adsZoom: 0.6, adsTime: 0.22, heavy: true, power: true,
+    sound: 'rail', noise: 60, tracer: 1, railBeam: true, sight: 'dot',
+    desc: 'Power weapon: a hitscan slug through walls and everyone in a line.',
+  },
   barrett: {
     id: 'barrett', slot: 0, name: 'BARRETT .50', cls: 'Anti-materiel rifle', auto: false, rate: 0.55, mag: 10, reserve: 30,
     damage: 110, headMul: 2.0, legMul: 0.8, falloff: [300, 300, 1], pellets: 1, range: 300, pen: 'heavy', velocity: 760,
@@ -134,8 +183,8 @@ export const WEAPONS = {
     spread: { hip: 0.02, ads: 0.004, move: 0.02, air: 0.04, bloom: 0, bloomMax: 0, recover: 1 },
     recoil: { v: 0.03, h: 0.01, drift: 0, recover: 5 },
     reload: 2.6, reloadEmpty: 2.6, draw: 0.8, speed: 0.9, adsZoom: 0.8, adsTime: 0.22, heavy: true,
-    sound: 'rpg', noise: 50, tracer: 0, sandboxOnly: true,
-    desc: 'Unguided rocket. Sandbox only.',
+    sound: 'rpg', noise: 50, tracer: 0, sandboxOnly: true, power: true,
+    desc: 'Power weapon: unguided rocket. Also in Sandbox.',
     stats: { damage: 1, rate: 0.05, accuracy: 0.6, range: 0.8, mobility: 0.4 },
   },
   deagle: {
@@ -169,9 +218,30 @@ export function weaponPower(w) {
   const shot = w.damage * (w.pellets || 1);
   return { v: Math.min(1, shot / 110), text: w.pellets > 1 ? `${w.damage}×${w.pellets}` : String(w.damage) };
 }
-export const PRIMARIES = ['m4', 'ak47', 'mp5', 'm870', 'spas12', 'm249', 'mk14', 'l96', 'barrett'];
+// attachments (3e): picked per gun on the loadout screen (up to 2). Applied to the carrier's copy of the gun's stats.
+export const ATTACH = {
+  optic: { name: 'Red dot', desc: 'Tighter aim and a little more zoom when aiming.', no: (w) => !!w.scope },
+  suppressor: { name: 'Suppressor', desc: 'Much quieter: bots hear you from far less away, no radar blip. Slightly less range.', no: (w) => !!w.silent },
+  extmag: { name: 'Extended mag', desc: '+50% magazine, slightly slower reloads.', no: (w) => w.mag <= 1 },
+  grip: { name: 'Grip', desc: '25% less recoil, a touch slower to aim.', no: (w) => w.cls === 'Pistol' },
+};
+export const ATTACH_OK = (id) => { const w = WEAPONS[id]; return !!w && !w.melee && !w.power && !w.projectile && id !== 'rpg'; };
+export function withAttachments(id, list) {
+  const w = WEAPONS[id]; if (!list || !list.length || !ATTACH_OK(id)) return w;
+  const o = { ...w, spread: { ...w.spread }, recoil: { ...w.recoil }, falloff: [...w.falloff], att: list.slice() };
+  for (const a of list) {
+    if (!ATTACH[a] || ATTACH[a].no(w)) continue;
+    if (a === 'optic') { o.spread.ads *= 0.75; o.adsZoom *= 0.9; o.sight = 'dot'; }
+    if (a === 'suppressor') { o.noise *= 0.3; o.suppressed = true; o.falloff[0] *= 0.88; o.falloff[1] *= 0.92; }
+    if (a === 'extmag') { o.mag = Math.round(w.mag * 1.5); o.reload *= 1.12; o.reloadEmpty *= 1.12; }
+    if (a === 'grip') { o.recoil.v *= 0.75; o.recoil.h *= 0.75; o.adsTime *= 1.08; }
+  }
+  return o;
+}
+export const PRIMARIES = ['m4', 'ak47', 'scarh', 'mp5', 'vector', 'm870', 'spas12', 'm249', 'mk14', 'l96', 'barrett', 'crossbow'];
+export const POWER = ['rpg', 'gl', 'rail'];
 export const SECONDARIES = ['usp', 'deagle'];
-export const ALL_PRIMARIES = [...PRIMARIES, 'rpg'];
+export const ALL_PRIMARIES = [...PRIMARIES, 'rpg', 'gl', 'rail'];
 export const ALL_GUNS = [...PRIMARIES, ...SECONDARIES];
 
 // Weapon slot rules (A6). Bots follow the same rule as the player.
@@ -197,7 +267,7 @@ export const magZoom = (fov, mag) => (2 * Math.atan(Math.tan(fov * Math.PI / 360
 // Weapon names (A7): real names by default, original fictional names when the setting says so.
 // WEAPONS[id].name and .desc are getters, so every menu, HUD line and killfeed entry follows the setting.
 const FICTIONAL = {
-  m4: 'AR-4 CARBINE', ak47: 'KR-47', mp5: 'SP-5', m870: 'FIELD PUMP 12', spas12: 'RIOT-12', m249: 'RHINO LMG',
+  scarh: 'BR-17 HAMMER', vector: 'VORTEX SMG', crossbow: 'QUIET BOW', gl: 'THUMPER', rail: 'LANCE RAIL', m4: 'AR-4 CARBINE', ak47: 'KR-47', mp5: 'SP-5', m870: 'FIELD PUMP 12', spas12: 'RIOT-12', m249: 'RHINO LMG',
   m2: 'MOUNTED .50', mk14: 'WARDEN DMR', l96: 'LONGBOW .338', barrett: 'THUNDER .50', rpg: 'ROCKET-7', deagle: 'HAND CANNON', usp: 'GUARDIAN .45', knife: 'KNIFE',
 };
 let nameStyle = 'real';
