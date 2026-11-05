@@ -635,7 +635,7 @@ function assignCrews() {
   }
 }
 function pickRoute(v) {
-  const routes = (G.world.def.vehicleRoutes || []).filter((r) => r.type === v.type);
+  const routes = (G.world.def.vehicleRoutes || []).filter((r) => r.type === (v.spec.fly ? 'heli' : 'jeep')); // ATVs use jeep routes, Kestrels heli loops
   let best = null, bd = Infinity;
   for (const r of routes) for (const p of r.pts) { const d = Math.hypot(p[0] - v.x, p[1] - v.z); if (d < bd) { bd = d; best = r; } }
   return best;

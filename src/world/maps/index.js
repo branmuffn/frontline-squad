@@ -10,9 +10,10 @@ import gorge from './cascadegorge.js';
 import range from './firingrange.js';
 import atomicnight from './atomicnight.js';
 import harbour from './harbour.js';
+import radar from './radarbase.js';
 
-export const MAPS = { yard, outpost, atomic, atomicnight, harbour, gorge, range };
-export const MAP_LIST = [yard, outpost, atomic, atomicnight, harbour, gorge];
+export const MAPS = { yard, outpost, atomic, atomicnight, harbour, gorge, radar, range };
+export const MAP_LIST = [yard, outpost, atomic, atomicnight, harbour, gorge, radar];
 
 function disposeGroup(g) {
   g.traverse((o) => {

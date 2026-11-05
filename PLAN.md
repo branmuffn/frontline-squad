@@ -129,7 +129,9 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] End screen: K/D/A board in every mode (team tables in team modes and Infection, people in co-op, everyone otherwise). tests/endboard.mjs.
 - [x] 3f-1 map: Atomic Acres · Night (moonlight, 6 street lamps with 4 light pools + glow sprites, darker fog and exposure (def.exposure), crickets). def.after(group) hook in loadMap. tests/mapshot.mjs, walls.
 - [x] 3f-2 vehicles: ATV (one rider, 260 HP, ~50 km/h, no gun; drive() now uses each vehicle's spec for size/handling) and Kestrel (one-seat attack flyer, faster than the helicopter, nose guns, no tail rotor); vehicle code keys off spec.fly / spec.tail instead of type; Gorge gets 2 ATVs and 2 Kestrels. tests/veh3f.mjs. (Note: tests/vehicles.mjs crashes SwiftShader in this container before and after this change.)
-- [ ] 3f remaining: harbour map, snowbound radar base map, batched drawing, bot pathfinding in a worker, map editor.
+- [x] 3f-3 Harbour (container stacks with stairs, two gantry cranes, warehouses, a moored ship with a gangway; team A west / B east).
+- [x] 3f-4 Snowbound Radar Base (large 128 x 100: dome + mast on a raised plateau with 4 ramps, two fenced compounds with huts, fuel tanks, containers, motor pools; snow drifts; vehicles: 2 jeeps, 2 ATVs, a helicopter, a Kestrel + routes; objectives at the drifts and the plateau). Snow materials. ATVs/Kestrels now follow jeep/heli bot routes. tests/mapsmoke.mjs, walls, spawnsep.
+- [ ] 3f remaining: batched drawing, bot pathfinding in a worker, map editor.
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
 ## Next: roadmap
