@@ -32,7 +32,7 @@ export function stopPreview() { live = false; }
 function frame(t) {
   if (!live || !cvs.isConnected || !cvs.offsetParent) { live = false; return; }
   const w = cvs.parentNode.clientWidth, h = cvs.parentNode.clientHeight;
-  if (w > 10 && h > 10 && (cvs.width !== Math.round(w * R.getPixelRatio()) || cvs.height !== Math.round(h * R.getPixelRatio()))) { R.setSize(w, h, false); cvs.style.width = w + 'px'; cvs.style.height = h + 'px'; cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  if (w > 10 && h > 10 && (cvs.width !== Math.round(w * R.getPixelRatio()) || cvs.height !== Math.round(h * R.getPixelRatio()))) { R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } // canvas is absolutely positioned (CSS): resizing it can never grow the page
   cam.position.set(0, 1.15, 4.9); cam.lookAt(0, 0.92, 0);
   ghost.yaw = Math.PI + 0.5 + Math.sin((t - t0) * 0.00045) * 0.9;
   poseSoldier(sol, ghost, 1 / 60);

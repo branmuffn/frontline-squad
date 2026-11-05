@@ -539,3 +539,4 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .dmgnum.head { color: #ffd36a; font-size: 24px; } .dmgnum.go { animation: dmgup 0.9s ease-out forwards; }
 @keyframes dmgup { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -46px); } }
 .mp-spec { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 14px; color: var(--ink-dim); white-space: nowrap; } .spec-tag { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); font-weight: 700; text-shadow: 0 1px 3px #000; pointer-events: none; } body:not(.spectating) .spec-tag { display: none; }
+.lo-preview { position: relative; overflow: hidden; } .lo-preview canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
