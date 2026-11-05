@@ -72,6 +72,7 @@ function readSettings() {
 function updateStart() {
   const ok = net.canStart(), wait = net.session.host ? net.notReady() : [];
   $('mpStart').disabled = !ok;
+  $('mpWarm').classList.toggle('hidden', !net.session.host); $('mpWarm').disabled = !net.session.host || !net.session.remotes.some((r) => r.hello);
   $('mpStart').textContent = wait.length ? `Waiting: ${wait.length} not ready` : 'Start match';
   $('mpReady').classList.toggle('on', !!net.session.ready); $('mpReady').textContent = net.session.ready ? 'Ready ✓' : 'Ready';
 }
@@ -157,6 +158,7 @@ export function initLobby(cb) {
       status('Reply copied. Send it to the host; you connect as soon as they paste it.', 'ok');
     } catch (e) { status(e.message, 'warn'); setState('choose'); }
   });
+  $('mpWarm').addEventListener('click', () => { if (!net.hostWarmup()) status('Warm-up starts once a friend has joined.', 'warn'); });
   $('mpStart').addEventListener('click', () => { if (!net.hostStart()) status(net.notReady().length ? 'Waiting for everyone to press Ready.' : 'Wait for a player to join first.', 'warn'); });
   $('mpBack').addEventListener('click', () => {
     if (panel().dataset.state === 'choose') { show('menu'); return; }

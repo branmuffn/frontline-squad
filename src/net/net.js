@@ -257,9 +257,17 @@ function lateJoin(r) {
   sendSuccession();
   const msg = `${r.name} ${back ? 'rejoined (score kept)' : 'joined the match'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }, r);
 }
+// warm-up: free-for-all on the lobby's map while people gather (no score, no XP, no ready needed); late joiners drop
+// straight in. The host ends it from the pause menu, which starts the real match once everyone is ready.
+export function hostWarmup() {
+  if (!S.host || S.live || !joined().length) return false;
+  return launch({ ...S.cfg, mode: 'ffa', count: 0, vehicles: false, warmup: true, limits: { ffa: { score: 0, time: 0 } }, streakKills: { ...((G.profile.streaks || {}).kills || {}) } });
+}
 export function hostStart() {
   if (!canStart()) return false;
-  const cfg = { ...S.cfg, streakKills: { ...((G.profile.streaks || {}).kills || {}) } }; // the host's killstreak kill counts apply to everyone
+  return launch({ ...S.cfg, streakKills: { ...((G.profile.streaks || {}).kills || {}) } }); // the host's killstreak kill counts apply to everyone
+}
+function launch(cfg) {
   dealTeams(cfg.mode);
   S.liveCfg = cfg; S.dropped = {};
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
@@ -302,7 +310,7 @@ export function hostEnded(reason) {
   bcast({ t: 'end', reason, m: matchFields(), fk: f && f.killer && f.victim ? { k: f.killer.id, v: f.victim.id, t: r3(f.at), w: f.weapon, h: f.headshot ? 1 : 0, l: f.label || '' } : null });
   S.live = false;
 }
-export function hostAbort() { if (S.host && S.live) { bcast({ t: 'abort' }); S.live = false; for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); } }
+export function hostAbort(warm) { if (S.host && S.live) { bcast({ t: 'abort', w: warm ? 1 : 0 }); S.live = false; for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); } }
 export function clientQuit() { if (S.client && S.live) { S.link && S.link.send({ t: 'quit' }); S.live = false; clearProxies(); } }
 S.cleanup = () => { for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); clearProxies(); };
 export function afterMatch() { if (S.host) for (const r of S.remotes) if (r.unit) removeRemoteUnit(r); clearProxies(); }
@@ -438,7 +446,7 @@ function clientMsg(m) {
     case 'closed': status('The host closed the room.', 'warn'); if (S.live && S.succ && S.succ.code) { S.link = null; migrate(); return; } if (S.live) { S.live = false; S.cb.abort('The host closed the room.'); } return;
     case 'start': clientStart(m); return;
     case 'succ': S.succ = m; return;
-    case 'abort': if (S.live) { S.live = false; clearProxies(); S.cb.abort('The host ended the match.'); } return;
+    case 'abort': if (S.live) { S.live = false; clearProxies(); S.cb.abort(m.w ? 'Warm-up over: press Ready, the match starts when everyone is ready.' : 'The host ended the match.'); } return;
   }
   if (!S.live) return;
   switch (m.t) {

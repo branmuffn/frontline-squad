@@ -571,3 +571,4 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #xhClone .t { bottom: var(--gap); } #xhClone .b { top: var(--gap); }
 #xhClone b { position: absolute; width: var(--xt, 2px); height: var(--xt, 2px); left: calc(var(--xt, 2px) / -2); top: calc(var(--xt, 2px) / -2); background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
 #xhClone { --gap: 8px; }
+#mp .btn-row { flex-wrap: nowrap; } #mp .btn-row button { padding-left: 16px; padding-right: 16px; }

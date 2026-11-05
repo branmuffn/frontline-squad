@@ -53,6 +53,11 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `walls.mjs [maps] [step]` — B3: every standable spot vs the visual geometry (rocks, skins, roofs, props): your centre must never be inside something that looks solid. All maps must report 0 gaps.
 - `rack.mjs` — B5: range rack (multi-select, carried at once, 1-9 keys, survives respawn, saved, all/clear); /tmp/rack.png.
 - `mp12.mjs [joiners] [big]` — B6: host + 11 (or 15 with big=1) joiners: all join, match runs, bots trimmed, host upload per joiner. Host frame ms isn't measurable headless (fake clock).
+- `xhmvp.mjs` — crosshair editor + share codes, MVP card (/tmp/xh.png, /tmp/mvp.png).
+- `ping.mjs` — pings: enemy / here / danger markers and callouts.
+- `drill.mjs` — range flick + tracking drills, bests.
+- `mpvote.mjs` — ping relay to the team, /votekick, /surrender (host + 2 joiners).
+- `mpwarm.mjs` — warm-up without ready, back to lobby, real match, no XP.
 - `quick.sh` — smoke suite: build, power, regress 6, mp.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

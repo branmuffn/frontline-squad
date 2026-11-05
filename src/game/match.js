@@ -46,6 +46,7 @@ export function startMatch(cfg) {
     time: mode.time || 0, timed: !!mode.time, pickupsOn: cfg.pickups !== false, elapsed: 0, scoreLimit: cfg.mode === 'tdm' ? Math.max(3, cfg.count || 0) * 10 : mode.scoreLimit || 0, hook: HOOKS[cfg.mode] || null,
     teamScores: [0, 0], stats: { shots: 0, hits: 0, headHits: 0, damage: 0 }, killsTotal: 0,
     wave: 0, waveState: 'none', toSpawn: 0, nextSpawnAt: 0, nextWaveAt: 0, lives: mode.lives || 0, points: 0, ended: false,
+    warmup: !!cfg.warmup,
     zdiff: ['easy', 'normal', 'hard', 'nightmare'].includes(cfg.zdiff) ? cfg.zdiff : 'normal',
     rules: cfg.mode === 'sandbox' ? { ...G.profile.lobby.sandbox } : null, loadout: null,
   };
@@ -74,6 +75,7 @@ export function startMatch(cfg) {
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });
   }
   if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
+  if (m.warmup) setTimeout(() => hud.banner('Warm-up', 'Free for all · no score, no XP · the host starts the real match', 'wave'), 2500);
   const remotes = rt.length ? G.mp.makeRemoteUnits(cfg.mode) : [];
   resetPickups(); resetStreaks(); resetGear(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);

@@ -68,7 +68,7 @@ function boot() {
   net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); }, pickSpawn: (u) => pickSpawn(u) });
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
-    onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy,
+    onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy, onEndWarmup: endWarmup,
     onSkin: (k) => net.setSkin(k),
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
@@ -182,6 +182,11 @@ function leaveMpMatch() {
   armoryOpen = false; G.netPaused = false;
   abandonMatch(); exitLock(); input.freeLook = false;
   setScene('menu');
+}
+function endWarmup() {
+  if (!(G.mp && G.mp.host && G.mp.live)) return;
+  net.hostAbort(true); leaveMpMatch(); openMp();
+  setTimeout(() => { if (!net.hostStart()) chat.add('', 'Warm-up over. The match starts when everyone presses Ready.', 'sys'); }, 900);
 }
 function quit() {
   if (G.mp) {

@@ -27,13 +27,14 @@ export function award(key, label, amount = XP[key], quiet = false) {
 }
 
 function medal(k) {
+  if (G.match && G.match.warmup) return; // warm-up counts for nothing
   award(k, MEDALS[k] || k);
   const c = G.profile.career; c.medals = c.medals || {}; c.medals[k] = (c.medals[k] || 0) + 1;
   if (isBigMedal(k)) { hud.banner(MEDALS[k].toUpperCase() + '!', `+${XP[k]} XP`); play('rankup', null, { gain: 0.5 }); }
 }
 export function awardKill(victim, info, victimStreak) {
   const m = G.match, p = G.player;
-  if (m.mode === 'sandbox' || m.mode === 'range') return;
+  if (m.mode === 'sandbox' || m.mode === 'range' || m.warmup) return;
   award('kill', info.weapon === 'sentry' ? 'Sentry kill' : info.weapon === 'mortar' ? 'Mortar kill' : 'Elimination');
   if (info.headshot && !info.explosive) { medal('headshot'); G.profile.career.headshots++; }
   if (info.melee) { award('melee', info.backstab ? 'Backstab' : 'Knife kill'); G.profile.career.knifeKills++; }

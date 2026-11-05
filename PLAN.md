@@ -113,7 +113,14 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
   - Skipped: Sandbox in MP (longer-term: MP Custom), end-of-match replay already in both.
   tests: mpmodes.mjs (gungame medals + bot count, range co-op).
 - [x] B6 rooms: 12 normal, 16 with lobby 'Room size: Up to 16 (experimental)'; interest management (per joiner: units within 30 m or in the ~78 deg view cone (scoped: 60 deg cone, any distance) every snapshot, others every 3rd; keyframes everyone); 20 Hz snapshots + 120 ms interpolation above 8 players; FFA bots capped so humans + bots <= 20; lobby estimate of host upload + warning for big rooms / relayed players. Measured (mp12.mjs): 12 players + 8 bots 0.86 Mbps host upload (~69 kbps per joiner); 16 players + 4 bots 1.16 Mbps. Delta-vs-ack skipped: binary snapshots + interest management already below the plan's target.
-- [ ] C picks: crosshair editor + codes, warm-up deathmatch in lobby, votes (host keeps direct kick; kick/surrender by majority), MVP card, then aim-trainer drills, ping wheel.
+- [x] C picks (Valorant/CS-inspired):
+  - Crosshair editor (Settings → Crosshair → Edit…): length, thickness, gap, centre dot, outline, opens with spread; live preview; share codes FX1-<colour>-<len>-<thick>-<gap+10>-<flags>. tests/xhmvp.mjs.
+  - MVP card on the end screen (most kills, deaths break ties; co-op: TOP PLAYER, people only). tests/xhmvp.mjs.
+  - Votes in chat: /votekick NAME, /surrender (team modes; co-op ends the run), /yes, /no; host counts, majority of eligible, 30 s; host keeps /kick. tests/mpvote.mjs.
+  - Pings (H, rebindable): enemy under the crosshair / here, double-tap = danger; marker through walls 6 s, callout (high ground + compass side + distance) in team chat; MP relayed to the team (everyone in co-op), rate-limited. tests/ping.mjs, mpvote.mjs. (A radial wheel was simplified to tap/double-tap.)
+  - Range aim drills: flick (hit the lit red target) and tracking (damage on movers), 30 s, bests saved; host/SP only. tests/drill.mjs.
+  - Warm-up: lobby 'Warm-up' button = free-for-all on the lobby map, no ready needed, no score/XP/medals; pause menu 'End warm-up · start the match' returns everyone to the lobby and starts the real match when all are ready. tests/mpwarm.mjs.
+  - Main menu fits at 720p (fit.mjs clean except the allowed 1024 settings body).
 - [ ] 3e then 3f (see Rev 3 list above).
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
