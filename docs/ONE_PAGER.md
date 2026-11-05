@@ -41,7 +41,7 @@ A browser FPS delivered as one self-contained HTML file (~1.2 MB): three.js r128
 **Done (3d, multiplayer netcode):** binary 30 Hz traffic (~64% less snapshot data), join a running match, rejoin keeps your score, spectator mode, multiplayer Gun Game / Capture the Flag / Infection, host migration (room-code games).
 **Left in Rev 3:** 3e Domination, Search & Destroy, King of the Hill; SCAR-H, Vector, crossbow, power weapons (rocket launcher, grenade launcher, rail gun), attachments · 3f batched drawing, bots' pathfinding in a worker, snowbound radar base, harbour, night Atomic Acres, Kestrel flyer, ATV, map editor.
 
-## Rev 4 status (milestone: B0–B6 done)
+## Rev 4 status (milestone: B0–B6 + C done)
 - **B0 performance & quality:** presets Battery saver / Balanced (default) / Max / Custom, 60 fps default (raise to 120/144/Display), low-power menus (30 fps), sharpness, shadows, effects settings, perf readout, battery prompt, persistent storage + backup reminder.
 - **B1 Zombies:** fair early rounds (slower than your sprint until ~round 14, softer claws with hit grace, smaller swarms), Easy/Normal/Hard/Nightmare, co-op revives (hold E).
 - **B2 kill cam:** the victim stays up until the killing round lands, then falls.
@@ -49,7 +49,8 @@ A browser FPS delivered as one self-contained HTML file (~1.2 MB): three.js r128
 - **B5 range rack:** carry any number of guns in the practice range.
 - **B4 multiplayer parity:** bot counts in Gun Game/CTF/Infection, full medals for joiners, co-op practice range.
 - **B6 bigger rooms:** 12 players (16 experimental), interest management, 20 Hz above 8 players; measured 0.86 Mbps host upload at 12 players.
-- **Next:** crosshair editor, warm-up deathmatch, votes, MVP card, aim drills, ping wheel; then 3e and 3f. Out of scope by choice: anything with money/buying, voice chat. Later: accounts.
+- **C (Valorant/CS-inspired):** crosshair editor + share codes, pings (H), chat votes (/votekick, /surrender), MVP card, range aim drills (flick, tracking), lobby warm-up.
+- **Next:** 3e (Domination, S&D, King of the Hill; SCAR-H, Vector, crossbow; power weapons; attachments), then 3f. Out of scope by choice: anything with money/buying, voice chat. Later: accounts.
 
 ## Roadmap: suggested improvements
 **Multiplayer and netcode**
