@@ -43,17 +43,18 @@ function cliffRoutes(b, sx) {
     const rp = b.ramp(s.minX, s.maxX, s.minZ, s.maxZ, 'x', s.from, s.to, 'rockDark'); rp.slide = true; rp.brake = s.brake;
     b.geom(screeSkin(s, s.brake ? 0.14 : 0.42), s.brake ? 'gravel' : 'rock', 0, 0, 0); // loose scree / steep rock bulge
   }
-  b.geom(cliffSkin(sx), 'rock', 0, 0, 0);
+  b.geom(cliffSkin(sx), 'rock', 0, 0, 0); skinCols(b, sx);
   // rock spurs along the chute edges hide the wedge sides and read as natural ridges between the gullies
   for (const r of [13, 17, 24, 28.5]) {
     const z = zOf(sx, r), len = Math.hypot(8, H), ang = Math.atan2(H, 8);
     b.geom(lumpy(new THREE.IcosahedronGeometry(1, 2), 0.25, r), 'rockDark', wallX(sx, 3.6), H / 2 - 0.1, z, 0, 0, sx * ang, len * 0.56, 1.0, 0.9);
+    b.colFit(b.lastTris, 'rock', 7, 3, { hull: true, floor: 0 }); // spurs are solid (B3)
   }
   // natural rock shelves jutting from the cliff, staggered: drop from one onto the next (1.6 m each, no fall damage)
   for (let k = 0; k < 5; k++) {
     const top = H - (k + 1) * 1.6, out = 1.05 + (k % 2) * 0.25, r = -5.2 - k * 2.5, [z0, z1] = rr(r, r - 2.3), cx = (wallX(sx, 0) + wallX(sx, out)) / 2, cz = (z0 + z1) / 2;
     if (top > 0.2) b.col(cx, top - 0.45, cz, out, 0.45, z1 - z0, 'rock');
-    b.geom(lumpy(new THREE.IcosahedronGeometry(1, 2), 0.22, k), k % 2 ? 'rock' : 'rockDark', wallX(sx, out * 0.3), top - 0.62, cz, 0, k, 0, out * 0.85, 0.66, (z1 - z0) * 0.56); // half sunk into the cliff
+    b.geom(lumpy(new THREE.IcosahedronGeometry(1, 2), 0.22, k), k % 2 ? 'rock' : 'rockDark', wallX(sx, out * 0.3), top - 0.62, cz, 0, k, 0, out * 0.85, 0.66, (z1 - z0) * 0.5); // half sunk into the cliff
   }
   // berms with bushes on the canyon floor below the ledges: lie down behind them to hide
   for (const [d0, d1, ra, rb, h] of [[4.2, 6.2, -7, -26, 0.75], [7.2, 9.2, -13, -25, 0.6]]) {
@@ -125,12 +126,27 @@ function ridge(b, x, z, w, d, h, y0 = 0) {
 const nz = (a, c, s) => 0.5 + 0.25 * Math.sin(a * 0.9 + Math.sin(c * 0.7 + s) * 1.3) + 0.15 * Math.sin(a * 2.3 + c * 1.7 + s) + 0.1 * Math.sin(c * 3.1 - a * 0.6 - s);
 function lumpy(g, amt, seed) { const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), k = 1 + amt * (nz(x * 3 + z, y * 3, seed) - 0.5) * 2; P.setXYZ(i, x * k, y * k, z * k); } g.computeVertexNormals(); return g; }
 // cliff face skin: the flat collision wall stays, a bulging rock surface (0-0.45 m) sits in front so the walls meander
+// how far the rock skin stands out from the flat cliff wall at (z, y)
+function skinOut(sx, z, y) {
+  const r = -sx * z, nearStairs = r > 2.5 && r < 13 ? 0.25 : 1, edge = Math.min(1, Math.max(0, (H - y) / 0.6)) * Math.min(1, y / 0.4 + 0.3);
+  const bulge = 0.5 * nz(z * 0.55, y * 0.5, sx) + 0.35 * (0.5 + 0.5 * Math.sin(z * 0.23 + sx * 2 + Math.sin(y * 0.3)));
+  return 0.03 + bulge * nearStairs * edge;
+}
+// collision that follows the skin: 1 m x 1 m cells reaching out to the skin's furthest point minus a body radius,
+// so your centre can never end up inside the rock (B3); bullets keep hitting the flat wall behind (noRay)
+function skinCols(b, sx) {
+  for (let z = -29.5; z < 29.5; z += 1) for (let y = 0; y < H; y += 1) {
+    let m = 0; for (let a = 0; a <= 4; a++) for (let c = 0; c <= 4; c++) m = Math.max(m, skinOut(sx, z + a / 4, Math.min(H, y + c / 4)));
+    const d = m - 0.22; if (d < 0.06) continue;
+    if (SLIDES.some((s) => Math.sign(s.minX + s.maxX) === sx && z + 1 > s.minZ && z < s.maxZ)) continue; // chutes run down the wall here
+    b.colliders.push({ minX: sx > 0 ? 20 - d : -20, maxX: sx > 0 ? 20 : -20 + d, minY: y, maxY: Math.min(H, y + 1), minZ: z, maxZ: z + 1, mat: 'rock', pass: false, noRay: true });
+  }
+}
 function cliffSkin(sx) {
   const g = new THREE.PlaneGeometry(59, H + 0.4, 72, 12), P = g.attributes.position;
   for (let i = 0; i < P.count; i++) {
-    const z = P.getX(i), y = P.getY(i) + (H + 0.4) / 2 - 0.2, r = -sx * z, nearStairs = r > 2.5 && r < 13 ? 0.25 : 1, edge = Math.min(1, Math.max(0, (H - y) / 0.6)) * Math.min(1, y / 0.4 + 0.3);
-    const bulge = 0.5 * nz(z * 0.55, y * 0.5, sx) + 0.35 * (0.5 + 0.5 * Math.sin(z * 0.23 + sx * 2 + Math.sin(y * 0.3)));
-    P.setXYZ(i, sx * 20 - sx * (0.03 + bulge * nearStairs * edge), y, z);
+    const z = P.getX(i), y = P.getY(i) + (H + 0.4) / 2 - 0.2;
+    P.setXYZ(i, sx * 20 - sx * skinOut(sx, z, y), y, z);
   }
   if (sx > 0) { const I = g.index.array; for (let i = 0; i < I.length; i += 3) { const t = I[i]; I[i] = I[i + 2]; I[i + 2] = t; } } // face into the canyon
   g.computeVertexNormals(); return g;

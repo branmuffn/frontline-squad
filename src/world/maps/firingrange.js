@@ -28,6 +28,6 @@ export default {
     for (const x of [-8, 0, 8]) b.deco(x, 0.01, -20, 0.08, 0.02, 52, 'paintWhite'); // lane lines
     for (const d of [10, 25, 50, 75, 100]) for (const x of [-18.5, 18.5]) { b.deco(x, 0, 8 - d, 0.18, 2.4, 0.18, POLE[d]); b.deco(x, 2.2, 8 - d, 0.5, 0.25, 0.5, POLE[d]); }
     b.solid(-2, 0, 8 - 35 - 1.2, 25, 0.35, 0.3, 'steel'); b.solid(-2, 0, 8 - 18 - 1.2, 25, 0.35, 0.3, 'steel'); // mover tracks (low rails)
-    crate(b, -16, 12, 1.2, 1.0); sandbags(b, 15, 3, 0); lampPost(b, -17, 13); lampPost(b, 17, 13);
+    crate(b, -16, 12, 1.2, 1.0); sandbags(b, 15, 3, 4); lampPost(b, -17, 13); lampPost(b, 17, 13);
   },
 };

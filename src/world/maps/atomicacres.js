@@ -48,8 +48,8 @@ function house(b, s, siding) {
   wallS(8, 3.25, 2.75, [win(1, 3, 0.75, 1.95)]);
   // roof
   box(-6.5, 8.5, -0.5, 9.5, 6.0, 0.25, 'roofRed');
-  box(-6.3, 8.3, 1.2, 7.8, 6.25, 0.8, 'roofRed', false);
-  box(-6.1, 8.1, 2.8, 6.2, 7.05, 0.7, 'roofRed', false);
+  box(-6.3, 8.3, 1.2, 7.8, 6.25, 0.8, 'roofRed');
+  box(-6.1, 8.1, 2.8, 6.2, 7.05, 0.7, 'roofRed');
   box(-1.4, 3.4, -1.6, -0.15, 2.6, 0.15, 'roofRed', false); // porch roof
   box(-1.0, -0.8, -1.5, -1.3, 0, 2.6, 'paintWhite', false); box(2.8, 3.0, -1.5, -1.3, 0, 2.6, 'paintWhite', false);
   // furniture

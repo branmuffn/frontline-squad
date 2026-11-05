@@ -272,7 +272,7 @@ export class MapBuilder {
     this.col(x, y0, z, w, h, d, o.mat || impactMat(matKey), o);
     return this;
   }
-  deco(x, y0, z, w, h, d, matKey, o = {}) { this._box(x, y0, z, w, h, d, matKey, o.rot || 0); return this; }
+  deco(x, y0, z, w, h, d, matKey, o = {}) { this._box(x, y0, z, w, h, d, matKey, o.rot || 0); if (globalThis.__recordVis) (this.vis = this.vis || []).push({ k: matKey, box: [x, y0, z, w, h, d, o.rot || 0] }); return this; }
   col(x, y0, z, w, h, d, mat = 'concrete', o = {}) {
     if (o.rot && Math.abs(Math.sin(o.rot * 2)) > 0.02) { // rotated box: several tight AABBs instead of one inflated one
       const g = new THREE.BoxGeometry(w, h, d), m = new THREE.Matrix4().makeRotationY(o.rot).setPosition(x, y0 + h / 2, z);
@@ -288,6 +288,7 @@ export class MapBuilder {
     const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
     const g = geometry.index ? geometry : geometry; const nm = new THREE.Matrix3().getNormalMatrix(m);
     this.lastTris = geomTris(g, m);
+    if (globalThis.__recordVis) (this.vis = this.vis || []).push({ k: matKey, tris: this.lastTris }); // tests: visual-vs-collider audit
     const b = this.batch(matKey), base = b.pos.length / 3;
     const p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
     const v = new THREE.Vector3();

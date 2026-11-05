@@ -65,7 +65,7 @@ export function loadMap(id) {
   G.mapGroup = group;
   G.world = {
     id: def.id, def, colliders: b.colliders, ramps: b.ramps, bounds: def.bounds, groundMat: def.groundMat,
-    nav: null, sun, spawns: def.spawns, pickups: def.pickups,
+    nav: null, sun, vis: b.vis || null, spawns: def.spawns, pickups: def.pickups,
     barrelCols, water: def.water || null, surfaces: def.surfaces || null, ladders: def.ladders || [],
   };
   setupDoors(b.doors, group);
