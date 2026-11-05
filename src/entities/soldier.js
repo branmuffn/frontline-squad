@@ -337,6 +337,7 @@ export function animateSoldier(s, u, dt) {
 
 const FAR2 = 30 * 30;
 // alive pose from a unit-like state {x,y,z,yaw,aimPitch,crouchT,moveSpeed,walkPhase} (also used by the kill cam)
+export function swipe(s) { s.swipeArm = !s.swipeArm; s.swipeAt = s.t; }
 export function poseSoldier(s, u, dt) {
   const r = s.root;
   r.position.set(u.x, u.y, u.z);
@@ -372,6 +373,13 @@ function arms(s, speed) {
     for (let i = 0; i < 2; i++) {
       const A = s.arms[i], sd = i ? 1 : -1, w = Math.sin(s.t * 2.2 + i * 1.7);
       A.sh.rotation.set(1.25 + w * 0.18, 0, sd * (0.12 + w * 0.05)); A.el.rotation.set(0.35 + Math.max(0, w) * 0.3, 0, 0);
+    }
+    // claw swipe: one arm rears up high, then slashes down and across (0.45 s)
+    const p = s.swipeAt != null ? (s.t - s.swipeAt) / 0.45 : 2;
+    if (p >= 0 && p < 1) {
+      const i = s.swipeArm ? 1 : 0, A = s.arms[i], sd = i ? 1 : -1, up = p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65;
+      A.sh.rotation.set(1.25 + up * 1.5 - (p > 0.35 ? (p - 0.35) * 1.2 : 0), 0, sd * (0.15 - (p > 0.35 ? (p - 0.35) * 1.4 : 0)));
+      A.el.rotation.set(0.2 + up * 0.5, 0, 0);
     }
     return;
   }

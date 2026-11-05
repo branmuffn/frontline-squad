@@ -10,7 +10,7 @@ import { makeUnit, damage, applyFall, isEnemy, noise, ladderBlocked, ladderBusy 
 import { drops, dropWeapon, removeDrop } from './worldprops.js';
 import { botUseStreaks } from './streaks.js';
 import { smokeBlocks } from './gear.js';
-import { makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun, restyleSoldier } from './soldier.js';
+import { swipe, makeSoldier, animateSoldier, setFlash, disposeSoldier, setSoldierGun, restyleSoldier } from './soldier.js';
 import { grenades, throwGrenade } from './grenades.js';
 import { pickups } from './pickups.js';
 import { damageBarrel } from './worldprops.js';
@@ -500,7 +500,7 @@ export function updateBots(dt) {
         else if (Math.hypot(t.x - u.x, t.z - u.z) < 1.9 && Math.abs(t.y - u.y) < 1.3 && G.now >= b.nextShot) {
           // zombie claws: own damage (difficulty + round), slower swing, short grace after each hit so a swarm can't
           // delete you in one frame
-          b.nextShot = G.now + (u.clawDmg ? 0.9 : 0.75);
+          b.nextShot = G.now + (u.clawDmg ? 0.9 : 0.75); u.lastSwipe = G.now; if (u.soldier && b.T.claws) swipe(u.soldier);
           play('knife', { x: u.x, y: u.y + 1.4, z: u.z }, { gain: 0.8 });
           if (u.clawDmg && G.now < (t.clawGrace || 0)) { /* grace */ } else { if (u.clawDmg) t.clawGrace = G.now + 0.6;
           damage(t, u.clawDmg || WEAPONS.knife.damage * cfg.dmgMul * b.T.dmg, u, { weapon: b.T.claws ? 'claws' : 'knife', melee: true, sx: u.x, sz: u.z, dist: 1.5 }); }

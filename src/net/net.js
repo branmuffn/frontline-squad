@@ -5,7 +5,7 @@
 import { G } from '../core/state.js';
 import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook, OPERATORS, operatorLook } from '../core/config.js';
 import { makeUnit, isEnemy, noise, damage } from '../entities/units.js';
-import { restyleSoldier, makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
+import { swipe, restyleSoldier, makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
 import { spawnPlayer, onPlayerDeath, refillAmmo, pickupAmmo, takeWeapon, pickupSlot } from '../entities/player.js';
 import { throwGrenade } from '../entities/grenades.js';
 import { fireRocket } from '../entities/projectiles.js';
@@ -624,7 +624,7 @@ function sendSnap() {
   for (const u of G.units) {
     const pitch = u.isPlayer ? u.pitch : u.aimPitch || 0;
     us.push([u.id, r2(u.x), r2(u.y), r2(u.z), r3(u.yaw), r3(pitch), r2(u.crouchT || 0), r2(u.moveSpeed || 0),
-      (u.alive ? 1 : 0) | (u.crouch ? 2 : 0) | (u.prone ? 4 : 0) | (u.grounded ? 8 : 0) | (u.protectUntil > G.now ? 16 : 0) | ((u.isPlayer ? u.adsT > 0.6 : u.adsT > 0.6) ? 32 : 0) | ((u.zoomIdx || 0) > 0 ? 64 : 0),
+      (u.alive ? 1 : 0) | (u.crouch ? 2 : 0) | (u.prone ? 4 : 0) | (u.grounded ? 8 : 0) | (u.protectUntil > G.now ? 16 : 0) | ((u.isPlayer ? u.adsT > 0.6 : u.adsT > 0.6) ? 32 : 0) | ((u.zoomIdx || 0) > 0 ? 64 : 0) | (G.now - (u.lastSwipe || -9) < 0.12 ? 128 : 0),
       Math.max(0, Math.ceil(u.health)), u.kills, u.deaths, WIDS.indexOf(wOf(u)), u.vehicle ? 1 : 0]);
   }
   const w = G.world;
@@ -689,6 +689,7 @@ function onSnap(m) {
     const [id, x, y, z, yaw, p, c, ms, f, hp, k, d, wi] = a;
     if (id === S.uid) { const P = G.player; if (P.alive && f & 1) P.health = hp; P.kills = k; P.deaths = d; continue; }
     const u = S.proxies.get(id); if (!u) continue;
+    if (f & 128 && G.now - (u.lastSwipe || -9) > 0.3) { u.lastSwipe = G.now; if (u.soldier) swipe(u.soldier); } // zombie claw swipe
     u.kills = k; u.deaths = d; u.health = hp; u.protectUntil = f & 16 ? G.now + 0.2 : 0; u.adsT = f & 32 ? 1 : 0; u.zoomIdx = f & 64 ? 1 : 0;
     u.buf.push({ n: m.n, x, y, z, yaw, p, c, ms, f, w: wi });
     if (u.buf.length > 30) u.buf.shift();

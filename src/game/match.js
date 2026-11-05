@@ -138,10 +138,11 @@ export function pickSpawn(u, opts = {}) {
   for (const [x, z, sy] of list) {
     const y = supportHeight(x, z, 0.2, (sy || 0) + 0.5);
     if (blocked(x, z, 0.4, y, 1.8)) continue;
-    let minD = 60, seen = 0, friends = 0;
+    let minD = 60, seen = 0, friends = 0, occ = 0;
     for (const o of G.units) {
       if (!o.alive || o === u) continue;
       const d = Math.hypot(o.x - x, o.z - z);
+      if (d < 1.3) occ++; // someone already stands here (never spawn inside another soldier)
       if (o.team === u.team) { if (d < 16) friends++; continue; }
       minD = Math.min(minD, d);
       if (d < 50 && losClear(o.x, o.y + 1.6, o.z, x, y + 1.2, z)) seen++;
@@ -149,9 +150,18 @@ export function pickSpawn(u, opts = {}) {
     let s = Math.min(minD, 45) + rand(0, 7) - seen * 30 + Math.min(friends, 2) * 4;
     if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && u.brain) { for (const p of G.units) if ((p.isPlayer || p.remote) && p.alive && Math.hypot(p.x - x, p.z - z) < 22) s -= 80; } // wave enemies never spawn on a human
     if (minD < 6) s -= 60;
+    s -= occ * 200;
     if (s > bs) { bs = s; best = { x, y, z }; }
   }
   if (!best) best = { x: list[0][0], y: list[0][2] || 0, z: list[0][1] };
+  // more people than spawn points: step out of the crowd to a free, walkable spot next to it
+  const taken = (x, z) => G.units.some((o) => o !== u && o.alive && Math.hypot(o.x - x, o.z - z) < 1.3);
+  if (taken(best.x, best.z)) {
+    outer: for (const r of [1.4, 2.2, 3.0, 4.0]) for (let k = 0; k < 10; k++) {
+      const a = k / 10 * Math.PI * 2 + r, x = best.x + Math.cos(a) * r, z = best.z + Math.sin(a) * r, y = supportHeight(x, z, 0.2, best.y + 0.6);
+      if (Math.abs(y - best.y) < 0.6 && !blocked(x, z, 0.4, y, 1.8) && !taken(x, z)) { best = { x, y, z }; break outer; }
+    }
+  }
   best.yaw = Math.atan2(best.x, best.z);
   return best;
 }

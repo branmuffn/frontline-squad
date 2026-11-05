@@ -121,6 +121,8 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
   - Range aim drills: flick (hit the lit red target) and tracking (damage on movers), 30 s, bests saved; host/SP only. tests/drill.mjs.
   - Warm-up: lobby 'Warm-up' button = free-for-all on the lobby map, no ready needed, no score/XP/medals; pause menu 'End warm-up · start the match' returns everyone to the lobby and starts the real match when all are ready. tests/mpwarm.mjs.
   - Main menu fits at 720p (fit.mjs clean except the allowed 1024 settings body).
+- [x] Fix: soldiers spawned inside each other at the countdown (team spawns had fewer points than people): occupied spawn points cost -200, and a crowded point steps out to a free walkable spot 1.4-4 m away. tests/spawnsep.mjs (all modes x maps), tests/spawnshot.mjs.
+- [x] Zombies kill cam: orbit view (claws added to ORBIT) and a claw-swipe animation (one arm rears up and slashes; recorded in the footage, mirrored to joiners via snapshot flag 128). tests/kczombie.mjs.
 - [ ] 3e then 3f (see Rev 3 list above).
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
