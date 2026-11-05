@@ -63,6 +63,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `w3e.mjs` — 3e weapons: SCAR-H/Vector/crossbow hit, GL bursts, rail through two people, attachments (mag 45, recoil 0.75), power pickups spawn.
 - `objshot.mjs [mode]` — screenshot of an objective zone.
 - `endboard.mjs` — end-screen board in every mode, Infection timer win goes straight to the end screen.
+- `veh3f.mjs` — ATV ride + Kestrel climb/fly on Gorge (/tmp/veh3f.png). `mapshot.mjs <map>` — map screenshots.
 - `quick.sh` — smoke suite: build, power, regress 6, mp.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).

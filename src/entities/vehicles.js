@@ -27,7 +27,14 @@ const HELI = { hw: 1.12, hd: 2.6, y0: 0.3, y1: 2.35, hp: 680, crew: 0.6, respawn
   name: 'Helicopter', who: ['Fly the helicopter', 'Man the door gun', 'Helicopter full'],
   keys: [['W A S D', 'Fly'], ['Space / C', 'Up / down'], ['Mouse', 'Turn and aim']] };
 Object.assign(JEEP, { seats: SEATS, gunPivot: GUN_PIVOT, name: 'Jeep', who: ['Drive the jeep', 'Man the jeep gun', 'Jeep full'], keys: [['Space', 'Handbrake']] });
-const SPEC = { jeep: JEEP, heli: HELI };
+HELI.fly = true; HELI.tail = true; JEEP.mesh = () => makeJeepMesh(); HELI.mesh = () => makeHeliMesh();
+// ATV (3f): one rider, quick and fragile, no gun; drives like the jeep
+const ATV = { ...JEEP, hw: 0.62, hd: 1.05, y0: 0.25, y1: 1.05, hp: 260, crew: 1.0, maxF: 23, maxR: 7, accel: 13, brake: 26, wheelbase: 1.3, steerMax: 0.62, respawn: 15,
+  mesh: () => makeAtvMesh(), seats: [{ x: 0, y: 0.55, z: 0.2, crouch: 0.45 }], gunPivot: { x: 0, y: 1.2, z: 0 }, name: 'ATV', who: ['Ride the ATV', '', 'ATV full'], keys: [['Space', 'Handbrake']] };
+// Kestrel (3f): a one-seat attack flyer: faster and nimbler than the helicopter, twin nose guns, no tail rotor
+const KESTREL = { ...HELI, hw: 1.5, hd: 2.0, y0: 0.25, y1: 1.45, hp: 420, crew: 0.85, respawn: 25, maxH: 36, accel: 22, climb: 9, yawRate: 2.4, tail: false,
+  mesh: () => makeKestrelMesh(), seats: [{ x: 0, y: 0.62, z: -0.2, crouch: 0.5 }], gunPivot: { x: 0, y: 0.9, z: -1.6 }, name: 'Kestrel', who: ['Fly the Kestrel', '', 'Kestrel full'] };
+const SPEC = { jeep: JEEP, heli: HELI, atv: ATV, kestrel: KESTREL };
 export const vehicles = [];
 
 // ---------- model ----------
@@ -111,8 +118,8 @@ export function resetVehicles() {
 function spawnVehicle(home) {
   const type = home.type || 'jeep', spec = SPEC[type];
   const v = { vid: G.world.def.vehicles.indexOf(home), type, spec, home, x: home.x, y: home.y || 0, z: home.z, yaw: home.yaw || 0, speed: 0, steer: 0, vx: 0, vz: 0, vy: 0, hp: spec.hp, alive: true,
-    seats: [null, null], pitch: 0, roll: 0, heat: 0, overheated: false, fireAt: 0, wheelSpin: 0, rotor: 0, deadAt: 0, lastHitBy: null, m: type === 'heli' ? makeHeliMesh() : makeJeepMesh(), engine: null, gunYaw: type === 'heli' ? -Math.PI / 2 : 0, gunPitch: 0 };
-  v.y = supportHeight(v.x, v.z, type === 'heli' ? 1 : 0.3, v.y + 1);
+    seats: spec.seats.map(() => null), pitch: 0, roll: 0, heat: 0, overheated: false, fireAt: 0, wheelSpin: 0, rotor: 0, deadAt: 0, lastHitBy: null, m: SPEC[type].mesh(), engine: null, gunYaw: SPEC[type].fly ? -Math.PI / 2 : 0, gunPitch: 0 };
+  v.y = supportHeight(v.x, v.z, SPEC[type].fly ? 1 : 0.3, v.y + 1);
   v.dyn = { vehicle: v, x: v.x, z: v.z, yaw: v.yaw, hw: spec.hw, hd: spec.hd, y0: v.y + spec.y0, y1: v.y + spec.y1, mat: 'metal' };
   G.world.dynamic.push(v.dyn);
   vehicles.push(v); syncMesh(v, 0);
@@ -144,7 +151,7 @@ export function exitVehicle(u) {
   const v = u.vehicle; if (!v) return false;
   v.seats[u.seat] = null; u.vehicle = null; u.seat = -1;
   for (const [lx, lz] of [[-2.0, -0.2], [2.0, -0.2], [0, 3.2], [-2.0, 1.2], [2.0, 1.2], [0, -3.3]]) {
-    const [x, z] = world(v, lx, lz), y = Math.max(supportHeight(x, z, 0.3, v.y + 1.2), v.type === 'heli' ? v.y : -1e9);
+    const [x, z] = world(v, lx, lz), y = Math.max(supportHeight(x, z, 0.3, v.y + 1.2), v.spec.fly ? v.y : -1e9);
     if (!blocked(x, z, u.r, y, u.h)) { u.x = x; u.z = z; u.y = y; break; }
   }
   u.crouchT = 0; u.vy = 0; u.grounded = supportHeight(u.x, u.z, 0.3, u.y + 0.1) >= u.y - 0.05;
@@ -224,7 +231,7 @@ const wreckMat = () => wreckM || (wreckM = new THREE.MeshStandardMaterial({ vert
 
 // ---------- driving ----------
 function drive(v, dt, thr, steerIn, handbrake) {
-  const J = JEEP;
+  const J = v.spec, hr0 = Math.min(0.98, J.hw * 0.96), hoff = Math.max(0, J.hd - hr0), wx = J.hw * 0.78, wz = J.hd * 0.65; // jeep or ATV
   // throttle / brake / reverse
   if (thr > 0) v.speed = v.speed < 0 ? Math.min(0, v.speed + J.brake * dt) : Math.min(J.maxF, v.speed + J.accel * dt * (1 - v.speed / (J.maxF * 1.15)));
   else if (thr < 0) v.speed = v.speed > 0 ? Math.max(0, v.speed - J.brake * dt) : Math.max(-J.maxR, v.speed - J.accel * 0.6 * dt);
@@ -239,7 +246,7 @@ function drive(v, dt, thr, steerIn, handbrake) {
   const hullFree = (x, z, yaw) => {
     G.ignoreDyn = v.dyn;
     let ok = true;
-    for (const o of [-1.35, 0, 1.35]) { const cx = x - Math.sin(yaw) * o, cz = z - Math.cos(yaw) * o; if (blocked(cx, cz, 0.98, v.y + 0.15, 1.1)) { ok = false; break; } }
+    for (const o of [-hoff, 0, hoff]) { const cx = x - Math.sin(yaw) * o, cz = z - Math.cos(yaw) * o; if (blocked(cx, cz, hr0, v.y + 0.15, 1.1)) { ok = false; break; } }
     G.ignoreDyn = null; return ok;
   };
   if (hullFree(nx, nz, nyaw)) { v.x = nx; v.z = nz; v.yaw = nyaw; }
@@ -248,8 +255,8 @@ function drive(v, dt, thr, steerIn, handbrake) {
   else { if (Math.abs(v.speed) > 6) { play('impactMetal', { x: v.x, y: v.y + 1, z: v.z }, { gain: 1 }); damageVehicle(v, Math.abs(v.speed) * 3, null); } v.speed *= -0.25; }
   // ground: highest support under the four wheel spots (within a step), falling otherwise
   const sup = (lx, lz) => { const [x, z] = world(v, lx, lz); return supportHeight(x, z, 0.3, v.y + 0.55); };
-  const hf = Math.max(sup(-0.8, -1.4), sup(0.8, -1.4)), hb = Math.max(sup(-0.8, 1.4), sup(0.8, 1.4));
-  const hl = Math.max(sup(-0.8, -1.4), sup(-0.8, 1.4)), hr = Math.max(sup(0.8, -1.4), sup(0.8, 1.4));
+  const hf = Math.max(sup(-wx, -wz), sup(wx, -wz)), hb = Math.max(sup(-wx, wz), sup(wx, wz));
+  const hl = Math.max(sup(-wx, -wz), sup(-wx, wz)), hr = Math.max(sup(wx, -wz), sup(wx, wz));
   const g = Math.max(hf, hb, (hf + hb) / 2);
   if (g >= v.y - 0.05) { v.y = damp(v.y, g, 18, dt); v.vy = 0; }
   else { v.vy -= 20 * dt; v.y = Math.max(g, v.y + v.vy * dt); if (v.y === g) { if (v.vy < -9) damageVehicle(v, (-v.vy - 9) * 25, null); v.vy = 0; } }
@@ -286,6 +293,42 @@ function fly(v, dt, fwd, strafe, lift, wantYaw, powered) {
   if (!v.alive) { v.roll += dt * 1.5; }
 }
 
+function makeAtvMesh() {
+  if (!jeepGeo) buildModels();
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const mat = (c) => { const m = new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, metalness: 0.2 }); m.color.convertSRGBToLinear(); return m; };
+  const red = mat(0x9a3324), dark = mat(0x23272a);
+  const add = (g, m, x, y, z) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; body.add(o); return o; };
+  const hull = add(new THREE.BoxGeometry(0.9, 0.32, 1.7), red, 0, 0.62, 0);
+  add(new THREE.BoxGeometry(0.42, 0.14, 0.7), dark, 0, 0.84, 0.2); add(new THREE.BoxGeometry(1.0, 0.12, 0.5), red, 0, 0.8, -0.72); add(new THREE.BoxGeometry(1.0, 0.12, 0.5), red, 0, 0.8, 0.75);
+  add(new THREE.CylinderGeometry(0.025, 0.025, 0.8, 6).rotateZ(Math.PI / 2), dark, 0, 1.08, -0.55); add(new THREE.BoxGeometry(0.06, 0.32, 0.06), dark, 0, 0.92, -0.55);
+  const wg = new THREE.CylinderGeometry(0.34, 0.34, 0.3, 14).rotateZ(Math.PI / 2), wheels = [];
+  for (const [x, z] of [[-0.6, -0.68], [0.6, -0.68], [-0.6, 0.7], [0.6, 0.7]]) { const pivot = new THREE.Group(); pivot.position.set(x, 0.34, z); root.add(pivot); const w = new THREE.Mesh(wg, dark); w.castShadow = true; pivot.add(w); wheels.push({ pivot, w, front: z < 0 }); }
+  const turret = new THREE.Group(), gun = new THREE.Group(); turret.add(gun); body.add(turret); turret.visible = false;
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false })); blob.position.y = 0.02; root.add(blob);
+  G.scene.add(root); return { root, body, wheels, turret, gun, hull };
+}
+function makeKestrelMesh() {
+  if (!jeepGeo) buildModels();
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const mat = (c, e) => { const m = new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.4, emissive: e || 0x000000, emissiveIntensity: e ? 1.2 : 0 }); m.color.convertSRGBToLinear(); return m; };
+  const hullM = mat(0x5b6b76), darkM = mat(0x262b30), glowM = mat(0x5fd0ff, 0x3fb0ff);
+  const add = (g, m, x, y, z, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.set(0, ry, rz); o.castShadow = true; body.add(o); return o; };
+  const hull = add(new THREE.CylinderGeometry(0.35, 0.55, 3.2, 10).rotateX(Math.PI / 2), hullM, 0, 0.9, 0);
+  add(new THREE.SphereGeometry(0.42, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), glassMat(), 0, 1.15, -0.35);
+  for (const s of [-1, 1]) {
+    const wing = new THREE.Shape(); wing.moveTo(0, 0); wing.lineTo(2.2 * s, 0.9); wing.lineTo(2.3 * s, 1.5); wing.lineTo(0, 1.1);
+    const wg = new THREE.ExtrudeGeometry(wing, { depth: 0.08, bevelEnabled: false }).rotateX(-Math.PI / 2); const w = add(wg, hullM, 0, 0.85, -0.4); w.rotation.z = s * 0.12;
+    add(new THREE.CylinderGeometry(0.17, 0.2, 1.1, 10).rotateX(Math.PI / 2), darkM, 1.55 * s, 0.85, 0.75);
+    add(new THREE.CircleGeometry(0.15, 10), glowM, 1.55 * s, 0.85, 1.31);
+    add(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6).rotateX(Math.PI / 2), darkM, 0.38 * s, 0.72, -1.75);
+  }
+  const rotor = new THREE.Group(), tail = new THREE.Group(); body.add(rotor); body.add(tail);
+  const blades = new THREE.Group(), disc = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.01), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })); disc.visible = false;
+  const turret = new THREE.Group(), gun = new THREE.Group(); turret.add(gun); body.add(turret); turret.visible = false;
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 3.6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })); blob.position.y = 0.02;
+  G.scene.add(root); return { root, body, wheels: [], turret, gun, hull, rotor, blades, disc, tail, blob };
+}
 export function makeHeliMesh() {
   if (!jeepGeo) buildModels();
   if (!heliGeo) buildHeli();
@@ -319,7 +362,7 @@ export function crewMul(v, x, y, z) {
 export function tailRotorHit(ox, oy, oz, dx, dy, dz, tmax) {
   let best = null;
   for (const v of vehicles) {
-    if (v.type !== 'heli' || !v.alive) continue;
+    if (!v.spec.tail || !v.alive) continue;
     const [tx, tz] = world(v, 0.2, 5.65), ty = v.y + 1.95, lx = ox - tx, ly = oy - ty, lz = oz - tz;
     const b = lx * dx + ly * dy + lz * dz, c = lx * lx + ly * ly + lz * lz - 0.8 * 0.8, disc = b * b - c;
     if (disc < 0) continue; const t = -b - Math.sqrt(disc);
@@ -396,7 +439,7 @@ function fireMG(v, u, dirx, diry, dirz, ox, oy, oz, spread = 0.02) {
 
 // gunner aim in world space -> turret angles; returns muzzle origin + dir
 function aimGun(v, yaw, pitch) {
-  v.gunYaw = Math.atan2(Math.sin(yaw - v.yaw), Math.cos(yaw - v.yaw)); v.gunPitch = clamp(pitch, v.type === 'heli' ? -1.0 : -0.45, 0.75);
+  v.gunYaw = Math.atan2(Math.sin(yaw - v.yaw), Math.cos(yaw - v.yaw)); v.gunPitch = clamp(pitch, v.spec.fly ? -1.0 : -0.45, 0.75);
   if (v.spec.gunArc) { v.gunYaw = clamp(v.gunYaw, v.spec.gunArc[0], v.spec.gunArc[1]); yaw = v.yaw + v.gunYaw; }
   const GP = v.spec.gunPivot, [px, pz] = world(v, GP.x, GP.z), py = v.y + GP.y;
   const cp = Math.cos(v.gunPitch);
@@ -406,7 +449,7 @@ function aimGun(v, yaw, pitch) {
 // ---------- player in a vehicle (called from updatePlayer after mouse look) ----------
 export function playerVehicle(P, dt) {
   const v = P.vehicle, frozen = G.state !== 'playing';
-  const heli = v.type === 'heli';
+  const heli = v.spec.fly;
   if (P.seat === 0 && heli) {
     const k = (a) => !frozen && down(a) ? 1 : 0;
     fly(v, dt, k('forward') - k('back'), k('right') - k('left'), k('jump') - (k('crouch') || k('crouchAlt')), frozen ? null : P.yaw, true);
@@ -441,7 +484,7 @@ export function playerVehicle(P, dt) {
   } else { // gunner: look over the gun
     const a = aimGun(v, P.yaw, P.pitch);
     P.pitch = v.gunPitch; P.yaw = v.yaw + v.gunYaw; // the view stops where the gun's arc stops
-    const back = v.type === 'heli' ? 0.2 : 0.5; cam.position.set(a.ox - a.dx * back, a.oy + (v.type === 'heli' ? 0.44 : 0.5), a.oz - a.dz * back);
+    const back = v.spec.fly ? 0.2 : 0.5; cam.position.set(a.ox - a.dx * back, a.oy + (v.spec.fly ? 0.44 : 0.5), a.oz - a.dz * back);
     cam.rotation.set(P.pitch - 0.05, P.yaw, 0);
     if (!frozen && input.fire) fireMG(v, P, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9);
   }
@@ -468,7 +511,7 @@ export function updateVehicles(dt) {
   for (const v of vehicles) {
     if (!v.alive) {
       if (net) { syncMesh(v, dt); continue; } // the host decides when it comes back
-      if (v.type === 'heli') { fly(v, dt, 0, 0, 0, null, false); syncMesh(v, dt); }
+      if (v.spec.fly) { fly(v, dt, 0, 0, 0, null, false); syncMesh(v, dt); }
       if (G.now - v.deadAt > v.spec.respawn) respawnVehicle(v);
       continue;
     }
@@ -476,7 +519,7 @@ export function updateVehicles(dt) {
     v.seats.forEach((u, i) => { if (u && (!u.alive || u.vehicle !== v)) { v.seats[i] = null; if (u.vehicle === v) { u.vehicle = null; u.seat = -1; } } });
     if (net) { if (v.seats[0] !== P || !P.vehicle) G.mp.vehInterp(v, dt, rt); }
     else if (!v.seats[0] || !v.seats[0].isPlayer) { // no player driver: coast to a stop (bots drive in 6c)
-      if (!v.seats[0]) { if (v.type === 'heli') fly(v, dt, 0, 0, 0, null, false); else drive(v, dt, 0, 0, true); }
+      if (!v.seats[0]) { if (v.spec.fly) fly(v, dt, 0, 0, 0, null, false); else drive(v, dt, 0, 0, true); }
     }
     for (const u of v.seats) if (u && !u.isPlayer) placeOccupant(v, u);
     // gun cools down
@@ -507,7 +550,7 @@ function syncMesh(v, dt) {
   const m = v.m;
   m.root.position.set(v.x, v.y, v.z); m.root.rotation.set(0, v.yaw, 0);
   m.body.rotation.set(-v.pitch, 0, v.roll); m.body.position.y = Math.sin(G.now * 30) * 0.008 * Math.min(1, Math.abs(v.speed) / 4);
-  if (v.type === 'heli') {
+  if (v.spec.fly) {
     m.body.position.y = 0; m.rotor.rotation.y = v.rotor; m.tail.rotation.x = v.rotor * 2.3;
     const fast = Math.min(1, (v.rotorSpeed || 0) / 25); m.disc.material.opacity = 0.16 * fast; m.blades.visible = fast < 0.85;
     m.turret.rotation.y = v.gunYaw; m.gun.rotation.x = v.gunPitch; m.gun.position.z = (v.kick || 0) * 0.03;
@@ -531,8 +574,8 @@ function engineSound(v) {
     o.connect(f); o2.connect(f); f.connect(g); g.connect(masterNode()); o.start(); o2.start();
     v.engine = { o, o2, f, g };
   }
-  if (v.type === 'heli' && !v.engine.lfo) { const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 11; lg.gain.value = 0.06; lfo.connect(lg); lg.connect(v.engine.g.gain); lfo.start(); v.engine.lfo = lfo; v.engine.o.type = 'triangle'; }
-  const L = G.camera.position, d = Math.hypot(L.x - v.x, L.y - v.y, L.z - v.z), sp = v.type === 'heli' ? Math.min(1, (v.rotorSpeed || 0) / 30) : Math.abs(v.speed) / JEEP.maxF;
+  if (v.spec.fly && !v.engine.lfo) { const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 11; lg.gain.value = 0.06; lfo.connect(lg); lg.connect(v.engine.g.gain); lfo.start(); v.engine.lfo = lfo; v.engine.o.type = 'triangle'; }
+  const L = G.camera.position, d = Math.hypot(L.x - v.x, L.y - v.y, L.z - v.z), sp = v.spec.fly ? Math.min(1, (v.rotorSpeed || 0) / 30) : Math.abs(v.speed) / JEEP.maxF;
   if (v.engine.lfo) { v.engine.lfo.frequency.setTargetAtTime(4 + sp * 8, ctx.currentTime, 0.2); }
   const t = ctx.currentTime;
   v.engine.o.frequency.setTargetAtTime(42 + sp * 70, t, 0.08); v.engine.o2.frequency.setTargetAtTime(21 + sp * 35, t, 0.08);
@@ -577,7 +620,7 @@ function assignCrews() {
   }
   for (const v of vehicles) {
     if (!v.alive) continue;
-    for (let seat = 0; seat < 2; seat++) {
+    for (let seat = 0; seat < v.seats.length; seat++) {
       if (v.seats[seat] || G.bots.some((u) => u.brain.board === v && u.brain.boardSeat === seat)) continue;
       if (seat === 1 && !v.seats[0]) continue; // a driver first
       let best = null, bd = 32;
@@ -611,7 +654,7 @@ function findTarget(u, v, ox, oy, oz, range) {
 const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 export function botVehicle(u, dt) {
   const v = u.vehicle; if (!v || !v.alive) return;
-  const heli = v.type === 'heli';
+  const heli = v.spec.fly;
   if (G.now >= (u.vtAt || 0)) {
     u.vtAt = G.now + 0.45;
     const GP = v.spec.gunPivot, [gx, gz] = world(v, u.seat === 1 ? GP.x : 0, u.seat === 1 ? GP.z : -2.4);

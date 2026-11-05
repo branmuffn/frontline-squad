@@ -67,7 +67,7 @@ export function vehicleHud(v, seat, kmh, heat, over, alt = -1) {
   $('vhHeatWrap').classList.toggle('hidden', seat !== 1);
   if (seat === 1) { $('vhHeat').style.width = (heat * 100).toFixed(1) + '%'; $('vhHeat').classList.toggle('over', !!over); }
   $('hud').classList.toggle('gunner', seat === 1);
-  const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, `<kbd>1</kbd> ${v.type === 'heli' ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun', ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
+  const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, `<kbd>1</kbd> ${v.spec.fly ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun', ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
 }
 export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); $('board').classList.add('hidden'); boardOpen = false; }
 
@@ -299,7 +299,7 @@ function updateTags() {
       if (uh) name = (isEnemy(P, uh.unit) ? '' : '◆ ') + uh.unit.name;
       $('aimName').className = uh && !isEnemy(P, uh.unit) ? 'ally' : 'foe';
       const v = !uh && wh && wh.col && wh.col.vehicle; // a crewed enemy vehicle under the crosshair: its health
-      if (v && v.alive && !P.vehicle) { const crew = v.seats.find((q) => q); if (crew && isEnemy(P, crew)) { const k = Math.max(0, v.hp / v.spec.hp); name = `${v.type === 'heli' ? 'HELICOPTER' : 'JEEP'} ${'▮'.repeat(Math.ceil(k * 8))}${'▯'.repeat(8 - Math.ceil(k * 8))} ${Math.round(k * 100)}%`; } }
+      if (v && v.alive && !P.vehicle) { const crew = v.seats.find((q) => q); if (crew && isEnemy(P, crew)) { const k = Math.max(0, v.hp / v.spec.hp); name = `${v.spec.name.toUpperCase()} ${'▮'.repeat(Math.ceil(k * 8))}${'▯'.repeat(8 - Math.ceil(k * 8))} ${Math.round(k * 100)}%`; } }
     }
     set('aimName', 'text', name);
   }

@@ -172,7 +172,8 @@ export default {
   bounds: { minX: -58.5, maxX: 58.5, minZ: -29.5, maxZ: 29.5 },
   // jeep spots (Vehicles: On): one on each plateau base, one on the canyon road
   vehicles: [{ x: -47, z: 4, y: H, yaw: -Math.PI / 2 }, { x: 47, z: -4, y: H, yaw: Math.PI / 2 }, { x: -6.5, z: 19, y: 0, yaw: 0 },
-    { type: 'heli', x: -37, z: 19, y: H, yaw: -Math.PI / 2 }, { type: 'heli', x: 37, z: -19, y: H, yaw: Math.PI / 2 }],
+    { type: 'heli', x: -37, z: 19, y: H, yaw: -Math.PI / 2 }, { type: 'heli', x: 37, z: -19, y: H, yaw: Math.PI / 2 },
+    { type: 'atv', x: -44, z: -13, y: H, yaw: -Math.PI / 2 }, { type: 'atv', x: 44, z: 13, y: H, yaw: Math.PI / 2 }, { type: 'kestrel', x: -52, z: 22, y: H, yaw: -Math.PI / 2 }, { type: 'kestrel', x: 52, z: -22, y: H, yaw: Math.PI / 2 }],
   // bot routes (6c): plateau loops, the canyon road, and a high loop for the helicopters
   vehicleRoutes: [
     { type: 'jeep', pts: [[-50, -20], [-27, -21], [-26, 20], [-50, 22]] },
