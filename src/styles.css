@@ -213,11 +213,12 @@ tr.dead td { opacity: 0.5; }
 .me { color: var(--brass); } .ally { color: var(--blue); } .foe { color: var(--red); } .muted { color: var(--ink-faint); }
 #crosshair { --gap: 8px; position: absolute; left: 50%; top: 50%; width: 0; height: 0; transition: opacity 0.1s; }
 #crosshair i { position: absolute; background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); }
-#crosshair .l, #crosshair .r { width: 9px; height: 2px; top: -1px; }
-#crosshair .t, #crosshair .b { width: 2px; height: 9px; left: -1px; }
+#crosshair.noout i, #crosshair.noout b { box-shadow: none; } #crosshair.nodot b { display: none; }
+#crosshair .l, #crosshair .r { width: var(--xl, 9px); height: var(--xt, 2px); top: calc(var(--xt, 2px) / -2); }
+#crosshair .t, #crosshair .b { width: var(--xt, 2px); height: var(--xl, 9px); left: calc(var(--xt, 2px) / -2); }
 #crosshair .l { right: var(--gap); } #crosshair .r { left: var(--gap); }
 #crosshair .t { bottom: var(--gap); } #crosshair .b { top: var(--gap); }
-#crosshair b { position: absolute; width: 2px; height: 2px; left: -1px; top: -1px; background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
+#crosshair b { position: absolute; width: var(--xt, 2px); height: var(--xt, 2px); left: calc(var(--xt, 2px) / -2); top: calc(var(--xt, 2px) / -2); background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
 #crosshair.melee i { display: none; }
 #hitmarker { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; }
 #hitmarker.on { opacity: 1; }
@@ -547,3 +548,26 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #toast .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin: 0; }
 #toast button { padding: 6px 12px; font-size: 13px; }
 #toast.hidden { display: none; }
+
+@media (max-height: 800px) { .menu-col { gap: 6px; padding-top: 10px; padding-bottom: 8px; } }
+/* crosshair editor */
+#xhPop { position: absolute; left: 24px; top: 70px; z-index: 6; width: min(420px, 90%); padding: 14px 16px; background: rgba(16, 20, 23, 0.97); border: 1px solid var(--line); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+#xhPop.hidden { display: none; }
+#xhPrev { position: relative; height: 90px; margin: 6px 0 10px; background: linear-gradient(135deg, #3d4a3a, #7a8a74 60%, #b9c2b0); border: 1px solid var(--line); }
+#xhPrev #xhClone { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+#xhPop .xrow { display: grid; grid-template-columns: 110px 1fr 36px; align-items: center; gap: 8px; margin: 4px 0; font-size: 14px; }
+#xhPop .xchk { display: flex; gap: 14px; flex-wrap: wrap; margin: 8px 0; font-size: 14px; }
+#xhPop .xcode { display: flex; gap: 6px; margin-top: 8px; } #xhPop .xcode input { flex: 1; min-width: 0; font-family: monospace; }
+#endMvp { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--gold, #d8a23a); background: rgba(216, 162, 58, 0.1); font-size: 16px; }
+#endMvp b { color: var(--gold, #d8a23a); letter-spacing: .08em; margin-right: 8px; }
+.settings-panel { position: relative; }
+
+/* editor preview uses the same crosshair rules */
+#xhClone i { position: absolute; background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); }
+#xhClone.noout i, #xhClone.noout b { box-shadow: none; } #xhClone.nodot b { display: none; }
+#xhClone .l, #xhClone .r { width: var(--xl, 9px); height: var(--xt, 2px); top: calc(var(--xt, 2px) / -2); }
+#xhClone .t, #xhClone .b { width: var(--xt, 2px); height: var(--xl, 9px); left: calc(var(--xt, 2px) / -2); }
+#xhClone .l { right: var(--gap); } #xhClone .r { left: var(--gap); }
+#xhClone .t { bottom: var(--gap); } #xhClone .b { top: var(--gap); }
+#xhClone b { position: absolute; width: var(--xt, 2px); height: var(--xt, 2px); left: calc(var(--xt, 2px) / -2); top: calc(var(--xt, 2px) / -2); background: var(--ch); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); }
+#xhClone { --gap: 8px; }

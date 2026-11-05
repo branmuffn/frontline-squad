@@ -216,7 +216,8 @@ export function updatePlayerHud(P, o) {
   const gap = clamp(o.spread * (window.innerHeight / 2) / Math.tan(fovRad / 2), 3, 120);
   set('crosshair', 'opacity', hideCh || w.melee ? (w.melee && !P.sprinting ? '1' : '0') : '1');
   const ch = $('crosshair');
-  if (cache.chGap !== Math.round(gap)) { cache.chGap = Math.round(gap); ch.style.setProperty('--gap', Math.round(gap) + 'px'); }
+  const xh = G.profile.settings.xh || {}, g2 = Math.max(0, (xh.dyn === false ? 4 : gap) + (xh.gap || 0));
+  if (cache.chGap !== Math.round(g2)) { cache.chGap = Math.round(g2); ch.style.setProperty('--gap', Math.round(g2) + 'px'); }
   ch.classList.toggle('melee', !!w.melee);
   set('reloadBar', 'display', o.reloadP >= 0 ? 'block' : 'none');
   if (o.reloadP >= 0) set('reloadFill', 'width', Math.round(clamp(o.reloadP, 0, 1) * 100) + '%');
@@ -362,6 +363,22 @@ function drawRadar() {
 }
 
 export function prompt(html) { set('prompt', 'html', html); }
+// crosshair look (Settings → Crosshair → Edit): length, thickness, extra gap, centre dot, outline, moves with spread
+export function applyCrosshair(el) {
+  const s = G.profile.settings, x = s.xh || {}, c = el || document.getElementById('crosshair'); if (!c) return;
+  c.style.setProperty('--xl', (x.len || 9) + 'px'); c.style.setProperty('--xt', (x.thick || 2) + 'px');
+  c.classList.toggle('nodot', x.dot === false); c.classList.toggle('noout', x.outline === false);
+  if (el) el.style.setProperty('--gap', Math.max(0, 4 + (x.gap || 0) + (x.dyn === false ? 0 : 4)) + 'px');
+  cache.chGap = -1;
+}
+// share codes: FX1-<colour>-<length>-<thickness>-<gap+10>-<flags: dot 1, outline 2, dynamic 4>
+export function crosshairCode() { const s = G.profile.settings, x = s.xh; return `FX1-${s.crosshair.replace('#', '')}-${x.len}-${x.thick}-${x.gap + 10}-${(x.dot ? 1 : 0) | (x.outline ? 2 : 0) | (x.dyn ? 4 : 0)}`; }
+export function readCrosshairCode(code) {
+  const m = /^FX1-([0-9a-f]{6})-(\d{1,2})-(\d)-(\d{1,2})-([0-7])$/i.exec(String(code).trim()); if (!m) return null;
+  const len = +m[2], thick = +m[3], gap = +m[4] - 10, f = +m[5];
+  if (len < 2 || len > 20 || thick < 1 || thick > 6 || gap < -4 || gap > 16) return null;
+  return { color: '#' + m[1].toLowerCase(), xh: { len, thick, gap, dot: !!(f & 1), outline: !!(f & 2), dyn: !!(f & 4) } };
+}
 export function setFps(n) {
   const p = G.perf, s = G.profile.settings;
   if (!s.showFps) return;

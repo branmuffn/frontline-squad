@@ -86,7 +86,7 @@
     <div class="cols three">
       <div>
         <div id="sliders"></div>
-        <div class="field"><span class="flabel">Crosshair colour</span><div id="crossSel" class="swatches"></div></div>
+        <div class="field"><span class="flabel">Crosshair <button id="xhEdit" class="flink" type="button">Edit…</button></span><div id="crossSel" class="swatches"></div></div>
         <div class="row2 tight"><div class="field"><span class="flabel">Weapon slots</span><div id="setSlotSel" class="seg small"></div></div>
         <div class="field"><span class="flabel">Weapon names</span><div id="namesSel" class="seg small"></div></div></div>
         <div id="toggles" class="toggles"></div>
@@ -108,6 +108,11 @@
       </div>
     </div>
     </div>
+    <div id="xhPop" class="hidden"><button id="xhX" class="pop-x" type="button" aria-label="Close">×</button><span class="flabel">Crosshair</span>
+      <div id="xhPrev"><div id="xhClone"></div></div>
+      <div id="xhRows"></div><div id="xhChk" class="xchk"></div>
+      <div class="xcode"><input id="xhCode" type="text" spellcheck="false" aria-label="Crosshair code"><button id="xhCopy" type="button">Copy</button><button id="xhApply" type="button">Use code</button></div>
+      <p id="xhMsg" class="lede small"></p></div>
     <div class="btn-row"><button id="resetSettings" class="btn-ghost" type="button">Reset to defaults</button><button id="settingsDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
@@ -263,6 +268,7 @@
     <p id="endDetail" class="lede"></p>
     <div class="pbody">
     <p id="newBest" class="flag hidden">New personal best</p>
+    <div id="endMvp" class="hidden"></div>
     <div id="endStats" class="tiles six"></div>
     <div class="cols">
       <div id="endBoard" class="endboard"></div>

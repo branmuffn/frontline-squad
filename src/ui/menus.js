@@ -11,6 +11,7 @@ import { badgeSVG } from './badges.js';
 import { showPreview, stopPreview, gunThumb } from './preview.js';
 import { setScene, stinger } from '../engine/music.js';
 import { codeName, keyName } from './hud.js';
+import * as hud from './hud.js';
 
 const SCREENS = ['menu', 'streaks', 'loadout', 'settings', 'career', 'controls', 'pause', 'end', 'armory', 'mp'];
 let cb = null, back = 'menu';
@@ -266,6 +267,17 @@ const SLIDERS = [
   ['music', 'Music volume (menus only)', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
 ];
 const CROSS = ['#eaf2e4', '#7dff9a', '#ffd34d', '#5fd0ff', '#ff6b6b'];
+function refreshXh() {
+  const s = G.profile.settings, x = s.xh, clone = $('xhClone');
+  if (!clone.firstChild) clone.innerHTML = '<i class="l"></i><i class="r"></i><i class="t"></i><i class="b"></i><b></b>';
+  clone.style.setProperty('--ch', s.crosshair); hud.applyCrosshair(clone); hud.applyCrosshair();
+  clone.querySelectorAll('i, b').forEach((e) => { e.style.background = s.crosshair; });
+  $('xhRows').innerHTML = [['len', 'Length', 2, 20], ['thick', 'Thickness', 1, 6], ['gap', 'Gap', -4, 16]].map(([k, l, a, b]) => `<label class="xrow"><span>${l}</span><input type="range" data-k="${k}" min="${a}" max="${b}" step="1" value="${x[k]}"><output>${x[k]}</output></label>`).join('');
+  $('xhChk').innerHTML = [['dot', 'Centre dot'], ['outline', 'Outline'], ['dyn', 'Opens with spread']].map(([k, l]) => `<label class="toggle"><input type="checkbox" data-k="${k}" ${x[k] ? 'checked' : ''}><span>${l}</span></label>`).join('');
+  $('xhRows').querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { x[i.dataset.k] = +i.value; saveProfile(); refreshXh(); }));
+  $('xhChk').querySelectorAll('input').forEach((i) => i.addEventListener('change', () => { x[i.dataset.k] = i.checked; saveProfile(); refreshXh(); }));
+  if (document.activeElement !== $('xhCode')) $('xhCode').value = hud.crosshairCode();
+}
 function refreshSettings() {
   const s = G.profile.settings;
   $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
@@ -293,6 +305,7 @@ function refreshSettings() {
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Med' }, { v: 1, html: 'Full' }], s.renderScale, (v) => gfx('renderScale', Number(v)));
   seg($('fpsSel'), [{ v: 0, html: 'Display' }, { v: 30, html: '30' }, { v: 60, html: '60' }, { v: 120, html: '120' }, { v: 144, html: '144' }], s.fpsCap || 0, (v) => gfx('fpsCap', Number(v)));
+  refreshXh();
   $('crossSel').innerHTML = CROSS.map((c) => `<button type="button" class="${s.crosshair === c ? 'sel' : ''}" data-v="${c}" style="--c:${c}" aria-label="Crosshair colour ${c}"></button>`).join('');
   $('crossSel').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { s.crosshair = bt.dataset.v; cb.onSetting('crosshair'); saveProfile(); refreshSettings(); }));
   $('binds').innerHTML = Object.keys(DEFAULT_KEYS).map((a) => `<div class="bind"><span>${KEY_LABELS[a]}</span><button type="button" data-a="${a}">${esc(codeName(s.keys[a]))}</button></div>`).join('');
@@ -336,6 +349,11 @@ export function showEnd(r) {
   $('endTitle').textContent = r.title;
   $('end').dataset.result = r.result;
   $('endDetail').textContent = r.detail;
+  // MVP: most kills (deaths break ties); co-op modes rank the people only
+  const coopM = r.mode === 'survival' || r.mode === 'zombies', pool = G.units.filter((u) => (coopM ? u.isPlayer || u.remote || (u.proxy && u.human) : !u.zombie && !u.dummy) && (u.kills || 0) > 0);
+  const best = pool.sort((a, b) => (b.kills - b.deaths * 0.5) - (a.kills - a.deaths * 0.5) || b.kills - a.kills)[0];
+  $('endMvp').classList.toggle('hidden', !best || r.mode === 'range' || r.mode === 'sandbox');
+  if (best) $('endMvp').innerHTML = `<b>${coopM ? 'TOP PLAYER' : 'MVP'}</b>${esc(best.isPlayer ? (G.mp ? G.mp.name || 'YOU' : 'YOU') : best.name)} · ${best.kills} kill${best.kills === 1 ? '' : 's'} · ${best.deaths} death${best.deaths === 1 ? '' : 's'}${best.isPlayer ? ' · that’s you' : ''}`;
   const acc = st.shots ? Math.round(st.hits / st.shots * 100) + '%' : '—';
   const tiles = r.mode === 'zombies'
     ? [['Round', m.round], ['Points', m.points.toLocaleString()], ['Kills', P.kills], ['Accuracy', acc], ['Headshots', st.headHits], ['Downs', P.deaths]]
@@ -433,6 +451,11 @@ export function initMenus(callbacks) {
   $('streaksDone').addEventListener('click', () => showScreen('menu'));
   $('settingsDone').addEventListener('click', () => { input.capture = null; showScreen(back); });
   $('controlsDone').addEventListener('click', () => showScreen(back));
+  $('xhEdit').addEventListener('click', () => { $('xhPop').classList.toggle('hidden'); $('xhMsg').textContent = 'Share your crosshair with the code, or paste a friend’s.'; refreshXh(); });
+  $('xhX').addEventListener('click', () => $('xhPop').classList.add('hidden'));
+  $('xhCopy').addEventListener('click', () => { const c = hud.crosshairCode(); $('xhCode').value = c; try { navigator.clipboard.writeText(c); $('xhMsg').textContent = 'Copied ' + c; } catch (e) { $('xhMsg').textContent = c; } });
+  $('xhApply').addEventListener('click', () => { const r = hud.readCrosshairCode($('xhCode').value); if (!r) { $('xhMsg').textContent = 'That isn’t a crosshair code (it looks like FX1-eaf2e4-9-2-10-7).'; return; }
+    const s = G.profile.settings; s.crosshair = r.color; s.xh = r.xh; saveProfile(); cb.onSetting('crosshair'); $('xhCode').blur(); refreshSettings(); $('xhMsg').textContent = 'Crosshair applied.'; });
   $('resetSettings').addEventListener('click', () => { resetSettings(); for (const k of ['sens', 'fov', 'volume', 'music', 'shadows', 'showFps', 'crosshair', 'renderScale', 'names', 'quality']) cb.onSetting(k); refreshSettings(); });
   $('resume').addEventListener('click', () => cb.onResume());
   $('freeLook').addEventListener('click', () => cb.onFreeLook());

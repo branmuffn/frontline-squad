@@ -25,7 +25,7 @@ export function detectQuality(s) { for (const [n, q] of Object.entries(QUALITY))
 export const DEFAULT_SETTINGS = {
   sens: 1, adsSens: 0.85, fov: 74, volume: 0.6, music: 0.5, invertY: false, shadows: true, renderScale: 1, showFps: false, killcam: true, scopeToggle: false, fpsCap: 60, autoRes: true,
   quality: 'balanced', pixelMax: 1.25, shadowQ: 'high', shadowRate: 'half', particles: 'full', lowMenus: true, previewFps: 30, batteryAsk: true, qv: 0,
-  crosshair: '#eaf2e4', slots: 'classic', names: 'real', keys: { ...DEFAULT_KEYS },
+  crosshair: '#eaf2e4', xh: { len: 9, thick: 2, gap: 0, dot: true, outline: true, dyn: true }, slots: 'classic', names: 'real', keys: { ...DEFAULT_KEYS },
 };
 
 function freshProfile() {
