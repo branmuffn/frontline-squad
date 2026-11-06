@@ -41,3 +41,13 @@ flowchart TB
 | `frontline-solo-ops-vite.zip` | `sh tests/ship.sh "msg"` | archive: source, tests, docs, git history |
 
 `tests/ship.sh` builds both, commits, copies the HTML and zip to the outputs folder and updates the artifact. Keep the zip as the master record; the HTML can always be regenerated from it. Decisions: `PLAN.md`; playing/building: `README.md`; tests: `tests/README.md`.
+
+## Rev 4 additions (where things live)
+- `src/engine/power.js` perf readout counters, battery prompt, persistent storage, backup reminder; presets in `core/storage.js` (QUALITY).
+- `src/game/objectives.js` Domination / King of the Hill / Search & Destroy hooks (objective points from spawns or `def.objectives`).
+- `src/game/modes.js` hooks for Gun Game, Infection, CTF, Zombies (difficulty, revives), Practice range (rack, drills).
+- `src/game/editor.js` + `src/world/maps/custommap.js` map editor (localStorage `frontline_custom_map`, JSON export/import).
+- `src/world/navworker.js` A* in a blob Web Worker (off under the test harness; sync fallback after 0.4 s).
+- `src/engine/merge.js` mergeStatic (batched vehicle bodies). `src/ui/ping.js` pings. Votes live in `src/net/net.js`.
+- Vehicles: `SPEC` in `src/entities/vehicles.js` (jeep, heli, atv, kestrel; `spec.fly`, `spec.tail`, `spec.mesh()`).
+- Power weapons + attachments: `POWER`, `ATTACH`, `withAttachments` in `core/config.js`; spawns in `game/match.js`.

@@ -136,6 +136,9 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 3f-7 map editor: main menu 'Map editor' opens a sandbox on the custom map (80 x 80 yard). 1-8 piece (block, wall, ramp, crate, container, platform, spawn A, spawn B), F place (1 m snap, on top of what you look at), R rotate, X remove, Z undo, T test-play (FFA + 5 bots); pause menu Export (JSON to clipboard) / Import (validated). Stored in localStorage 'frontline_custom_map'; 'CUSTOM MAP' in the map list (single player only; not offered in MP lobbies since it lives in each browser). tests/editor.mjs.
 - [x] Menu: the map list is a horizontal strip (9 maps); armory body scrolls; fit.mjs clean except the allowed 1024 settings body.
 - [x] 3f complete.
+- [x] Review pass (Rev 4 close-out): one-seat vehicles (pressing 2 froze the game: seat range checks everywhere incl. the MP mirror), power pickups respawn after bots take them, S&D joiners' death text, expired votes, editor preview cleanup, warm-up banner guard. tests/seats.mjs.
+- [x] Hand-off: CLAUDE.md, docs/HANDOFF.md (Netlify, play-test checklist, GitHub + auto-deploy + Claude Code), netlify.toml, scripts/site.sh, NEXT_CHAT_PROMPT.md, one-pager + infographic refreshed.
+**STATUS: Rev 4 complete — clean break point.**
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
 ## Next: roadmap
