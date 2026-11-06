@@ -21,7 +21,7 @@ export function vehApplySnap(n, list, unitById) {
     v.hp = a[13];
     if (!v.alive) { pose(v, a); continue; }
     if (v.seats[0] !== P || !P.vehicle) { v.nb = v.nb || []; v.nb.push({ n, a }); if (v.nb.length > 20) v.nb.shift(); }
-    for (let s = 0; s < 2; s++) { // seats (our own seat is ours to decide)
+    for (let s = 0; s < v.seats.length; s++) { // seats (our own seat is ours to decide); one-seat vehicles have one
       const cur = v.seats[s]; if (cur === P) continue;
       const u = a[14 + s] ? unitById(a[14 + s]) : null;
       if (u === P) continue;

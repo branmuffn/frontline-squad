@@ -142,7 +142,7 @@ export function nearestVehicle(u, range = 3.4) {
 }
 export function enterVehicle(u, v, seat) {
   if (seat === undefined) seat = v.seats.findIndex((s) => !s);
-  if (seat < 0 || v.seats[seat]) return false;
+  if (!seatOk(v, seat) || v.seats[seat]) return false;
   v.seats[seat] = u; u.vehicle = v; u.seat = seat; u.vx = u.vz = u.vy = 0; u.prone = false;
   if (u.isPlayer) { u.adsT = 0; play('doorOpen', { x: v.x, y: v.y + 1, z: v.z }, { gain: 0.7 }); }
   placeOccupant(v, u);
@@ -159,7 +159,10 @@ export function exitVehicle(u) {
   if (u.isPlayer) { u.yaw = Math.atan2(Math.sin(u.yaw), Math.cos(u.yaw)); play('doorOpen', { x: v.x, y: v.y + 1, z: v.z }, { gain: 0.6 }); }
   return true;
 }
-export function switchSeat(u, seat) { if (u.isPlayer && (G.mp && G.mp.live && G.mp.client) && u.vehicle && !u._vok) { if (!u.vehicle.seats[seat]) G.mp.send({ t: 'vsw', s: seat }); return false; } const v = u.vehicle; if (!v || v.seats[seat] || seat === u.seat) return false; v.seats[u.seat] = null; v.seats[seat] = u; u.seat = seat; placeOccupant(v, u); return true; }
+// one-seat vehicles (ATV, Kestrel) have no seat 2: asking for it used to put you in a seat that doesn't exist (the game
+// then threw an error every frame, which looked like a freeze). Every seat number is range-checked now.
+const seatOk = (v, seat) => Number.isInteger(seat) && seat >= 0 && seat < v.seats.length;
+export function switchSeat(u, seat) { if (u.isPlayer && (G.mp && G.mp.live && G.mp.client) && u.vehicle && !u._vok) { if (seatOk(u.vehicle, seat) && !u.vehicle.seats[seat]) G.mp.send({ t: 'vsw', s: seat }); return false; } const v = u.vehicle; if (!v || !seatOk(v, seat) || v.seats[seat] || seat === u.seat) return false; v.seats[u.seat] = null; v.seats[seat] = u; u.seat = seat; placeOccupant(v, u); return true; }
 
 function placeOccupant(v, u) {
   const S = v.spec.seats[u.seat], [x, z] = world(v, S.x, S.z);
@@ -535,7 +538,7 @@ export function updateVehicles(dt) {
   // prompt to get in
   if (P && P.alive && !P.vehicle && G.state === 'playing') {
     const v = nearestVehicle(P);
-    if (v) hud.prompt(`<kbd>${keyName('interact')}</kbd> ${v.spec.who[v.seats[0] ? (v.seats[1] ? 2 : 1) : 0]}`);
+    if (v) { const free = v.seats.findIndex((s) => !s); hud.prompt(`<kbd>${keyName('interact')}</kbd> ${v.spec.who[free < 0 ? 2 : free]}`); }
   }
   if (P && !P.vehicle) { hud.vehicleHud(null); hidePlayerBody(); }
 }

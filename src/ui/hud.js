@@ -67,7 +67,7 @@ export function vehicleHud(v, seat, kmh, heat, over, alt = -1) {
   $('vhHeatWrap').classList.toggle('hidden', seat !== 1);
   if (seat === 1) { $('vhHeat').style.width = (heat * 100).toFixed(1) + '%'; $('vhHeat').classList.toggle('over', !!over); }
   $('hud').classList.toggle('gunner', seat === 1);
-  const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, `<kbd>1</kbd> ${v.spec.fly ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun', ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
+  const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, ...(v.seats.length > 1 ? [`<kbd>1</kbd> ${v.spec.fly ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun'] : []), ...(seat === 0 && v.spec.fly ? ['<kbd>Mouse 1</kbd> Nose guns'] : []), ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
 }
 export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); $('board').classList.add('hidden'); boardOpen = false; }
 
