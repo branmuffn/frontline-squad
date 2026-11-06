@@ -132,6 +132,7 @@ function tallyVote() {
 }
 function voteCmd(name, team, msg) {
   const c = /^\/(votekick|surrender|yes|no)\b\s*(.*)$/i.exec(msg); if (!c) return false;
+  if (S.vote && now() > S.vote.until) { S.vote = null; } // an old vote that expired while nobody was in a match
   const k = c[1].toLowerCase(), say = (t) => { if (name === S.name) chat.add('', t, 'sys'); else { const r = S.remotes.find((x) => x.name === name); if (r) r.link.send({ t: 'chat', n: '', m: t, k: 'sys' }); } };
   if (k === 'yes' || k === 'no') { if (!S.vote) { say('No vote running.'); return true; } (k === 'yes' ? S.vote.yes : S.vote.no).add(name); (k === 'yes' ? S.vote.no : S.vote.yes).delete(name); tallyVote(); return true; }
   if (S.vote) { say('A vote is already running: /yes or /no'); return true; }
@@ -523,6 +524,7 @@ function onKillEv(m) {
     onPlayerDeath(); P.lastKiller = k; G.state = 'dead';
     P.respawnAt = m.ra < 0 ? G.now + 1.6 : m.ra; // host clock (ours is synced to it); the host sends the spawn
     hud.showDeath(k, { weapon: m.w, headshot: m.h }, m.ra < 0 ? 99 : m.ra);
+    if (m.ra > 1e8) hud.waitRound(); // Search & Destroy: out until the next round
     onDeathCam(P, k, { weapon: m.w, headshot: m.h });
   } else if (v.proxy && v.alive) proxyDie(v, k);
   if (k === G.player && v !== G.player) {

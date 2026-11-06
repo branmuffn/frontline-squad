@@ -27,7 +27,9 @@ function target() {
   return { x: snap(h.x + h.nx * 0.01, w % 2 ? 1 : 0), z: snap(h.z + h.nz * 0.01, dd % 2 ? 1 : 0), y: Math.max(0, Math.round((h.y + (h.ny > 0.5 ? 0 : -0.5)) * 10) / 10) };
 }
 export function editorTick() {
-  if (!ed || !ghost) return; const t = target();
+  if (!ed || !ghost) return;
+  if (G.state !== 'playing' && G.state !== 'dead') { ghost.visible = false; return; } // menus / pause: no floating preview
+  const t = target();
   ghost.visible = !!t; if (t) ghost.position.set(t.x, t.y + PIECES[ed.piece].h / 2, t.z);
   hud.prompt(`${PIECES[ed.piece].name} · ${ed.map.objs.length} pieces · F place · X remove · T test`);
 }

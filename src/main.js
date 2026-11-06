@@ -194,6 +194,7 @@ function endWarmup() {
   setTimeout(() => { if (!net.hostStart()) chat.add('', 'Warm-up over. The match starts when everyone presses Ready.', 'sys'); }, 900);
 }
 function quit() {
+  stopEditor();
   if (G.mp) {
     if (G.mp.live) { if (G.mp.host) net.hostAbort(); else net.clientQuit(); }
     leaveMpMatch(); openMp(); return;

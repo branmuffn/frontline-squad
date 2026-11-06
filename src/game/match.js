@@ -90,7 +90,7 @@ export function startMatch(cfg) {
     }
   };
   if (m.hook && m.hook.setup) m.hook.setup(m, cfg);
-  if (m.warmup) setTimeout(() => hud.banner('Warm-up', 'Free for all · no score, no XP · the host starts the real match', 'wave'), 2500);
+  if (m.warmup) setTimeout(() => { if (G.match === m && !m.ended) hud.banner('Warm-up', 'Free for all · no score, no XP · the host starts the real match', 'wave'); }, 2500);
   const remotes = rt.length ? G.mp.makeRemoteUnits(cfg.mode) : [];
   resetPickups(); resetStreaks(); resetGear(); clearGrenades(); clearRockets(); clearFx(); resetWorldProps();
   const s = pickSpawn(P); spawnPlayer(s.x, s.y, s.z, s.yaw); hookSpawn(P);

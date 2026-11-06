@@ -77,7 +77,8 @@ export function dropWeapon(id, x, y, z, ammo, power) {
   while (drops.length > 10) { const old = drops.find((q) => !q.power); if (!old) break; removeDrop(old); }
 }
 
-export function removeDrop(d) { G.scene.remove(d.mesh); const i = drops.indexOf(d); if (i >= 0) drops.splice(i, 1); if (G.mp) G.mp.dropRemoved(d); }
+export function removeDrop(d) { if (d.power && G.match && G.match.powerTaken) G.match.powerTaken(d); // power pickups come back 45 s after anyone (bots too) takes them
+  G.scene.remove(d.mesh); const i = drops.indexOf(d); if (i >= 0) drops.splice(i, 1); if (G.mp) G.mp.dropRemoved(d); }
 
 function nearestDrop() {
   const P = G.player; if (!P || !P.alive) return null;
