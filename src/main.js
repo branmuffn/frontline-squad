@@ -12,6 +12,8 @@ import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js
 import { loadMap, setShadows, setShadowSize } from './world/maps/index.js';
 import { doPing, updatePings, clearPings } from './ui/ping.js';
 import { startDrill } from './game/modes.js';
+import { startEditor, stopEditor, editorOn, editorKey, editorTick, exportMap } from './game/editor.js';
+import { saveCustom, validCustom } from './world/maps/custommap.js';
 import { perfTick, perfFrameStart, initPower } from './engine/power.js';
 import { initViewmodel, setCamo } from './entities/viewmodel.js';
 import { giveWeapons, spawnPlayer, knifeSlot, updatePlayer, selectSlot, swapLast, cycleWeapon, startReload, grenadePress, grenadeRelease, onJumpPressed, onMouseDown, equipWeapon, refillAmmo, scopeZoom, toggleProne } from './entities/player.js';
@@ -68,7 +70,9 @@ function boot() {
   net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); }, pickSpawn: (u) => pickSpawn(u) });
   initMenus({
     onDeploy: deploy, onResume: resume, onFreeLook: () => { input.freeLook = true; resume(); },
-    onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy, onEndWarmup: endWarmup,
+    onRestart: () => { if (G.mp) { if (G.mp.host) net.hostStart(); return; } if (lastCfg) deploy(lastCfg); }, onQuit: quit, onRedeploy: redeploy, onEndWarmup: endWarmup, onOpenEditor: () => openEditor(), editorOn,
+    onEditorExport: () => { const j = exportMap(); try { navigator.clipboard.writeText(j); } catch (e) { /* no clipboard */ } window.prompt('Your map (copied to the clipboard). Share or keep this text:', j); },
+    onEditorImport: () => { const t = window.prompt('Paste a map’s text:'); if (!t) return; try { const m = JSON.parse(t); if (!validCustom(m)) throw new Error('bad'); saveCustom(m); openEditor(); } catch (e) { window.alert('That isn’t a valid map.'); } },
     onSkin: (k) => net.setSkin(k),
     onMapPreview: (id) => loadMap(id), onArmory, onCamo: (id) => setCamo(id), onSetting: applySetting,
   });
@@ -106,11 +110,12 @@ function applySetting(k) {
 function deploy(cfg) {
   if (!(G.mp && G.mp.live && G.mp.client)) G.spectating = null;
   if (cfg.mode === 'range') cfg = { ...cfg, map: 'range', count: 0 }; // the range is its own map
-  lastCfg = cfg; G.netPaused = false; clearPings();
+  lastCfg = cfg; G.netPaused = false; clearPings(); stopEditor();
   initAudio(); setVolume(G.profile.settings.volume); setMusicVolume(G.profile.settings.music);
   setScene(null); stinger('start'); // no music in a match, just the cue
   const veh = G.profile.lobby.vehicles; if (G.mp) G.profile.lobby.vehicles = !!cfg.vehicles; // multiplayer: the host's lobby setting
   startMatch(cfg); syncColliderDebug();
+  if (cfg.editor) startEditor();
   G.profile.lobby.vehicles = veh;
   showScreen(null);
   wantResume = false;
@@ -215,7 +220,11 @@ function onCanvasClick() {
 }
 
 let finaleVM = false;
+// map editor: sandbox on the custom map; rebuilding keeps you where you stand
+function editorReload() { const P = G.player, p = { x: P.x, y: P.y, z: P.z, yaw: P.yaw, pitch: P.pitch }; loadMap('custom', true); G.world.nav = null; Object.assign(P, p); }
+function openEditor() { G.profile.lobby.map = 'custom'; deploy({ mode: 'sandbox', map: 'custom', skill: 5, count: 0, editor: true }); }
 function onKeyDown(code, e) {
+  if (editorOn() && isLive() && !e.repeat && editorKey(code, editorReload, () => { stopEditor(); deploy({ mode: 'ffa', map: 'custom', skill: 5, count: 5 }); })) { e.preventDefault(); return; }
   if (G.state === 'finale') { if (!e.repeat && code !== 'Tab') skipKillcam(); return; }
   if (G.spectating && code === 'KeyV' && !e.repeat) { spectateToggleView(); return; }
   if (!(isLive() || G.state === 'paused')) return;
@@ -326,7 +335,7 @@ function loop(t) {
     if (Math.abs(G.camera.fov - 62) > 0.1) { G.camera.fov = 62; G.camera.updateProjectionMatrix(); }
   }
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
-  updateFx(dt); updatePings();
+  updateFx(dt); updatePings(); editorTick();
   render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive) || (G.state === 'finale' && finaleVM === true));
   perfTick();
 }

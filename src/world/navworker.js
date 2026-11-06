@@ -22,7 +22,7 @@ export const navWorkerOn = () => !!worker;
 export function initNavWorker(nav) {
   if (typeof Worker === 'undefined' || typeof window === 'undefined' || window.__step || !nav) { worker = null; return; }
   try {
-    if (!worker) { worker = new Worker(URL.createObjectURL(new Blob([SRC], { type: 'text/javascript' }))); worker.onmessage = (ev) => { const cb = pending.get(ev.data.q); pending.delete(ev.data.q); if (cb) cb(ev.data.ids); }; }
+    if (!worker) { worker = new Worker(URL.createObjectURL(new Blob([SRC], { type: 'text/javascript' }))); worker.onerror = () => { worker = null; }; worker.onmessage = (ev) => { const cb = pending.get(ev.data.q); pending.delete(ev.data.q); if (cb) cb(ev.data.ids); }; }
     const n = nav.nodes, N = n.length, x = new Float32Array(N), y = new Float32Array(N), z = new Float32Array(N), es = new Int32Array(N + 1);
     let tot = 0; for (let i = 0; i < N; i++) { x[i] = n[i].x; y[i] = n[i].y; z[i] = n[i].z; es[i] = tot; tot += n[i].edges.length; } es[N] = tot;
     const e = new Int32Array(tot), c = new Float32Array(tot); let k = 0; for (const nd of n) for (let j = 0; j < nd.edges.length; j++) { e[k] = nd.edges[j]; c[k++] = nd.cost[j]; }

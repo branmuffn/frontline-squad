@@ -11,9 +11,10 @@ import range from './firingrange.js';
 import atomicnight from './atomicnight.js';
 import harbour from './harbour.js';
 import radar from './radarbase.js';
+import custom from './custommap.js';
 
-export const MAPS = { yard, outpost, atomic, atomicnight, harbour, gorge, radar, range };
-export const MAP_LIST = [yard, outpost, atomic, atomicnight, harbour, gorge, radar];
+export const MAPS = { yard, outpost, atomic, atomicnight, harbour, gorge, radar, custom, range };
+export const MAP_LIST = [yard, outpost, atomic, atomicnight, harbour, gorge, radar, custom];
 
 function disposeGroup(g) {
   g.traverse((o) => {
@@ -22,9 +23,9 @@ function disposeGroup(g) {
   });
 }
 
-export function loadMap(id) {
+export function loadMap(id, force) {
   const def = MAPS[id] || yard;
-  if (G.world && G.world.id === def.id) return G.world;
+  if (!force && G.world && G.world.id === def.id && def.id !== 'custom') return G.world; // the custom map always rebuilds (editor)
   if (G.mapGroup) { G.scene.remove(G.mapGroup); disposeGroup(G.mapGroup); }
   const b = new MapBuilder();
   def.build(b);

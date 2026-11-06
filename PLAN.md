@@ -133,7 +133,9 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 3f-4 Snowbound Radar Base (large 128 x 100: dome + mast on a raised plateau with 4 ramps, two fenced compounds with huts, fuel tanks, containers, motor pools; snow drifts; vehicles: 2 jeeps, 2 ATVs, a helicopter, a Kestrel + routes; objectives at the drifts and the plateau). Snow materials. ATVs/Kestrels now follow jeep/heli bot routes. tests/mapsmoke.mjs, walls, spawnsep.
 - [x] 3f-5 batched drawing: engine/merge.js mergeStatic(group) merges a group's static child meshes per material (ATV and Kestrel bodies: ~12-16 -> ~2-3 draws each). Gorge totals ~140 draws; maps were already merged per material.
 - [x] 3f-6 bot pathfinding on a worker: world/navworker.js (A* on a CSR copy of the nav graph in a blob Worker; string-pull stays on the main thread via nav.smoothPath); 0.4 s game-time fallback to the sync search; off in the headless harness (fake clock). tests/navworker.mjs runs a real-time page and checks bots move with worker paths.
-- [ ] 3f remaining: map editor.
+- [x] 3f-7 map editor: main menu 'Map editor' opens a sandbox on the custom map (80 x 80 yard). 1-8 piece (block, wall, ramp, crate, container, platform, spawn A, spawn B), F place (1 m snap, on top of what you look at), R rotate, X remove, Z undo, T test-play (FFA + 5 bots); pause menu Export (JSON to clipboard) / Import (validated). Stored in localStorage 'frontline_custom_map'; 'CUSTOM MAP' in the map list (single player only; not offered in MP lobbies since it lives in each browser). tests/editor.mjs.
+- [x] Menu: the map list is a horizontal strip (9 maps); armory body scrolls; fit.mjs clean except the allowed 1024 settings body.
+- [x] 3f complete.
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
 ## Next: roadmap

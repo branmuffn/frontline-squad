@@ -30,7 +30,7 @@ const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(
 
 function fillSettings(cfg) {
   $('mpMode').innerHTML = net.MP_MODES.map((m) => opt(m, MODES[m].name + (net.COOP(m) ? ' (co-op)' : ' (versus)'), m === cfg.mode)).join('');
-  $('mpMap').innerHTML = Object.entries(MAPS).filter(([id]) => id !== 'range').map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
+  $('mpMap').innerHTML = Object.entries(MAPS).filter(([id]) => id !== 'range' && id !== 'custom') // custom maps live in each player's own browser.map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
   $('mpMap').closest('.field').classList.toggle('hidden', cfg.mode === 'range'); // the range is its own map
   $('mpDiff').innerHTML = Array.from({ length: 10 }, (_, i) => opt(i + 1, `${i + 1} · ${DIFFICULTY[skillBand(i + 1)].label}`, i + 1 === +cfg.skill)).join('');
   const counts = MP_COUNTS[cfg.mode];

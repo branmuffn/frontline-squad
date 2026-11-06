@@ -24,7 +24,7 @@
     </header>
     <div id="rankPlate" class="rank-plate"></div>
     <div class="field"><span class="flabel">Mode <button id="matchRulesBtn" class="flink" type="button">Match rules…</button></span><div id="modeSel" class="modes"></div><p id="modeDesc" class="mode-desc"></p></div>
-    <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps"></div></div>
+    <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps scroll-list"></div></div>
     <div class="row2">
       <div class="field"><span class="flabel"><span id="diffLabel">Bot skill</span> <button id="botRulesBtn" class="flink" type="button">Rules…</button></span><div id="diffSel" class="seg"></div></div>
       <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
@@ -44,6 +44,7 @@
       <button id="openMp" type="button">Multiplayer</button>
       <button id="openLoadout" type="button">Loadout</button>
       <button id="openOperator" type="button">Operator</button>
+      <button id="openEditor" type="button">Map editor</button>
       <button id="openSettings" type="button">Settings</button>
       <button id="openStreaks" type="button">Killstreaks</button>
       <button id="openCareer" type="button">Career</button>
@@ -185,7 +186,7 @@
   <div class="panel wide fit">
     <h2 id="armTitle">Weapon menu</h2>
     <p id="armLede" class="lede small">Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.</p>
-    <div class="pbody">
+    <div class="pbody scroll-list">
     <h3>Primary</h3><div id="armPrimary" class="arm-grid"></div>
     <h3>Sidearm</h3><div id="armSecondary" class="arm-grid"></div>
     <h3 id="armExtrasH">Killstreaks and supplies</h3><div id="armExtras" class="arm-grid"></div>
@@ -260,6 +261,7 @@
     <button id="pauseSettings" class="btn-ghost" type="button">Settings</button>
     <button id="pauseControls" class="btn-ghost" type="button">Controls</button>
     <button id="warmEnd" class="btn-primary hidden" type="button">End warm-up · start the match</button>
+    <button id="edExport" class="btn-ghost hidden" type="button">Export map</button><button id="edImport" class="btn-ghost hidden" type="button">Import map</button>
     <button id="restart" class="btn-ghost" type="button">Restart match</button>
     <button id="quit" class="btn-ghost" type="button">Quit to main menu</button>
   </div>

@@ -416,6 +416,7 @@ export function showPause(lockError) {
   const P = G.player, canRedeploy = !!(P && P.alive && G.pausedFrom === 'playing' && !G.mp);
   $('restart').classList.toggle('hidden', !!G.mp);
   $('warmEnd').classList.toggle('hidden', !(G.mp && G.mp.host && G.match && G.match.warmup));
+  for (const id of ['edExport', 'edImport']) $(id).classList.toggle('hidden', !cb.editorOn());
   $('quit').textContent = G.mp ? (G.mp.host ? 'End match for everyone' : 'Leave match') : 'Quit to main menu';
   $('redeploy').classList.toggle('hidden', !canRedeploy);
   $('relock').classList.toggle('hidden', !input.freeLook);
@@ -478,6 +479,8 @@ export function initMenus(callbacks) {
   $('redeploy').addEventListener('click', () => cb.onRedeploy());
   $('quit').addEventListener('click', () => cb.onQuit());
   $('warmEnd').addEventListener('click', () => cb.onEndWarmup());
+  $('openEditor').addEventListener('click', () => cb.onOpenEditor());
+  $('edExport').addEventListener('click', () => cb.onEditorExport()); $('edImport').addEventListener('click', () => cb.onEditorImport());
   $('again').addEventListener('click', () => cb.onRestart());
   $('armClose').addEventListener('click', () => cb.onArmory({ action: 'close' }));
   $('endMenu').addEventListener('click', () => cb.onQuit());

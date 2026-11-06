@@ -66,6 +66,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `veh3f.mjs` — ATV ride + Kestrel climb/fly on Gorge (/tmp/veh3f.png). `mapshot.mjs <map>` — map screenshots.
 - `mapsmoke.mjs <map>` — new-map smoke (spawns/pickups clear, 4 modes run). `vehshot.mjs` — ATV/Kestrel look.
 - `navworker.mjs` — real-time page (no fake clock): bots path via the worker.
+- `editor.mjs` — map editor: place/rotate/remove/undo, colliders, spawns, test-play with bots (/tmp/editor.png).
 - `quick.sh` — smoke suite: build, power, regress 6, mp.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).
