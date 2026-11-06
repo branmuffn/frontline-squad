@@ -1,3 +1,4 @@
+import { mergeStatic } from '../engine/merge.js';
 // Vehicles (Phase 6). 6a: a jeep with a driver seat and a mounted gun.
 // The jeep is a dynamic oriented box in G.world.dynamic: it blocks units (physics.blocked) and bullets (physics.rayWorld).
 // Bullets that hit its lower body damage it; occupants sit higher up and stay hittable. Explosions damage it.
@@ -200,8 +201,8 @@ export function wreckVehicle(v) {
   explosion(v.x, v.y + 1, v.z, 1.6);
   play('explosion', { x: v.x, y: v.y + 1, z: v.z }, { important: true, range: 180, ref: 14 });
   stopEngine(v);
-  v.m.hull.material = wreckMat(); v.m.gun.visible = false;
-  v.m.wheels.forEach((w) => { w.w.material = v.m.hull.material; });
+  v.m.body.traverse((o) => { if (o.isMesh && !o.material.transparent) o.material = wreckMat(); }); v.m.gun.visible = false;
+  v.m.wheels.forEach((w) => { w.w.material = wreckMat(); });
   for (const u of v.seats) if (u && u.vehicle === v) { u.vehicle = null; u.seat = -1; }
   v.seats = [null, null];
 }
@@ -222,8 +223,8 @@ function destroyVehicle(v, attacker) {
     if (d < 6) damage(u, 120 * (1 - d / 6) + 10, attacker, { weapon: 'vehicle', explosive: true, sx: v.x, sz: v.z });
   }
   stopEngine(v);
-  v.m.hull.material = wreckMat(); v.m.gun.visible = false;
-  v.m.wheels.forEach((w) => { w.w.material = v.m.hull.material; });
+  v.m.body.traverse((o) => { if (o.isMesh && !o.material.transparent) o.material = wreckMat(); }); v.m.gun.visible = false;
+  v.m.wheels.forEach((w) => { w.w.material = wreckMat(); });
   if (G.player && G.player.vehicle === v) exitVehicle(G.player);
 }
 let wreckM = null;
@@ -304,6 +305,7 @@ function makeAtvMesh() {
   add(new THREE.CylinderGeometry(0.025, 0.025, 0.8, 6).rotateZ(Math.PI / 2), dark, 0, 1.08, -0.55); add(new THREE.BoxGeometry(0.06, 0.32, 0.06), dark, 0, 0.92, -0.55);
   const wg = new THREE.CylinderGeometry(0.34, 0.34, 0.3, 14).rotateZ(Math.PI / 2), wheels = [];
   for (const [x, z] of [[-0.6, -0.68], [0.6, -0.68], [-0.6, 0.7], [0.6, 0.7]]) { const pivot = new THREE.Group(); pivot.position.set(x, 0.34, z); root.add(pivot); const w = new THREE.Mesh(wg, dark); w.castShadow = true; pivot.add(w); wheels.push({ pivot, w, front: z < 0 }); }
+  mergeStatic(body);
   const turret = new THREE.Group(), gun = new THREE.Group(); turret.add(gun); body.add(turret); turret.visible = false;
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false })); blob.position.y = 0.02; root.add(blob);
   G.scene.add(root); return { root, body, wheels, turret, gun, hull };
@@ -323,6 +325,7 @@ function makeKestrelMesh() {
     add(new THREE.CircleGeometry(0.15, 10), glowM, 1.55 * s, 0.85, 1.31);
     add(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6).rotateX(Math.PI / 2), darkM, 0.38 * s, 0.72, -1.75);
   }
+  mergeStatic(body);
   const rotor = new THREE.Group(), tail = new THREE.Group(); body.add(rotor); body.add(tail);
   const blades = new THREE.Group(), disc = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.01), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })); disc.visible = false;
   const turret = new THREE.Group(), gun = new THREE.Group(); turret.add(gun); body.add(turret); turret.visible = false;
