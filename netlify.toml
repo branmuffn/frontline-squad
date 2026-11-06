@@ -1,0 +1,4 @@
+# Netlify (continuous deploy from GitHub): builds the single offline HTML and publishes it as the site's index.html
+[build]
+  command = "npm ci && sh scripts/site.sh"
+  publish = "site"

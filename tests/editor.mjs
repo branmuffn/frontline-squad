@@ -1,7 +1,8 @@
 // Map editor: open it, place pieces (block, wall, ramp, spawns), remove/undo, the custom map rebuilds with colliders,
 // test-play as FFA with bots on it, and the JSON round-trips. Screenshot /tmp/editor.png
+import { open } from './harness.mjs';
 import { shotSession } from './shot.mjs';
-const s = await shotSession();
+const s = process.argv[2] === 'shot' ? await shotSession() : await open({ w: 640, h: 400 }); // logic in stub mode; 'shot' = real render
 const r = await s.page.evaluate(() => {
   const F = window.__frontline, G = F.G, o = {}; localStorage.removeItem('frontline_custom_map'); F.input.freeLook = true; G.profile.settings.renderScale = 0.1;
   document.getElementById('openEditor').click(); window.__step(220);
@@ -14,7 +15,7 @@ const r = await s.page.evaluate(() => {
   o.spawns = JSON.stringify(G.world.def.spawns.teams.map((t) => t.length));
   return o;
 });
-await s.shot('/tmp/editor.png');
+if (process.argv[2] === 'shot') await s.shot('/tmp/editor.png'); // real render (SwiftShader can crash on long sessions)
 const t = await s.page.evaluate(() => { const F = window.__frontline, G = F.G; window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyT' })); window.__step(60 * 15);
   return [G.match.mode, G.world.id, G.bots.length, G.units.filter((u) => !isFinite(u.x)).length, G.units.reduce((a, u) => a + u.kills, 0)]; });
 const ok = r.map === 'custom' && r.pieces === 'box,wall,ramp,spawnA,spawnB' && r.afterX === 4 && r.afterZ === 5 && t[0] === 'ffa' && t[1] === 'custom' && t[2] === 5 && t[3] === 0;
