@@ -131,7 +131,9 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] 3f-2 vehicles: ATV (one rider, 260 HP, ~50 km/h, no gun; drive() now uses each vehicle's spec for size/handling) and Kestrel (one-seat attack flyer, faster than the helicopter, nose guns, no tail rotor); vehicle code keys off spec.fly / spec.tail instead of type; Gorge gets 2 ATVs and 2 Kestrels. tests/veh3f.mjs. (Note: tests/vehicles.mjs crashes SwiftShader in this container before and after this change.)
 - [x] 3f-3 Harbour (container stacks with stairs, two gantry cranes, warehouses, a moored ship with a gangway; team A west / B east).
 - [x] 3f-4 Snowbound Radar Base (large 128 x 100: dome + mast on a raised plateau with 4 ramps, two fenced compounds with huts, fuel tanks, containers, motor pools; snow drifts; vehicles: 2 jeeps, 2 ATVs, a helicopter, a Kestrel + routes; objectives at the drifts and the plateau). Snow materials. ATVs/Kestrels now follow jeep/heli bot routes. tests/mapsmoke.mjs, walls, spawnsep.
-- [ ] 3f remaining: batched drawing, bot pathfinding in a worker, map editor.
+- [x] 3f-5 batched drawing: engine/merge.js mergeStatic(group) merges a group's static child meshes per material (ATV and Kestrel bodies: ~12-16 -> ~2-3 draws each). Gorge totals ~140 draws; maps were already merged per material.
+- [x] 3f-6 bot pathfinding on a worker: world/navworker.js (A* on a CSR copy of the nav graph in a blob Worker; string-pull stays on the main thread via nav.smoothPath); 0.4 s game-time fallback to the sync search; off in the headless harness (fake clock). tests/navworker.mjs runs a real-time page and checks bots move with worker paths.
+- [ ] 3f remaining: map editor.
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
 ## Next: roadmap

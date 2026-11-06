@@ -1,10 +1,11 @@
+import { navWorkerOn, requestPath } from '../world/navworker.js';
 import { botVehicle } from './vehicles.js';
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 import { PHYS, WEAPONS, DIFFICULTY, OPERATORS, operatorLook } from '../core/config.js';
 import { clamp, damp, rand, randInt, chance, angleDiff, coneDir } from '../core/util.js';
 import { moveBody, updateVertical, losClear, rayWorld, rayUnits, canStand, surfaceAt, stepSound, inWater, PENETRABLE } from '../world/physics.js';
-import { findPath, randomNode, nearestNode } from '../world/nav.js';
+import { smoothPath, findPath, randomNode, nearestNode } from '../world/nav.js';
 import { newShot, traceSegment, fireBullet } from './ballistics.js';
 import { makeUnit, damage, applyFall, isEnemy, noise, ladderBlocked, ladderBusy } from './units.js';
 import { drops, dropWeapon, removeDrop } from './worldprops.js';
@@ -175,14 +176,21 @@ const yawTo = (ax, az, bx, bz) => Math.atan2(-(bx - ax), -(bz - az));
 function setGoal(u, x, y, z, force) {
   const b = u.brain;
   if (!force && b.goal && b.path && Math.hypot(b.goal.x - x, b.goal.z - z) < 2.5 && G.now < b.repathAt) return;
-  b.goal = { x, y, z };
+  b.goal = { x, y, z }; b.repathAt = G.now + 1.4 + rand(0, 0.6);
+  if (navWorkerOn()) { // search on the worker; keep following the old path meanwhile
+    const a = nearestNode(u.x, u.y, u.z), t = nearestNode(x, y, z);
+    if (a && t) { const goal = b.goal, fx = u.x, fy = u.y, fz = u.z; b.pathReq = { at: G.now, goal };
+      requestPath(a.id, t.id, (ids) => { if (b.goal !== goal || !u.alive) return; b.pathReq = null; b.path = smoothPath(ids, fx, fy, fz, x, y, z) || [[x, y, z]]; b.pathI = 0; });
+      if (!b.path) { b.path = [[x, y, z]]; b.pathI = 0; } return; }
+  }
   b.path = findPath(u.x, u.y, u.z, x, y, z);
-  b.pathI = 0; b.repathAt = G.now + 1.4 + rand(0, 0.6);
+  b.pathI = 0;
   if (!b.path) b.path = [[x, y, z]];
 }
 
 function followPath(u) {
   const b = u.brain;
+  if (b.pathReq && G.now - b.pathReq.at > 0.4) { const g = b.pathReq.goal; b.pathReq = null; b.path = findPath(u.x, u.y, u.z, g.x, g.y, g.z) || [[g.x, g.y, g.z]]; b.pathI = 0; } // worker too slow: do it here
   if (!b.path) return null;
   while (b.pathI < b.path.length) {
     const p = b.path[b.pathI];

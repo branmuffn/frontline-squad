@@ -170,9 +170,13 @@ export function findPath(fx, fy, fz, tx, ty, tz) {
     }
   }
   if (!found) return null;
-  const pts = [];
-  for (let c = bnode.id; c !== -1; c = from[c]) { const n = nav.nodes[c]; const p = [n.x, n.y, n.z]; if (n.ladder) p.ladder = n.ladder; pts.push(p); }
-  pts.reverse();
+  const ids = []; for (let c = bnode.id; c !== -1; c = from[c]) ids.push(c);
+  return smoothPath(ids.reverse(), fx, fy, fz, tx, ty, tz);
+}
+// node ids -> walkable waypoints (string-pulled); shared by the sync search and the worker's answers
+export function smoothPath(ids, fx, fy, fz, tx, ty, tz) {
+  const nav = G.world.nav; if (!ids || !ids.length) return null;
+  const pts = ids.map((c) => { const n = nav.nodes[c]; const p = [n.x, n.y, n.z]; if (n.ladder) p.ladder = n.ladder; return p; });
   // string-pull: skip intermediate nodes when a straight walk works
   const out = [];
   let i = 0, cx = fx, cy = fy, cz = fz;

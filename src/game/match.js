@@ -1,3 +1,4 @@
+import { initNavWorker } from '../world/navworker.js';
 import { objectivePoints } from './objectives.js';
 import { dropWeapon, drops } from '../entities/worldprops.js';
 import { G } from '../core/state.js';
@@ -40,7 +41,7 @@ export function startMatch(cfg) {
   const mode = MODES[cfg.mode];
   loadMap(cfg.map);
   resetKillcam();
-  if (!G.world.nav) buildNav();
+  if (!G.world.nav) { buildNav(); initNavWorker(G.world.nav); }
   cleanupMatch();
   const skill = cfg.skill >= 1 ? +cfg.skill : skillFor(cfg.difficulty);
   G.match = {
