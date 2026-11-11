@@ -1,7 +1,7 @@
 // Bot pathfinding on a worker: enabled in a page without the test harness's fake clock; bots get worker paths and
 // move. Compares worker paths with the synchronous search for the same requests.
 import { createRequire } from 'module';
-const { chromium } = createRequire('/home/claude/.npm-global/lib/node_modules/')('playwright');
+const { chromium } = createRequire(import.meta.url)('playwright');
 import path from 'path'; import { fileURLToPath } from 'url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const browser = await chromium.launch(); const page = await browser.newPage({ viewport: { width: 640, height: 400 } }), errors = [];

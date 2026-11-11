@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire('/home/claude/.npm-global/lib/node_modules/');
+const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const THREE = fs.readFileSync(path.join(HERE, 'three.min.js'), 'utf8');
 const mode = process.argv[2] || 'tdm', map = process.argv[3] || 'yard', secs = +process.argv[4] || 10;
