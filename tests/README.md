@@ -1,7 +1,6 @@
 # Headless test harness (Playwright Chromium, SwiftShader)
 
-Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Playwright is loaded from the global npm root
-(`/home/claude/.npm-global/lib/node_modules/`); browsers from `$PLAYWRIGHT_BROWSERS_PATH`.
+Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Playwright is a devDependency (`npm install`); fetch its browser once with `npx playwright install chromium`.
 
 - `harness.mjs` — `open({ stub, w, h })` boots the standalone build at http://game.local/ with three.js served locally.
   `stub: true` (logic tests): renderer.render/clear/clearDepth replaced on the INSTANCE after boot (r128 defines render
