@@ -515,7 +515,9 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .flink { line-height: 1; }
 .row2.three #diffSel button { padding-left: 4px; padding-right: 4px; font-size: 13px; letter-spacing: 0; }
 .menu-nav { flex-wrap: nowrap; } .menu-nav button { min-width: 0; padding: 9px 4px; font-size: clamp(13px, 1.15vw, 17px); white-space: nowrap; }
-.build-tag { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint, #7f8a87); letter-spacing: 0.04em; } #mpBuild { margin: -4px 0 4px; }
+.build-tag { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint, #7f8a87); letter-spacing: 0.04em; }
+.credit-tag { margin: 2px 0 0; font-size: 12px; color: var(--ink-faint, #7f8a87); letter-spacing: 0.04em; }
+.credit-tag a { color: inherit; text-decoration: underline; } .credit-tag a:hover { color: var(--ink, #e8ecea); } #mpBuild { margin: -4px 0 4px; }
 #buildTag { position: fixed; right: 14px; bottom: 10px; margin: 0; pointer-events: none; }
 .row2.tight { gap: 10px; } .row2.tight .field { min-width: 0; } #fpsSel button { padding-left: 4px; padding-right: 4px; }
 #flashbang { position: absolute; inset: 0; background: #f4f6f2; opacity: 0; pointer-events: none; z-index: 3; }
@@ -633,6 +635,7 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
       <button id="openControls" type="button">Controls</button>
     </nav>
     <p id="buildTag" class="build-tag"></p>
+    <p class="credit-tag">Made by Brian Tea · <a href="https://github.com/branmuffn/frontline-squad" target="_blank" rel="noopener">GitHub</a></p>
   </div>
 </section>
 
@@ -912,7 +915,7 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
   <div id="fps" class="hidden"></div>
 </div>
 
-<script>window.__BUILD="build 99 · 2026-11-11";</script>
+<script>window.__BUILD="build 100 · 2026-11-11";</script>
 <script>
 /**
  * @license

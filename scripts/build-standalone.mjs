@@ -14,7 +14,8 @@ const three = fs.readFileSync('node_modules/three/build/three.min.js', 'utf8').r
 let html = fs.readFileSync('index.html', 'utf8');
 html = html.replace('<link rel="stylesheet" href="/src/fonts.css">\n', () => `<style>\n${fonts}</style>\n`);
 html = html.replace('<link rel="stylesheet" href="/src/styles.css">', () => `<style>\n${css}</style>`);
-if (/https?:\/\//.test(html.replace(/http:\/\/www\.w3\.org\/[^"']*/g, ''))) console.warn('WARNING: external URL left in the standalone build');
+// plain <a href> links load nothing, so they don't break offline play
+if (/https?:\/\//.test(html.replace(/http:\/\/www\.w3\.org\/[^"']*/g, '').replace(/<a [^>]*href="https?:\/\/[^"]*"/g, ''))) console.warn('WARNING: external URL left in the standalone build');
 // build label (menu + lobby): lets friends check they run the same version
 let n = 0; try { n = +execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim() + 1; } catch { n = 0; }
 const BUILD = `build ${n} · ${new Date().toISOString().slice(0, 10)}`;
