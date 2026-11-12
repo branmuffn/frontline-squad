@@ -49,10 +49,10 @@ Note anything odd in one list; one message per round of feedback works best.
    change it to a normal `import { chromium } from 'playwright'`).
 3. Run `claude` in the folder. Claude Code reads `CLAUDE.md` automatically (commands, rules, pitfalls).
 4. First prompt to paste:
-   > Read CLAUDE.md, docs/ONE_PAGER.md, PLAN.md and tests/README.md. Run `sh tests/quick.sh` and tell me if anything
+   > Read CLAUDE.md, docs/ONE_PAGER.md, PLAN.md and tests/README.md. Run `bash tests/quick.sh` and tell me if anything
    > fails on this machine (fix the test harness paths if needed). Then wait: I'll give you a list of play-test
    > feedback. Work one item at a time: fix, add/extend a test, run quick.sh, commit, push.
-5. Working style that saves tokens: one or two items per session, `sh tests/quick.sh` before each commit, `git push`
+5. Working style that saves tokens: one or two items per session, `bash tests/quick.sh` before each commit, `git push`
    to deploy, screenshots only for visual items, keep PLAN.md ticked.
 
 ## 4. If you continue in claude.ai instead

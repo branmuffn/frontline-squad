@@ -47,7 +47,7 @@ Run the tests (the smoke suite takes about 15 seconds on an Apple Silicon Mac):
 ```bash
 npx playwright install chromium   # one time
 sh tests/setup.sh                 # one time
-sh tests/quick.sh
+bash tests/quick.sh               # exits non-zero if anything fails
 ```
 
 ## Playing multiplayer

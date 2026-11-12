@@ -70,7 +70,9 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `mapsmoke.mjs <map>` — new-map smoke (spawns/pickups clear, 4 modes run). `vehshot.mjs` — ATV/Kestrel look.
 - `navworker.mjs` — real-time page (no fake clock): bots path via the worker.
 - `editor.mjs` — map editor: place/rotate/remove/undo, colliders, spawns, test-play with bots (/tmp/editor.png).
-- `quick.sh` — smoke suite: build, power, regress 6, mp.
+- `quick.sh` — smoke suite: build, power, regress 6, mp. Run with `bash tests/quick.sh`; exits non-zero if the build or any test fails
+  (bash `pipefail`, so `node … | tail -1` keeps the test's exit code). Every pass/fail test sets a non-zero exit code on FAIL;
+  measurement and screenshot scripts (`perf`, `*shot`, `lineup`, `loshot`, `skins`, `vm`, `readme-shots`) always exit 0.
 - `ship.sh "msg"` — build standalone + vite, commit, copy HTML to /mnt/user-data/outputs, re-zip project (no node_modules/dist).
   Then publish the artifact (Artifact tool, same URL).
 

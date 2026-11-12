@@ -7,7 +7,7 @@ host-authoritative). Read `docs/ONE_PAGER.md` (what exists), `docs/ARCHITECTURE.
 - `npm install`, `npx playwright install chromium` (once), then `sh tests/setup.sh` (copies three.min.js for the test harness)
 - Build the deliverable: `node scripts/build-standalone.mjs` -> `dist-standalone/frontline_solo_ops.html` (`npx vite build` must also work)
 - Dev server: `npm run dev`
-- Smoke suite (~15 s on an M4): `sh tests/quick.sh` — run before every commit
+- Smoke suite (~15 s on an M4): `bash tests/quick.sh` — run before every commit (exits non-zero if any test fails)
 - Full checks by area: see `tests/README.md` (regress, fit, walls, spawnsep, mp*, w3e, editor, seats, ...)
 - Ship: commit and `git push` to `main`; Netlify builds `netlify.toml` and deploys https://frontline-squad.netlify.app.
   (`tests/ship.sh` is from the claude.ai sandbox era and writes to /mnt/user-data; don't use it locally.)
