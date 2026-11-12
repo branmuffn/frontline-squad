@@ -15,6 +15,8 @@ import { play, setListener } from '../engine/audio.js';
 import { updateViewmodel, vmFire } from '../entities/viewmodel.js';
 
 const RATE = 0.05, KEEP = 5.5, MAX_FOOTAGE = 4, MAX_SPEED = 1.4, FALL = 0.5, TAIL = 0.35;
+// long shots: stay in the killer's eyes (and scope) for this share of the round's flight, then follow the round to the hit
+const BULLET_CAM_FROM = 0.6;
 // final blow: the last SLOW_PRE s before the kill and SLOW_POST after play at SLOW speed
 // (short respawn windows get a milder, shorter slow-down so there is still footage before it)
 const SLOWS = [{ k: 0.35, pre: 0.6, post: 0.15 }, { k: 0.6, pre: 0.4, post: 0.12 }].map((q) => ({ ...q, real: (q.pre + q.post) / q.k }));
@@ -233,7 +235,7 @@ function replayStep(dt, P) {
     G.camera.rotation.set(m.pitch, m.yaw, 0);
     const w = WEAPONS[ks.w] ? ks.w : 'm4';
     const fov = G.profile.settings.fov * (ks.fk || 1); // their zoom: iron sights, 2x, 4x or 8x scope
-    const flying = slugStep(r), bcam = flying && r.bulletCam;
+    const flying = slugStep(r), bcam = flying && r.bulletCam && (r.t - r.kill.t) / r.flight >= BULLET_CAM_FROM;
     if (bcam) { // follow the round
       const e = r.kill, dx = e.s.x - e.x0, dy = e.s.y - e.y0, dz = e.s.z - e.z0, L = Math.hypot(dx, dy, dz) || 1;
       G.camera.position.set(slug.position.x - dx / L * 1.3, slug.position.y - dy / L * 1.3 + 0.12, slug.position.z - dz / L * 1.3);

@@ -146,7 +146,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Settings toggle: scroll wheel switches weapons (default OFF).
 - [x] Search & Destroy with bots: when the player is out, free-fly spectating (no collisions); bots must keep playing (they stand still and the round never ends).
 - [x] Cascade Gorge: some soldiers near the top-back spawn are invisible (name tag shows, avatar doesn't) but still shoot.
-- [ ] Kill cam from the killer's exact perspective (through their scope when sniped).
+- [x] Kill cam from the killer's perspective: long shots now stay in the killer's eyes (their scope if they were aiming) for the first 60% of the round's flight, then follow the round (Brian chose this over all-scope or a setting). tests/kcscope.mjs.
 - [ ] Ideas (not yet scheduled): shoot from the Kestrel / ATV; mobile play.
 
 ## Next: roadmap

@@ -56,7 +56,11 @@ https://frontline-squad.netlify.app (or open the file directly). All art, audio 
 - Tests that need real time must use the game's fake clock; real-time features (the nav worker) get a dedicated real-time test.
 
 ## Status and next steps
-**Rev 4 complete** (see `PLAN.md` for the item-by-item log). Hand-off and setup guide: `docs/HANDOFF.md`.
+**Rev 5 (Claude Code, Nov 2026):** moved to GitHub with Netlify auto-deploys; tests run locally (`sh tests/quick.sh`, ~15 s on an M4).
+Fixed from play-testing: bots held fire whenever the player was dead (Search & Destroy rounds stalled), soldiers who
+respawned during a kill cam stayed in their corpse pose (looked invisible), wider main menu, wheel weapon-switch toggle,
+free-fly spectating in S&D, and long-range kill cams show the killer's scope before following the round.
+Item-by-item log: `PLAN.md`. Older hand-off guide (claude.ai era): `docs/HANDOFF.md`.
 Longer-term ideas: host-only mode, multiplayer custom maps/sandbox, spray patterns, match demos, gamepad + touch, PWA,
 colour-blind options, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels,
 full-state host migration, accounts (later).

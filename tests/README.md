@@ -13,6 +13,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `profile.mjs` — Export/Import profile round trip (download, file import, bad input).
 - `fit.mjs [shots]` — every screen at 1024×640/1280×720/1366×768/1920×1080: no page scroll, main button on screen, only `.scroll-list` may scroll (panel body too at 1024).
 - `killcam.mjs` (stubbed renderer; pass `shots` for real-render screenshots, which can crash SwiftShader on long runs) — [shots]` — AFK player dies in FFA: replay shows, killer hidden, key skips, free-look drift, respawn still 3 s.
+- `kcscope.mjs` — a long-range kill cam shows the killer's view (scope if aiming) first, then follows the round for the last 40% of its flight.
 - `kcrespawn.mjs` — a soldier who respawns during your kill cam comes back upright (it used to keep its corpse pose: "invisible" but shooting).
 - `sndout.mjs [map]` — S&D with the player out for the round: bots keep fighting (they used to hold fire while the player was dead) and the camera flies free.
 - `wheelswitch.mjs` — the mouse wheel switches weapons only when the Settings toggle is on (default off).
