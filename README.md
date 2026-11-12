@@ -73,4 +73,4 @@ It's a hobby project that is playable and tested but not finished. Known issues 
 
 ## Made by
 
-**Brian Tea** · [GitHub](https://github.com/branmuffn) · Licensed under the [MIT License](LICENSE).
+**Brian Tea** · [Portfolio](https://briantea.vercel.app) · [GitHub](https://github.com/branmuffn) · Licensed under the [MIT License](LICENSE).
