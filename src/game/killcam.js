@@ -132,7 +132,12 @@ function startReplay() {
 function endReplay() {
   if (!cam || !cam.replay || cam.phase !== 'replay') { showTag(false); return; }
   const r = cam.replay;
-  for (const { u, snap } of r.saved || []) if (u.soldier) { restorePose(u.soldier, snap); u.soldier.root.visible = true; if (u === cam.victim) setFlash(u.soldier, 0); }
+  for (const { u, snap } of r.saved || []) if (u.soldier) {
+    // the match kept running during the replay: anyone who respawned meanwhile must not get their old corpse pose back
+    // (they stayed lying in the grass while alive: invisible, name tag floating, still shooting)
+    if (u.alive && snap.dT >= 0) { u.soldier.deathT = -1; u.soldier.pose.rotation.set(0, 0, 0); } else restorePose(u.soldier, snap);
+    u.soldier.root.visible = true; if (u === cam.victim) setFlash(u.soldier, 0);
+  }
   if (body) { body.s.root.visible = false; setFlash(body.s, 0); }
   if (slug) slug.visible = false;
   G.camera.fov = G.profile.settings.fov; G.camera.updateProjectionMatrix(); document.getElementById('scope').classList.remove('on');
