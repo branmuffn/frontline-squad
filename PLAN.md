@@ -141,6 +141,14 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 **STATUS: Rev 4 complete — clean break point.**
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.
 
+## Rev 5 (Claude Code): Brian's play-test notes of 2026-11-06
+- [x] Main menu: use more of the screen on wide displays; mode names cut off ("Team Deathmatch"); bottom nav buttons spill out of their boxes. Sweep other screens for the same.
+- [ ] Settings toggle: scroll wheel switches weapons (default OFF).
+- [ ] Search & Destroy with bots: when the player is out, free-fly spectating (no collisions); bots must keep playing (they stand still and the round never ends).
+- [ ] Cascade Gorge: some soldiers near the top-back spawn are invisible (name tag shows, avatar doesn't) but still shoot.
+- [ ] Kill cam from the killer's exact perspective (through their scope when sniped).
+- [ ] Ideas (not yet scheduled): shoot from the Kestrel / ATV; mobile play.
+
 ## Next: roadmap
 See docs/ONE_PAGER.md "Roadmap" (17 suggestions: netcode, performance, content, reach). Ask the user which to build first.
 

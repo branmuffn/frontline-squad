@@ -575,3 +575,12 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 #xhClone { --gap: 8px; }
 #mp .btn-row { flex-wrap: nowrap; } #mp .btn-row button { padding-left: 16px; padding-right: 16px; }
 #mapSel { display: flex !important; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; max-height: none; } #mapSel > button { flex: 0 0 min(250px, 46%); }
+
+/* Rev 5 main menu: wider column on wide screens, full mode names, nav buttons in a tidy 4 x 2 grid */
+.menu-col { width: clamp(600px, 46vw, 860px); max-width: 100%; }
+#menu { background: linear-gradient(90deg, rgba(9, 12, 14, 0.95) 0%, rgba(9, 12, 14, 0.88) 42%, rgba(9, 12, 14, 0.3) 66%, rgba(9, 12, 14, 0) 84%); }
+.modes button { display: flex; align-items: center; min-height: 2.9em; }
+.modes button b { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.1; overflow-wrap: anywhere; text-wrap: balance; }
+.menu-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.menu-nav button { padding: 8px 6px; font-size: clamp(13px, 1.6vh, 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 700px) { .menu-col { width: 100%; } }
