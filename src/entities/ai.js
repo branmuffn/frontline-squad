@@ -499,7 +499,7 @@ export function updateBots(dt) {
     u.yaw += Math.sign(dyaw) * Math.min(Math.abs(dyaw), turn * dt);
     // ---- shooting ----
     const facing = Math.abs(dyaw) < 0.3;
-    const canShoot = aiming && G.now >= b.reactAt && facing && !b.reloadUntil && !(b.state === 'cover' && u.crouch && b.cover && b.wantCrouch) && G.state === 'playing' && !(G.match.rules && G.match.rules.passive);
+    const canShoot = aiming && G.now >= b.reactAt && facing && !b.reloadUntil && !(b.state === 'cover' && u.crouch && b.cover && b.wantCrouch) && (G.state === 'playing' || G.state === 'dead') && !(G.match.rules && G.match.rules.passive);
     if (u.laser) u.laser.visible = false;
     if (canShoot) {
       const w = WEAPONS[b.weapon];

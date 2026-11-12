@@ -286,6 +286,19 @@ function freeLook(dt, P, mdx, mdy) {
   cam.yaw -= mdx * kk; cam.pitch = clamp(cam.pitch - mdy * kk * (s.invertY ? -1 : 1), -1.45, 1.45);
   const f = (down('forward') ? 1 : 0) - (down('back') ? 1 : 0), st = (down('right') ? 1 : 0) - (down('left') ? 1 : 0);
   const up = (down('jump') ? 1 : 0) - (down('crouch') ? 1 : 0);
+  // out until the next round (Search & Destroy): fly anywhere, through walls, at speed
+  if (P.respawnAt > 1e8) {
+    if (f || st || up) {
+      const sp = (down('sprint') ? 24 : 10) * dt, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), cp = Math.cos(cam.pitch);
+      cam.cx += (-sy * cp * f + cy * st) * sp; cam.cz += (-cy * cp * f - sy * st) * sp;
+      cam.cy = clamp(cam.cy + (Math.sin(cam.pitch) * f + up) * sp, -5, 80);
+    }
+    cam.lift = 1;
+    G.camera.position.set(cam.cx, cam.cy, cam.cz);
+    G.camera.rotation.set(cam.pitch, cam.yaw, 0);
+    setListener(cam.cx, cam.cy, cam.cz, cam.yaw);
+    return;
+  }
   if (f || st || up) {
     const sp = 4 * dt, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
     const nx = cam.cx + (-sy * f + cy * st) * sp, nz = cam.cz + (-cy * f - sy * st) * sp, ny = clamp(cam.cy + up * sp, P.y + 0.3, P.y + 5);
