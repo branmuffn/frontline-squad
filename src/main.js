@@ -61,7 +61,7 @@ function boot() {
   applySetting('crosshair'); applySetting('showFps'); applySetting('scopeToggle'); setNameStyle(G.profile.settings.names);
   initInput(G.renderer.domElement, {
     inGame: () => (isLive() && !G.netPaused) || G.state === 'paused',
-    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'finale') { skipKillcam(); return; } if (G.spectating) { spectateCycle(b === 2 ? -1 : 1); return; } if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d)) cycleWeapon(d); },
+    onKeyDown, onKeyUp, onMouseDown: (b) => { if (G.state === 'finale') { skipKillcam(); return; } if (G.spectating) { spectateCycle(b === 2 ? -1 : 1); return; } if (G.netPaused) return; if (G.state === 'dead' && skipKillcam()) return; onMouseDown(b); }, onWheel: (d) => { if (G.state === 'playing' && !scopeZoom(d) && G.profile.settings.wheelSwitch) cycleWeapon(d); },
     onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });

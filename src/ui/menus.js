@@ -289,11 +289,11 @@ function refreshSettings() {
   const s = G.profile.settings;
   $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
   for (const [k, , , , , f] of SLIDERS) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
-  const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['showFps', 'Performance readout (fps, ms, draws)'],
+  const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
     ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1]];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
   const tg = ([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
-  $('toggles').innerHTML = TOG.filter((t) => !t[2] && t[0] !== 'showFps' && t[0] !== 'killcam').map(tg).join(''); $('gfxToggles').innerHTML = TOG.filter((t) => t[2] || t[0] === 'showFps' || t[0] === 'killcam').map(tg).join('');
+  $('toggles').innerHTML = TOG.filter((t) => !t[2] && t[0] !== 'showFps' && t[0] !== 'killcam' && t[0] !== 'wheelSwitch').map(tg).join(''); $('gfxToggles').innerHTML = TOG.filter((t) => t[2] || t[0] === 'showFps' || t[0] === 'killcam' || t[0] === 'wheelSwitch').map(tg).join('');
   for (const [k, , gfx] of TOG) $('set_' + k).addEventListener('change', (e) => {
     const v = e.target.checked;
     if (k === 'shadowFull') s.shadowRate = v ? 'full' : 'half'; else if (k === 'previewSmooth') s.previewFps = v ? 60 : 30; else s[k] = v;
@@ -390,7 +390,7 @@ export function showEnd(r) {
 export function showArmory() {
   const P = G.player, cur = P.weapons, isRange = G.match && G.match.mode === 'range';
   $('armTitle').textContent = isRange ? 'Range rack' : 'Weapon menu';
-  $('armLede').textContent = isRange ? 'Tick as many guns as you like: you carry all of them here. Switch with the mouse wheel, 1–9 or Q. B or Esc closes.' : 'Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.';
+  $('armLede').textContent = isRange ? 'Tick as many guns as you like: you carry all of them here. Switch with 1–9 or Q (or the mouse wheel, if it’s on in Settings). B or Esc closes.' : 'Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.';
   if (isRange) {
     const rk = G.profile.rangeRack || [], rb = (id) => `<button type="button" data-r="${id}" class="${rk.includes(id) ? 'sel' : ''}"><b>${rk.includes(id) ? (rk.indexOf(id) + 1) + ' · ' : ''}${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
     $('armPrimary').innerHTML = ALL_PRIMARIES.map(rb).join(''); $('armSecondary').innerHTML = SECONDARIES.map(rb).join('');

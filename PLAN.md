@@ -143,7 +143,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 
 ## Rev 5 (Claude Code): Brian's play-test notes of 2026-11-06
 - [x] Main menu: use more of the screen on wide displays; mode names cut off ("Team Deathmatch"); bottom nav buttons spill out of their boxes. Sweep other screens for the same.
-- [ ] Settings toggle: scroll wheel switches weapons (default OFF).
+- [x] Settings toggle: scroll wheel switches weapons (default OFF).
 - [ ] Search & Destroy with bots: when the player is out, free-fly spectating (no collisions); bots must keep playing (they stand still and the round never ends).
 - [ ] Cascade Gorge: some soldiers near the top-back spawn are invisible (name tag shows, avatar doesn't) but still shoot.
 - [ ] Kill cam from the killer's exact perspective (through their scope when sniped).

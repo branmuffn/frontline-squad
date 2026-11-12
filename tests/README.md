@@ -13,6 +13,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `profile.mjs` — Export/Import profile round trip (download, file import, bad input).
 - `fit.mjs [shots]` — every screen at 1024×640/1280×720/1366×768/1920×1080: no page scroll, main button on screen, only `.scroll-list` may scroll (panel body too at 1024).
 - `killcam.mjs` (stubbed renderer; pass `shots` for real-render screenshots, which can crash SwiftShader on long runs) — [shots]` — AFK player dies in FFA: replay shows, killer hidden, key skips, free-look drift, respawn still 3 s.
+- `wheelswitch.mjs` — the mouse wheel switches weapons only when the Settings toggle is on (default off).
 - `scope.mjs [shots]` — L96 4×/8× via wheel and Z (true optical FOV), Mk 14 fixed 2×, scope label.
 - `lineup.mjs` — screenshots a line-up of soldiers (every gun), a zombie and an infected, standing and running (/tmp/lineup_*.png).
 - `vm.mjs [ids]` — first-person gun screenshots (/tmp/vm_<id>.png).

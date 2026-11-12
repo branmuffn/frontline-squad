@@ -477,7 +477,7 @@ const range = {
   },
   score() {
     if (drill) return { an: drill.kind === 'flick' ? 'HITS' : 'DAMAGE', a: String(Math.round(drill.score)), bn: 'TIME', b: String(Math.max(0, Math.ceil(drill.until - G.now))), sub: drill.kind === 'flick' ? 'Flick drill · hit the red target' : 'Tracking drill · stay on the movers' };
-    return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B: range rack (carry any guns) · wheel / 1-9 / Q to switch' }; },
+    return { an: 'RANGE', a: String(G.player.kills), bn: 'BEST', b: String(G.match.bestHit || 0), sub: 'Practice range · B: range rack (carry any guns) · 1-9 / Q to switch' }; },
 };
 import { dom, koth, snd } from './objectives.js';
 export const HOOKS = { gungame, infection, ctf, zombies, range, dom, koth, snd };
