@@ -51,4 +51,5 @@ for (const [w, h] of SIZES) {
   }
 }
 console.log(bad.length ? bad.join('\n') : 'ALL SCREENS FIT'); console.log('ERRORS', errors.length, errors.slice(0, 3));
+process.exitCode = !bad.length && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

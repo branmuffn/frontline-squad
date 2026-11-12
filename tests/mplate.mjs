@@ -63,4 +63,5 @@ check('spectator', c2.spec && /Spectating/.test(c2.tag) && c2.proxies > 0 && !hu
 await ev(C2, () => { window.dispatchEvent(new MouseEvent('mousedown', { button: 0 })); }); await run(4);
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

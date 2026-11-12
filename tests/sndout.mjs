@@ -27,4 +27,5 @@ const r = await page.evaluate((map) => {
 }, map);
 const ok = r.out && r.hint && r.flew > 15 && r.camAboveBody > 5 && (r.botDeaths > 0 || r.roundDecided);
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS sndout' : 'FAIL sndout', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

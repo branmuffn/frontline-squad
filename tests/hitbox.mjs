@@ -52,4 +52,7 @@ const out = await page.evaluate(([maps, TOL]) => {
 }, [MAPS, TOL]);
 for (const [k, v] of Object.entries(out)) console.log(k, JSON.stringify(v));
 console.log('ERRORS', errors.length, errors.slice(0, 3));
+const badMaps = Object.entries(out).filter(([, v]) => v.bad > 0).map(([k, v]) => k + ' ' + v.bad);
+console.log(!badMaps.length && !errors.length ? 'PASS hitbox' : 'FAIL hitbox ' + badMaps.join(', '));
+process.exitCode = !badMaps.length && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

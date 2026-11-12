@@ -55,4 +55,5 @@ check('real match starts with lobby settings', st && real[0] === 'tdm' && !real[
 check('warm-up gave no XP', (await ev(C, () => window.__frontline.G.profile.xp)) === xp0, null);
 check('errors', !errors.length, errors.slice(0, 4));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

@@ -22,4 +22,6 @@ const r = await page.evaluate((map) => {
   return o;
 }, map);
 const ok = !r.brushPast && !r.backInto && r.climbs && r.blocked && r.botGaveWay;
-console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

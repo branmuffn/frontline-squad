@@ -17,4 +17,7 @@ await page.setInputFiles('#importFile', { name: 'p.json', mimeType: 'application
 await page.waitForTimeout(300); const ok = await page.textContent('#saveMsg');
 const after = await page.evaluate(() => { const G = window.__frontline.G; return [G.profile.xp, G.profile.career.kills, G.profile.settings.volume, !!G.profile.loadout]; });
 console.log({ hidden: r, downloaded: !!json, bytes: json && json.length, bad, bad2, ok, after, errors });
+const pass = !!json && after[0] === 12345 && after[1] === 77 && !errors.length; // the exported file restores xp and kills
+console.log(pass ? 'PASS profile' : 'FAIL profile');
+process.exitCode = pass ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

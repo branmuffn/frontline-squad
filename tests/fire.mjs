@@ -12,4 +12,5 @@ console.log(await page.evaluate(() => { const F = window.__frontline, G = F.G, o
     o[wid] = [G.match.stats.shots, G.match.stats.hits, +(1000 - T.health).toFixed(0)];
   }
   return JSON.stringify(o); }), errors);
+process.exitCode = errors.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

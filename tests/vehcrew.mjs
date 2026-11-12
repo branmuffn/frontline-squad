@@ -32,4 +32,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.jeep.dead && r.jeep.shots <= 7 && r.heli.dead && r.heli.shots <= 10 && r.heli.shots >= r.jeep.shots && r.jeep.alive && r.blast < 100 && r.tail > 60;
 console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

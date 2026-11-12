@@ -70,7 +70,7 @@ const errs = s.h.bots.map((b) => { const p = s.c.prox.find((q) => q.id === b.id)
 check('proxies track', errs.length > 0 && Math.max(...errs) < 1.5, errs.map((e) => e.toFixed(2)));
 if (SHOT) { // look at the host from the client
   await C.evaluate(() => { const F = window.__frontline, G = F.G, P = G.player, h = [...F.net.session.proxies.values()].find((u) => u.human); P.x = h.x + 4; P.z = h.z + 4; P.yaw = Math.atan2(P.x - h.x, P.z - h.z); P.pitch = -0.1; G.renderer.setPixelRatio(1); });
-  await run(8); await C.screenshot({ path: '/tmp/mp_client.png' }); console.log('shots saved'); await browser.close(); process.exit(0);
+  await run(8); await C.screenshot({ path: '/tmp/mp_client.png' }); console.log('shots saved'); await browser.close(); process.exit(fail.length ? 1 : 0);
 }
 // hit claim: client damages a bot proxy
 const target = s.h.bots[0];
@@ -160,4 +160,5 @@ check('rematch', s.c.state === 'playing' && s.h.state === 'playing' && s.c.n ===
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(mode, map, JSON.stringify(out, null, 1));
 console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

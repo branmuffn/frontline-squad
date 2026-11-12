@@ -21,4 +21,5 @@ const e = await page.evaluate(() => {
 await page.screenshot({ path: '/tmp/mvp.png' });
 const ok = r.pop && /^FX1-[0-9a-f]{6}-14-/.test(r.code) && r.var === '14px' && r.after[0] === '#ffd34d' && r.after[2] && r.after[3] && /isn’t/.test(r.bad) && /MVP/.test(e[1]) && !e[2];
 console.log(JSON.stringify(r), JSON.stringify(e), ok && !errors.length ? 'PASS xhmvp' : 'FAIL xhmvp', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

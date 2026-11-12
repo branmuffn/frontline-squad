@@ -39,4 +39,5 @@ const r3 = await s.page.evaluate(() => {
   return out;
 });
 console.log(JSON.stringify({ ...r, ...r2, ...r3 }), 'ERRORS', s.errors.length, s.errors.slice(0, 3));
+process.exitCode = s.errors.length ? 1 : 0; // exit non-zero on FAIL
 await s.browser.close();

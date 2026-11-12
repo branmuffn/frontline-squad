@@ -28,4 +28,5 @@ for (const zd of diffs) {
   console.log(JSON.stringify(r));
 }
 console.log('errors', errors.slice(0, 3));
+process.exitCode = errors.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

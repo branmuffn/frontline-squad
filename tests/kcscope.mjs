@@ -40,4 +40,5 @@ while (!r.slugFrames && tries < 3) { r = await run(); tries++; }
 r.tries = tries;
 const ok = r.placed && /^((scope|eyes)>)+bullet$/.test(r.seq); // the killer's view (scoped if they were) first, then the round
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS kcscope' : 'FAIL kcscope', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

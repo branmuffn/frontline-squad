@@ -29,4 +29,5 @@ for (const [far, gun] of [[+process.argv[2] || 60, process.argv[3] || 'l96'], [1
   ok = ok && pass; console.log(gun, far + ' m', JSON.stringify(r), pass ? 'ok' : 'FAIL');
 }
 console.log(ok && !errors.length ? 'PASS kcvictim' : 'FAIL kcvictim', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

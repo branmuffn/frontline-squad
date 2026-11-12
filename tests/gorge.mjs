@@ -24,4 +24,6 @@ const r = await page.evaluate(() => {
   return o;
 });
 const ok = r.brakeBack.alive && r.brakeBack.hp >= 70 && (!r.noBrake.alive || r.noBrake.hp < 35) && !r.steepBack.alive && r.viaStairs;
-console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

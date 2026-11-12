@@ -15,4 +15,5 @@ await page.evaluate(() => { const G = window.__frontline.G, o = G.renderer.__ori
 await page.screenshot({ path: '/tmp/kc_zombie.png' });
 const ok = r.died && r.orbit && r.swipes > 0;
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS kczombie' : 'FAIL kczombie', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

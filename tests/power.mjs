@@ -28,4 +28,5 @@ const ok = out.defaults.join() === 'balanced,60,1.25,high,half,true' && out.migr
   && out.menuRendersLow <= 32 && out.menuRendersFull >= 58 && out.max[0] === 'max' && out.max[1] === 0 && out.fps120[0] === 'custom' && out.battery[3] === 'low'
   && out.shadowLow[0] === 'custom' && out.mapSize === 1024 && /draws/.test(out.readout) && !errors.length;
 console.log(ok ? 'PASS power' : 'FAIL power');
+process.exitCode = ok ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

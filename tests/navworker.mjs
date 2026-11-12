@@ -13,4 +13,5 @@ console.log('clock', t0, await page.evaluate(() => [window.__frontline.G.now, pe
 const r = await page.evaluate(() => { const G = window.__frontline.G; return { state: G.state, moved: G.bots.filter((b) => b.alive && b.brain.path && b.brain.path.length > 1).length, pending: G.bots.filter((b) => b.brain.pathReq).length, kills: G.units.reduce((a, u) => a + u.kills, 0) }; });
 const on = await page.evaluate(() => typeof Worker !== 'undefined' && !window.__step);
 console.log(JSON.stringify({ workerPossible: on, ...r }), on && r.moved > 0 && !errors.length ? 'PASS navworker' : 'FAIL navworker', errors.slice(0, 3));
+process.exitCode = on && r.moved > 0 && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

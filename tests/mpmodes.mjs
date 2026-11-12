@@ -125,4 +125,5 @@ for (const mode of only ? [only] : ['gungame', 'infection', 'ctf', 'zombies', 'r
 }
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

@@ -65,4 +65,5 @@ for (const id of maps) {
   total += r.n; console.log(r.id, 'visuals', r.vis, 'gaps (1 m cells)', r.n, JSON.stringify(r.byMat)); if (process.env.KEYS) console.log('  keys', r.keys); for (const [k, c] of r.list) console.log('   ', k, '×' + c);
 }
 console.log(total === 0 && !errors.length ? 'PASS walls' : 'FAIL walls', errors.slice(0, 3));
+process.exitCode = total === 0 && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

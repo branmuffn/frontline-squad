@@ -52,4 +52,5 @@ const c2 = await ev(C2, () => ({ role: window.__frontline.net.session.role, clie
 check('others reconnecting', c2.client, c2);
 check('errors', errors.filter((e) => !/ERR_NAME_NOT_RESOLVED|WebSocket|peerjs/i.test(e)).length === 0, errors.slice(0, 6));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

@@ -24,4 +24,5 @@ await s.shot('/tmp/veh3f.png', () => { const F = window.__frontline, G = F.G, P 
   if (P.vehicle) F.exitVehicle && F.exitVehicle(P); Object.assign(k, { x: a.x + 3, z: a.z + 2, y: a.y, pitch: 0, roll: 0 }); P.x = a.x - 6; P.z = a.z + 1; P.y = a.y; P.yaw = Math.atan2(-(a.x + 1 - P.x), -(a.z + 1 - P.z)); P.pitch = -0.2; window.__step(2); });
 const ok = r.atvIn && r.atvMoved > 10 && r.kIn && r.kClimb > 3 && r.kFlew > 15 && !r.nan && /atv/.test(r.types) && /kestrel/.test(r.types);
 console.log(JSON.stringify(r), ok && !s.errors.length ? 'PASS veh3f' : 'FAIL veh3f', s.errors.slice(0, 3));
+process.exitCode = ok && !s.errors.length ? 0 : 1; // exit non-zero on FAIL
 await s.browser.close();

@@ -28,4 +28,5 @@ out.mk14_label = await s.page.textContent('#scopeMag');
 if (SHOTS) await s.shot('/tmp/b5_2x.png');
 out.lists = await s.page.evaluate(() => { const W = window.__frontline; return null; });
 console.log(JSON.stringify(out), 'ERRORS', s.errors.length, s.errors.slice(0, 3));
+process.exitCode = s.errors.length ? 1 : 0; // exit non-zero on FAIL
 await s.browser.close();

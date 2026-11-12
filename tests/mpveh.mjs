@@ -103,4 +103,5 @@ c = await ev(C, (vid) => { const v = window.__frontline.vehicles.find((q) => q.v
 check('respawn mirrored', c === true, c);
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

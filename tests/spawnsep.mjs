@@ -12,4 +12,5 @@ const r = await page.evaluate(() => {
   return out;
 });
 console.log(r.length ? 'overlaps: ' + r.join(', ') : 'no overlaps', !r.length && !errors.length ? 'PASS spawnsep' : 'FAIL spawnsep', errors.slice(0, 3));
+process.exitCode = !r.length && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

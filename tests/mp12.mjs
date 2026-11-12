@@ -56,4 +56,5 @@ const seen = await ev(J[J.length - 1], () => [window.__frontline.net.session.pro
 console.log(JSON.stringify({ lobby, started, ...r, lastJoinerSees: seen, errors: errors.slice(0, 3) }));
 const ok = lobby[0] === NJ && started && r.humans === NJ + 1 && seen[1] >= seen[0] - 1 && !errors.length;
 console.log(ok ? 'PASS mp12' : 'FAIL mp12');
+process.exitCode = ok ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

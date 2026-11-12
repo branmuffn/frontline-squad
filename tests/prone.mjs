@@ -20,4 +20,5 @@ const r = await s.page.evaluate(() => {
 });
 if (SHOTS) await s.shot('/tmp/prone.png', () => { const P = window.__frontline.G.player; P.pitch = 0; window.__step(2); });
 console.log(JSON.stringify(r), 'ERRORS', s.errors.length, s.errors.slice(0, 2));
+process.exitCode = s.errors.length ? 1 : 0; // exit non-zero on FAIL
 await s.browser.close();

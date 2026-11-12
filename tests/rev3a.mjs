@@ -16,4 +16,6 @@ const r = await page.evaluate(() => {
 });
 const pk = await page.evaluate(() => { const F = window.__frontline; F.deploy({ mode: 'ffa', map: 'yard', skill: 5, count: 3, pickups: false }); window.__step(30); const a = F.G.world && document; return F.G.match.pickupsOn; });
 const ok = r.noLimit && r.tdm[0] === 25 && r.tdm[1] === 300 && r.slots[1].startsWith(r.slots[0].split(',')[0]) && r.slots[1].includes('l96') && pk === false;
-console.log(JSON.stringify(r), pk, ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), pk, ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

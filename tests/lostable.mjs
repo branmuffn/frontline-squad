@@ -7,4 +7,6 @@ const r = await page.evaluate(() => {
   return out;
 });
 const ok = r.every(([a, b, fit, btn]) => Math.abs(a - b) < 2 && fit && btn);
-console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

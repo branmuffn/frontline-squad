@@ -19,4 +19,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.flickBest > 5 && r.trackBest > 50 && /Flick/.test(r.flickSub) && /Tracking/.test(r.trackSub);
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS drill' : 'FAIL drill', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

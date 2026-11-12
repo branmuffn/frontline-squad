@@ -18,4 +18,5 @@ const r = await page.evaluate(() => {
 const ok = r.map === 'range' && r.dummies === 13 && r.atMarks && r.moves && r.number.length && r.down && r.up && r.xp === 0 && r.armory;
 console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
 if (process.argv[2] === 'shots') { await page.evaluate(() => { const F = window.__frontline; F.ui.showScreen(null); document.getElementById('armory').classList.add('hidden'); const G = F.G; G.state = 'playing'; Object.assign(G.renderer, G.renderer.__orig); window.__step(2); }); await page.screenshot({ path: '/tmp/range.png' }); }
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

@@ -47,4 +47,5 @@ const res = await page.evaluate(() => {
 });
 for (const r of res) console.log(JSON.stringify(r));
 console.log('ERRORS', errors.length, errors.slice(0, 2));
+process.exitCode = errors.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

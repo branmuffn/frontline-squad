@@ -32,4 +32,5 @@ const r2 = await s.page.evaluate(() => {
 });
 if (SHOTS) await s.shot('/tmp/kc_after.png');
 console.log(JSON.stringify(r), JSON.stringify(r2), 'ERRORS', s.errors.length, s.errors.slice(0, 3));
+process.exitCode = s.errors.length ? 1 : 0; // exit non-zero on FAIL
 await s.browser.close();

@@ -24,4 +24,6 @@ const r = await page.evaluate(() => {
   return o;
 });
 const ok = r.heavy[0] === 'heavy' && r.heavy[1] === 3 && r.heavy[2] < 1 && r.heavyHp === 60 && r.flashStun && r.stuck && r.stickyHurt && r.claymore && r.light[0] > 1;
-console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

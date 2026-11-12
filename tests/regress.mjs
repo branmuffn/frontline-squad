@@ -41,4 +41,11 @@ for (const map of MAPS) for (const mode of MODES) {
   console.log(JSON.stringify(r));
 }
 console.log('ERRORS', errors.length, errors.slice(0, 8));
+// FAIL (exit 1): console/page errors or NaN positions. Spawn/pickup checks (bad) and units inside geometry (insideMax)
+// are printed as warnings only: harbour's spawns at x = ±40, z = 0 have always tripped spawn-nav.
+const nan = res.filter((r) => r.nan > 0).map((r) => r.map + '/' + r.mode);
+const warn = [...new Set(res.flatMap((r) => r.bad.map((b) => r.map + ' ' + b)).concat(res.filter((r) => r.insideMax > 0).map((r) => `${r.map}/${r.mode} insideMax ${r.insideMax}`)))];
+const pass = !errors.length && !nan.length;
+console.log(pass ? 'PASS regress' : 'FAIL regress' + (nan.length ? ' NaN: ' + nan.join(', ') : '') + (errors.length ? ' errors: ' + errors.length : ''), warn.length ? '(warnings: ' + warn.join(', ') + ')' : '');
+process.exitCode = pass ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

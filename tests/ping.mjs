@@ -16,4 +16,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.n1 === 1 && r.n2 === 2 && r.n3 === 0 && r.log.join(' ').includes('Enemy spotted') && r.log.join(' ').includes('Danger');
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS ping' : 'FAIL ping', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

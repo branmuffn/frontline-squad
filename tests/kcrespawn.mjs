@@ -21,4 +21,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.aDeathPose && r.replay && r.aAliveInReplay && r.replayOver && r.aUpright;
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS kcrespawn' : 'FAIL kcrespawn', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

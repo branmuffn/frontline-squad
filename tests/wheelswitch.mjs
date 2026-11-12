@@ -18,4 +18,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.default === false && r.toggle && !r.offMoved && r.onMoved;
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS wheelswitch' : 'FAIL wheelswitch', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

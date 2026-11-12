@@ -16,4 +16,5 @@ console.log(await page.evaluate(() => { const F = window.__frontline, G = F.G, B
   F.deploy({ mode: 'sandbox', map: 'atomic', difficulty: 'normal', count: 1 }); window.__step(240);
   const P2 = G.player, T2 = G.bots[0];
   return JSON.stringify(o); }), errors);
+process.exitCode = errors.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

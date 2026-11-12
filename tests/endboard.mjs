@@ -15,4 +15,5 @@ for (const [mode, map, count] of [['infection', 'gorge', 5], ['gungame', 'yard',
 await page.screenshot({ path: '/tmp/endboard.png' });
 const ok = Object.values(out).every((v) => v[0] === 'ended' && v[1] >= 2) && out.infection[2] === 'Victory';
 console.log(JSON.stringify(out), ok && !errors.length ? 'PASS endboard' : 'FAIL endboard', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

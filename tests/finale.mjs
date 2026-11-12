@@ -17,4 +17,6 @@ const r = await page.evaluate(() => {
   return o;
 });
 const ok = r.full.state === 'finale' && r.full.tag === 'Final kill' && r.full.vis && r.full.after === 'ended' && r.full.frames > 60 && r.full.endShown && r.skip.afterSkip === 'ended';
-console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3)); await browser.close();
+console.log(JSON.stringify(r), ok ? 'ALL OK' : 'FAILED', 'ERRORS', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
+await browser.close();

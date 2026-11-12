@@ -24,4 +24,5 @@ const none = await page.evaluate(() => window.__frontline.G.profile.rangeRack.le
 const ok = r.open && r.title === 'Range rack' && r.stillOpen && r.weapons === 'm4,ak47,l96,barrett,mp5,m870,deagle,knife' && r.labels === 7 && r.digit5 === 'mp5'
   && r.afterRespawn === r.weapons && r.saved === 7 && r.all > 10 && none === 0 && /\/8/.test(r.hud);
 console.log(JSON.stringify(r), none, ok && !errors.length ? 'PASS rack' : 'FAIL rack', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

@@ -17,4 +17,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.kestrel.in && r.kestrel.seat === 0 && r.kestrel.seats === 1 && r.atv.seat === 0 && r.atv.seats === 1 && r.jeep.seat === 1 && r.heli.seat === 1 && r.kestrel.ran > 0.8 && !/2Gun/.test(r.kestrel.keys.replace(/\s/g, ''));
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS seats' : 'FAIL seats', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

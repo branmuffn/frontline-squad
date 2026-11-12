@@ -56,4 +56,5 @@ await ev(H, () => window.__frontline.net.sendChat('/yes')); await sleep(200); aw
 check('surrender ends the match', await ev(H, () => window.__frontline.G.match.ended || window.__frontline.G.state === 'ended' || window.__frontline.G.state === 'finale'), null);
 check('errors', !errors.filter((e) => !/kicked|removed/.test(e)).length, errors.slice(0, 4));
 console.log(JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

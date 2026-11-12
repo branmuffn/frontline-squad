@@ -93,4 +93,5 @@ const after = await Promise.all([ev(H, () => [window.__frontline.net.session.rem
 check('kick', after[0][0] === 1 && after[0][1] === 2 && after[1][0] !== 'playing' && !after[1][1], after);
 check('errors', errors.length === 0, errors.slice(0, 6));
 console.log(mode, map, JSON.stringify(out, null, 1)); console.log(fail.length ? 'FAILED: ' + fail.join(', ') : 'ALL OK');
+process.exitCode = fail.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

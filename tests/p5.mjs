@@ -12,4 +12,5 @@ console.log(await page.evaluate(([mode, map, secs]) => { const F = window.__fron
   if (mode === 'zombies') o.z = [G.match.round, G.match.points, G.match.remaining, G.bots.length];
   o.end = document.getElementById('endTitle').textContent + ' / ' + document.getElementById('endDetail').textContent;
   return JSON.stringify(o); }, [mode, map, secs]), errors.slice(0, 5));
+process.exitCode = errors.length ? 1 : 0; // exit non-zero on FAIL
 await browser.close();

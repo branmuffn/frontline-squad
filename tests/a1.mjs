@@ -1,6 +1,6 @@
 import { open } from './harness.mjs';
 const { browser, page, errors } = await open({w:320,h:240});
-console.log(await page.evaluate(() => { const F = window.__frontline, G = F.G, P = () => G.player, o = {}; F.input.freeLook = true;
+const out = await page.evaluate(() => { const F = window.__frontline, G = F.G, P = () => G.player, o = {}; F.input.freeLook = true;
   F.deploy({ mode: 'ffa', map: 'yard', difficulty: 'normal', count: 3 }); window.__step(200);
   // shove player into each map's colliders and check escape
   for (const map of ['yard','outpost','atomic','gorge']) { F.deploy({ mode: 'sandbox', map, difficulty: 'normal', count: 0 }); window.__step(200);
@@ -21,5 +21,9 @@ console.log(await page.evaluate(() => { const F = window.__frontline, G = F.G, P
   const l0 = G.match.lives; window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' })); window.__step(1); document.getElementById('redeploy').click(); window.__step(2);
   o.survival = { state: G.state, livesLost: l0 - G.match.lives, feed: document.getElementById('killfeed') && document.getElementById('killfeed').textContent.slice(0, 60) };
   window.__step(400); o.survivalAfter = G.state;
-  return JSON.stringify(o, null, 1); }), errors);
+  return JSON.stringify(o, null, 1); });
+console.log(out, errors);
+const stuckIn = Object.entries(JSON.parse(out)).filter(([, v]) => v && Array.isArray(v.fail) && v.fail.length).map(([k]) => k); // collider escape failures per map
+console.log(!stuckIn.length && !errors.length ? 'PASS a1' : 'FAIL a1' + (stuckIn.length ? ' stuck in colliders: ' + stuckIn.join(', ') : ''));
+process.exitCode = !stuckIn.length && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

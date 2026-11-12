@@ -20,4 +20,5 @@ const t = await s.page.evaluate(() => { const F = window.__frontline, G = F.G; w
   return [G.match.mode, G.world.id, G.bots.length, G.units.filter((u) => !isFinite(u.x)).length, G.units.reduce((a, u) => a + u.kills, 0)]; });
 const ok = r.map === 'custom' && r.pieces === 'box,wall,ramp,spawnA,spawnB' && r.afterX === 4 && r.afterZ === 5 && t[0] === 'ffa' && t[1] === 'custom' && t[2] === 5 && t[3] === 0;
 console.log(JSON.stringify(r), JSON.stringify(t), ok && !s.errors.length ? 'PASS editor' : 'FAIL editor', s.errors.slice(0, 3));
+process.exitCode = ok && !s.errors.length ? 0 : 1; // exit non-zero on FAIL
 await s.browser.close();

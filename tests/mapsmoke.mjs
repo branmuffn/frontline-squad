@@ -2,7 +2,7 @@
 import { open } from './harness.mjs';
 const { browser, page, errors } = await open({ w: 320, h: 240 });
 const map = process.argv[2] || 'harbour';
-console.log(await page.evaluate((map) => {
+const line = await page.evaluate((map) => {
   const F = window.__frontline, G = F.G, out = []; F.input.freeLook = true;
   // spawn/pickup validity like regress: not blocked, on the nav grid
   F.deploy({ mode: 'ffa', map, skill: 5, count: 9 }); window.__step(30);
@@ -17,5 +17,9 @@ console.log(await page.evaluate((map) => {
     out.push(`${mode}: kills ${kills} nan ${nan} stuck ${stuck}`);
   }
   return out.join(' | ') + ' || bad: ' + bad.join(', ');
-}, map), 'ERR', errors.slice(0, 3));
+}, map);
+console.log(line, 'ERR', errors.slice(0, 3));
+const ok = !/ (nan|stuck) [1-9]/.test(line) && /\|\| bad: $/.test(line) && !errors.length; // no NaN, no stuck units, nothing in bad
+console.log(ok ? 'PASS mapsmoke ' + map : 'FAIL mapsmoke ' + map);
+process.exitCode = ok ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

@@ -22,4 +22,5 @@ const r = await page.evaluate(() => {
 });
 const ok = r.scarh && r.vector && r.crossbow && r.gl && r.railBoth && r.mag === 45 && r.recoil === 0.75 && r.power.filter(Boolean).length === 2;
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS w3e' : 'FAIL w3e', errors.slice(0, 3));
+process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();
