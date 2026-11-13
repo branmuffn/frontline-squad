@@ -5,7 +5,12 @@ import { encodeSn, encodeSt, decode } from './codec.js';
 //  2. Manual codes: copy-paste an invite code and a reply code (no server at all; works offline on a LAN).
 import { Peer } from 'peerjs';
 
-const opts = () => window.__NET_OPTS || {}; // test hook: { signal: 'localhost:9000', nostun: true }
+const opts = () => window.__NET_OPTS || {}; // test hook: { signal: 'localhost:9000', nostun: true, nobroker: true, loopback: true }
+// Test-only (__NET_OPTS.loopback): both pages run on one machine, so point our IPv4/mDNS host candidates at 127.0.0.1.
+// Lets the mp tests connect where a firewall drops UDP to the LAN address (macOS firewall + headless Chromium). Real play
+// never sets __NET_OPTS, so codes are untouched. Manual codes don't trickle: every candidate is in the SDP.
+const HOST_CAND = /^(a=candidate:\S+ \d+ \S+ \d+ )(\d{1,3}(?:\.\d{1,3}){3}|[\w-]+\.local)( \d+ typ host)/gm;
+const loSdp = (sdp) => (opts().loopback ? sdp.replace(HOST_CAND, (_, head, addr, tail) => head + '127.0.0.1' + tail) : sdp);
 // STUN finds a direct route (works for most home networks). When both sides sit behind strict NATs (mobile hotspots,
 // carrier-grade NAT, some office/school Wi-Fi) a TURN relay forwards the traffic instead: PeerJS's free relay is always
 // offered, plus an optional relay of the user's own (lobby > Advanced), e.g. a free Metered or Cloudflare account.
@@ -159,7 +164,7 @@ export async function manualInvite() {
   const { pc, opened } = rawPair();
   await pc.setLocalDescription(await pc.createOffer());
   await gathered(pc);
-  const code = await pack({ k: 'o', sdp: pc.localDescription.sdp });
+  const code = await pack({ k: 'o', sdp: loSdp(pc.localDescription.sdp) });
   return {
     code,
     async accept(reply) {
@@ -177,5 +182,5 @@ export async function manualReply(invite) {
   await pc.setRemoteDescription({ type: 'offer', sdp: r.sdp });
   await pc.setLocalDescription(await pc.createAnswer());
   await gathered(pc);
-  return { code: await pack({ k: 'a', sdp: pc.localDescription.sdp }), link: opened, close() { try { pc.close(); } catch {} } };
+  return { code: await pack({ k: 'a', sdp: loSdp(pc.localDescription.sdp) }), link: opened, close() { try { pc.close(); } catch {} } };
 }

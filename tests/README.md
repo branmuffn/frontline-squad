@@ -28,6 +28,8 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `perf.mjs [map] [0|1]` — draw calls, triangles and frame ms in TDM with 9 bots, vehicles off/on (SwiftShader: compare runs, not absolute ms).
 - `p5.mjs <mode> <map> [secs]` — quick run of a Phase 5 mode.
 - `mp.mjs <mode> <map> [secs]` — two pages (host + joiner) connected with manual codes: sync, hit/kill claims, hurt, death/respawn, grenades, Zombies buying, FFA/TDM teams, PvP, drop handoff, end + rematch. `SHOT=1` saves /tmp/mp_lobby.png and /tmp/mp_client.png.
+  `FPS_LOOPBACK=1` (all `mp*.mjs`) connects the two pages over 127.0.0.1 instead of the LAN address. Use it where a firewall
+  drops UDP to headless Chromium (the macOS firewall on the M14). Test-only: real play never sets it.
 - `bots.mjs [secs]` — bot skill 1–10 (monotonic AI numbers, bands, legacy difficulty), every "Bots may" rule off is obeyed, No bots.
 - `uishot.mjs [w] [h]` — screenshots of the main menu (bot rules card open) and the MP lobby (/tmp/ui_*.png).
 - `mp3.mjs [mode] [map] [secs]` — host + 2 joiners: ready gate, unique names, chat relay (lobby + HUD), TDM team dealing, skins, pings on the scoreboard, joiner-vs-joiner hits, kick.
