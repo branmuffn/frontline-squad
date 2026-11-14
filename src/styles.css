@@ -639,3 +639,25 @@ body.touch #freeLook, body.touch #relock, body.touch #lockMsg, body.touch #pause
 @media (orientation: portrait) {
   body.touch #rotateMsg { display: flex; position: fixed; inset: 0; z-index: 95; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: var(--bg); color: var(--ink); font-size: 20px; }
 }
+/* Phone menus (Brian picked M2, 2026-11-14): touch screens held sideways (short screens). The main menu keeps its column,
+   a bit smaller, and Deploy is pinned to the bottom-right corner; the column scrolls a little behind it. */
+@media (max-height: 560px) {
+  body.touch #menu { padding: 0 14px; align-items: flex-start; }
+  body.touch #menu .menu-col { width: min(620px, calc(100% - 290px)); max-width: none; padding: calc(6px + env(safe-area-inset-top, 0px)) 0 16px; gap: 6px; }
+  body.touch #menu .brand { margin: 0; }
+  body.touch #menu .logo { font-size: 28px !important; }
+  body.touch #menu .sub { font-size: 16px; }
+  body.touch #menu #rankPlate, body.touch #menu .build-tag, body.touch #menu .credit-tag { display: none; }
+  body.touch #menu .modes { gap: 5px; }
+  body.touch #menu .modes button { padding: 6px 8px !important; min-height: 0; }
+  body.touch #menu .modes button b { font-size: 12px !important; }
+  body.touch #menu .maps button small { display: none !important; }
+  body.touch #menu .flabel { font-size: 12px; }
+  body.touch #menu #deploy { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: 260px; height: 56px; padding: 0; margin: 0; z-index: 40; font-size: 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); }
+  body.touch #menu .menu-nav button { padding: 9px 6px; font-size: 12px; }
+  /* other screens: the panel scrolls as one page and its Done / Back row stays pinned at the bottom, always reachable */
+  body.touch .screen { padding: 6px 10px; }
+  body.touch .panel.fit { overflow-y: auto; overscroll-behavior: contain; }
+  body.touch .panel.fit > .pbody { flex: none; min-height: auto; overflow: visible; }
+  body.touch .panel.fit > .btn-row { position: sticky !important; bottom: -12px; z-index: 3; margin-top: 8px; padding: 8px 0 12px !important; background: var(--panel) !important; }
+}

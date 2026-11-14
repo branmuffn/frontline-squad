@@ -148,7 +148,8 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Cascade Gorge: some soldiers near the top-back spawn are invisible (name tag shows, avatar doesn't) but still shoot.
 - [x] Kill cam from the killer's perspective: long shots now stay in the killer's eyes (their scope if they were aiming) for the first 60% of the round's flight, then follow the round (Brian chose this over all-scope or a setting). tests/kcscope.mjs.
 - [x] Phone and tablet play (Brian picked layout A "thumb arc" + light aim assist, 2026-11-14): touch screens get a move stick (rim = sprint), drag-to-look on the right, Fire (hold and slide to keep aiming) with Aim / Reload / Crouch (hold = prone) / Jump / Grenade around it, tap the ammo box to switch weapon, hold the score for the scoreboard, Use and Killstreak buttons when available, pause button; smaller HUD; no mouse lock; full screen + landscape on deploy where allowed, "turn sideways" message in portrait; Battery saver graphics on first start; Settings > Touch controls Auto/On/Off, touch look speed, aim assist toggle. Desktop unchanged. `src/core/touch.js`, `src/entities/aimassist.js`, tests/touch.mjs.
-- [ ] Phone follow-ups: phone-sized menus (mockups first), play-test on a real phone (Brian).
+- [x] Phone menus (Brian picked M2, 2026-11-14): on phones held sideways the main menu is a bit smaller with Deploy pinned to the bottom-right corner; every other screen scrolls as one panel with its Done / Back row pinned at the bottom (Loadout's Done used to be unreachable on a phone). tests/touch.mjs checks every screen's main button.
+- [ ] Phone follow-ups: play-test on a real phone (Brian); old desktop issues found by the full run: fit (1024x640 Settings panel scrolls 52 px) and hitbox (Cascade Gorge: 8 rock colliders 0.6 m outside the rock).
 - [ ] Ideas (not yet scheduled): shoot from the Kestrel / ATV.
 
 ## Next: roadmap

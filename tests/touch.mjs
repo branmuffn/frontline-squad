@@ -1,6 +1,7 @@
 // Touch controls (phones/tablets): desktop shows none of it; on a touch screen the stick moves, the right side looks,
 // and every button works (fire, aim, reload, crouch/prone, jump, grenade, weapon, scoreboard, pause/resume, use);
-// light aim assist slows turning over an enemy; phone defaults (Battery saver) apply once; portrait asks to rotate.
+// light aim assist slows turning over an enemy; phone defaults (Battery saver) apply once; portrait asks to rotate;
+// phone menus keep every screen's main button on screen.
 import { open } from './harness.mjs';
 const fails = [], errs = [];
 const check = (name, ok, info) => { if (!ok) fails.push(name + (info !== undefined ? ' ' + JSON.stringify(info) : '')); };
@@ -40,6 +41,16 @@ const r0 = await ev(() => { const F = window.__frontline, G = F.G; return { touc
 check('phone: touch mode on', r0.touch === true, r0);
 check('phone: Battery saver graphics on first start', r0.q === 'battery' && r0.setup === true, r0);
 
+// phone menus (Brian picked M2): every screen's main button is on screen without scrolling the page
+const scr = await ev(() => { const F = window.__frontline, out = {};
+  const S = { menu: [() => F.ui.showScreen('menu'), '#deploy'], loadout: [() => F.ui.showLoadout(true), '#loadoutDone'],
+    settings: [() => document.getElementById('openSettings').click(), '#settings .btn-row .btn-primary'], streaks: [() => document.getElementById('openStreaks').click(), '#streaksDone'],
+    career: [() => document.getElementById('openCareer').click(), '#careerDone'], controls: [() => document.getElementById('openControls').click(), '#controls .btn-row button'] };
+  for (const [k, [fn, sel]] of Object.entries(S)) { F.ui.showScreen('menu'); fn(); window.__step(2); const r = document.querySelector(sel).getBoundingClientRect();
+    out[k] = r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && document.documentElement.scrollHeight <= innerHeight + 1; }
+  F.ui.showScreen('menu'); return out; });
+check('phone menus: main buttons reachable', Object.values(scr).every(Boolean), scr);
+
 await ev(() => { const F = window.__frontline, G = F.G; F.deploy({ mode: 'tdm', map: 'yard', skill: 5, count: 2 }); window.__step(240);
   G.match.rules = { passive: true }; for (const b of G.bots) { b.x = 999; b.z = 999; } });
 await step(2);
@@ -53,7 +64,7 @@ const openYaw = () => ev(() => { const F = window.__frontline, P = F.G.player; l
   P.yaw = best; P.pitch = 0; return { x: P.x, z: P.z, yaw: best, free: bt }; });
 const fwdOf = (a, b) => (a.x - b.x) * Math.sin(a.yaw) + (a.z - b.z) * Math.cos(a.yaw); // distance moved along the facing direction
 let a = await openYaw();
-await down(1, 150, 300); await move(1, 150, 270); await move(1, 150, 236); await step(40);
+await down(1, 150, 300); await move(1, 150, 270); await move(1, 150, 236); await page.waitForFunction(() => window.__frontline.input.moveY > 0.95); await step(40);
 let b = await ev(() => { const F = window.__frontline, P = F.G.player; return { x: P.x, z: P.z, sprint: P.sprinting, my: F.input.moveY }; });
 await up(1); await step(30);
 const fwd = fwdOf(a, b);
@@ -63,14 +74,14 @@ const rest = await ev(() => ({ my: window.__frontline.input.moveY, k: window.__f
 check('stick: release stops', rest.my === 0 && !rest.k, rest);
 // half push walks slower
 a = await openYaw();
-await down(1, 150, 300); await move(1, 150, 276); await step(40);
+await down(1, 150, 300); await move(1, 150, 276); await page.waitForFunction(() => window.__frontline.input.moveY > 0.2); await step(40);
 b = await ev(() => { const P = window.__frontline.G.player; return { x: P.x, z: P.z, sprint: P.sprinting }; }); await up(1); await step(30);
 const half = fwdOf(a, b);
 check('stick: half push = slower, no sprint', half > 0.5 && half < fwd * 0.7 && !b.sprint, { half, fwd, a });
 
 // look: drag on the right side turns (no enemy near)
 const look = async (dx) => { const y0 = await ev(() => window.__frontline.G.player.yaw); await down(2, 560, 200);
-  for (let i = 1; i <= 4; i++) { await move(2, 560 + dx * i / 4, 200); await step(1); } await up(2); await step(1); return y0 - await ev(() => window.__frontline.G.player.yaw); };
+  for (let i = 1; i <= 4; i++) { await move(2, 560 + dx * i / 4, 200); await step(1); } await up(2); await page.waitForTimeout(40); await step(2); return y0 - await ev(() => window.__frontline.G.player.yaw); };
 const turn = await look(100);
 check('look: drag turns right', turn > 0.2 && turn < 0.5, turn);
 
@@ -120,11 +131,14 @@ await up(6); await step(2);
 check('scoreboard: hold shows', bd && await ev(() => document.getElementById('board').classList.contains('hidden')), bd);
 
 // aim assist: slower turn while an enemy sits on the crosshair, normal with the setting off
-await ev(() => { const G = window.__frontline.G, P = G.player, e = G.bots.find((u) => u.team !== P.team); P.yaw = 0; P.pitch = 0; P.slot = 0;
-  e.x = P.x; e.z = P.z - 15; e.y = P.y; e.alive = true; window.__step(2); });
-const tA = await look(30);
-await ev(() => { const G = window.__frontline.G, P = G.player; P.yaw = 0; window.__step(2); G.profile.settings.aimAssist = false; });
-const tB = await look(30);
+// (enemy 20 m straight ahead; a short drag keeps the crosshair on it; step 4 frames so the 20 Hz check refreshes)
+const placeEnemy = (assist) => ev((assist) => { const F = window.__frontline, G = F.G, P = G.player, e = G.bots.find((u) => u.team !== P.team);
+  let yaw = 0, bt = -1; // the most open direction, so no wall sits between you and the enemy (cover turns the assist off)
+  for (let i = 0; i < 16; i++) { const y = i * Math.PI / 8, h = F.physics.rayWorld(P.x, P.y + 1.4, P.z, -Math.sin(y), 0, -Math.cos(y), 40); const t = h ? h.t : 40; if (t > bt) { bt = t; yaw = y; } }
+  const put = () => { e.x = P.x - Math.sin(yaw) * 20; e.z = P.z - Math.cos(yaw) * 20; e.y = P.y; };
+  P.yaw = yaw; P.pitch = 0; put(); e.alive = true; G.profile.settings.aimAssist = assist; window.__step(4); put(); return bt; }, assist);
+await placeEnemy(true); const tA = await look(12);
+await placeEnemy(false); const tB = await look(12);
 await ev(() => { window.__frontline.G.profile.settings.aimAssist = true; });
 check('aim assist: slower over an enemy', tA > 0 && tA < tB * 0.75, { tA, tB });
 
