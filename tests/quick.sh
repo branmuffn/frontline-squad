@@ -9,6 +9,7 @@ node scripts/build-standalone.mjs >/dev/null
 failed=()
 t() { node "$@" | tail -1 || failed+=("${*#tests/}"); }
 t tests/power.mjs
+t tests/touch.mjs
 t tests/regress.mjs 6
 t tests/mp.mjs
 if [ ${#failed[@]} -gt 0 ]; then echo "quick.sh: FAILED: ${failed[*]}"; exit 1; fi

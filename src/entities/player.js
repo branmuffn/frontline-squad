@@ -3,6 +3,7 @@ import { G } from '../core/state.js';
 import { withAttachments, PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
+import { aimAssistFactor } from './aimassist.js';
 import { updateDeathCam, endDeathCam } from '../game/killcam.js';
 import { ladderBlocked } from './units.js';
 import { applyGear } from './gear.js';
@@ -351,7 +352,8 @@ export function updatePlayer(dt) {
   const w = W(), id = cur();
   // look
   const fovNow = G.camera.fov, adsScale = P.adsT > 0.5 ? s.adsSens * (fovNow / s.fov) : 1;
-  const k = 0.0022 * s.sens * adsScale;
+  const aa = input.touch && s.aimAssist && !P.vehicle && (mdx || mdy) ? aimAssistFactor(P) : 1; // touch players only
+  const k = 0.0022 * s.sens * adsScale * aa;
   P.yaw -= mdx * k; P.pitch -= mdy * k * (s.invertY ? -1 : 1);
   const kl = 2.4 * dt;
   if (input.keys.ArrowLeft) P.yaw += kl; if (input.keys.ArrowRight) P.yaw -= kl;
@@ -360,8 +362,9 @@ export function updatePlayer(dt) {
   if (P.vehicle) { playerVehicle(P, dt); updateViewmodel(dt, { visible: false }); hud.updatePlayerHud(P, { spread: 0.01, reloadP: -1, cook: -1 }); return; }
 
   // movement
-  const f = frozen ? 0 : (down('forward') ? 1 : 0) - (down('back') ? 1 : 0);
-  const st = frozen ? 0 : (down('right') ? 1 : 0) - (down('left') ? 1 : 0);
+  let f = frozen ? 0 : (down('forward') ? 1 : 0) - (down('back') ? 1 : 0);
+  let st = frozen ? 0 : (down('right') ? 1 : 0) - (down('left') ? 1 : 0);
+  if (!frozen && input.touch && (input.moveX || input.moveY)) { f = input.moveY; st = input.moveX; } // touch stick: analog
   const wantCrouch = !frozen && (down('crouch') || down('crouchAlt'));
   if (P.prone && (!P.grounded || P.onLadder)) P.prone = false;
   if (P.prone) P.crouch = false;
@@ -406,7 +409,7 @@ export function updatePlayer(dt) {
     }
   }
   P.onLadder = false;
-  const len = Math.hypot(f, st) || 1;
+  const len = Math.max(1, Math.hypot(f, st)); // keys: same as before (diagonals normalised); a half-pushed stick walks slower
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tvx = (fx * f + rx * st) / len * speed, tvz = (fz * f + rz * st) / len * speed;
   const acc = P.grounded ? 13 : 2.2;

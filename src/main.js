@@ -2,7 +2,8 @@ import * as chat from './ui/chat.js';
 import { streakState } from './entities/streaks.js';
 import { initChat } from './ui/chat.js';
 import { G, isLive } from './core/state.js';
-import { loadProfile, saveProfile } from './core/storage.js';
+import { loadProfile, saveProfile, applyQuality } from './core/storage.js';
+import { initTouch, setTouch, wantTouch, touchTick, goFullscreen } from './core/touch.js';
 import { $ } from './core/util.js';
 import { initInput, input, matches, requestLock, exitLock, isLocked, clearInput } from './core/input.js';
 import { initRenderer, render, resize } from './engine/render.js';
@@ -52,6 +53,8 @@ let wantResume = false, lastCfg = null;
 function boot() {
   if (!window.WebGLRenderingContext) throw new Error('WebGL is not available in this browser.');
   loadProfile();
+  const st0 = G.profile.settings; // first start on a phone or tablet: Battery saver graphics (cooler, smoother); changeable in Settings
+  if (!st0.touchSetup && wantTouch(st0)) { applyQuality(st0, 'battery'); st0.touchSetup = true; saveProfile(); }
   initRenderer($('game'));
   initFx();
   initViewmodel();
@@ -65,6 +68,7 @@ function boot() {
     onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
+  initTouch({ onPause: () => pause(false), onCycle: () => { const P = G.player; if (G.state === 'playing' && P && P.alive && !P.vehicle) cycleWeapon(1); } });
   initChat();
   initLobby({ showScreen });
   net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); }, pickSpawn: (u) => pickSpawn(u) });
@@ -104,6 +108,7 @@ function applySetting(k) {
   if (k === 'scopeToggle') { input.aimToggle = !!s.scopeToggle; input.aim = false; }
   if (k === 'showFps') $('fps').classList.toggle('hidden', !s.showFps);
   if (k === 'crosshair') document.documentElement.style.setProperty('--ch', s.crosshair);
+  if (k === 'touch') setTouch(wantTouch());
   if (k === 'fov' && !isLive()) { G.camera.fov = s.fov; G.camera.updateProjectionMatrix(); }
 }
 
@@ -119,7 +124,7 @@ function deploy(cfg) {
   G.profile.lobby.vehicles = veh;
   showScreen(null);
   wantResume = false;
-  if (!input.freeLook) requestLock();
+  if (input.touch) goFullscreen(); else if (!input.freeLook) requestLock();
 }
 
 let armoryOpen = false;
@@ -164,12 +169,12 @@ function pause(lockError) {
 function resume() {
   if (G.netPaused) {
     if (!isLive()) { G.netPaused = false; return; }
-    if (input.freeLook || isLocked()) { G.netPaused = false; showScreen(null); return; }
+    if (input.freeLook || input.touch || isLocked()) { G.netPaused = false; showScreen(null); return; }
     wantResume = true; requestLock(); return;
   }
   if (G.state !== 'paused') return;
   initAudio();
-  if (input.freeLook || isLocked()) { G.state = G.pausedFrom; showScreen(null); return; }
+  if (input.freeLook || input.touch || isLocked()) { G.state = G.pausedFrom; showScreen(null); return; }
   wantResume = true;
   requestLock();
 }
@@ -217,7 +222,7 @@ function onLockError() {
 }
 function onCanvasClick() {
   if (G.state === 'paused' || G.netPaused) resume();
-  else if (isLive() && !isLocked() && !input.freeLook) requestLock();
+  else if (isLive() && !isLocked() && !input.freeLook && !input.touch) requestLock();
 }
 
 let finaleVM = false;
@@ -336,7 +341,7 @@ function loop(t) {
     if (Math.abs(G.camera.fov - 62) > 0.1) { G.camera.fov = 62; G.camera.updateProjectionMatrix(); }
   }
   if (G.mapGroup) { const cl = G.mapGroup.getObjectByName('clouds'); if (cl) cl.material.map.offset.x += dt * 0.0015; }
-  updateFx(dt); updatePings(); editorTick();
+  updateFx(dt); updatePings(); editorTick(); touchTick();
   render(isLive() && G.player && (G.player.alive || killcamActive()) || (G.state === 'paused' && G.player && G.player.alive) || (G.state === 'finale' && finaleVM === true));
   perfTick();
 }

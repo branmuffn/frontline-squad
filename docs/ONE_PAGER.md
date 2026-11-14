@@ -61,6 +61,6 @@ Fixed from play-testing: bots held fire whenever the player was dead (Search & D
 respawned during a kill cam stayed in their corpse pose (looked invisible), wider main menu, wheel weapon-switch toggle,
 free-fly spectating in S&D, and long-range kill cams show the killer's scope before following the round.
 Item-by-item log: `PLAN.md`. Older hand-off guide (claude.ai era): `docs/HANDOFF.md`.
-Longer-term ideas: host-only mode, multiplayer custom maps/sandbox, spray patterns, match demos, gamepad + touch, PWA,
+Longer-term ideas: host-only mode, multiplayer custom maps/sandbox, spray patterns, match demos, gamepad, PWA,
 colour-blind options, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels,
 full-state host migration, accounts (later).

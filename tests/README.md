@@ -2,7 +2,7 @@
 
 Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Playwright is a devDependency (`npm install`); fetch its browser once with `npx playwright install chromium`.
 
-- `harness.mjs` — `open({ stub, w, h })` boots the standalone build at http://game.local/ with three.js served locally.
+- `harness.mjs` — `open({ stub, w, h, touch })` (`touch: true` = phone emulation: touch screen, mobile viewport) boots the standalone build at http://game.local/ with three.js served locally.
   `stub: true` (logic tests): renderer.render/clear/clearDepth replaced on the INSTANCE after boot (r128 defines render
   per instance, a prototype patch does nothing) → ~1 ms/frame. requestAnimationFrame is replaced; advance with `window.__step(n)`.
   Use a small viewport (320×240) for logic tests.
@@ -80,3 +80,4 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 
 Gotchas: set `__frontline.input.freeLook = true` before Deploy; scripted mouse events nudge free-look yaw, so reset yaw before
 firing tests; dispatch key events on `window`; Escape pauses via window keydown; `G.player` is a new object each deploy.
+- `touch.mjs` — phone touch controls: hidden on desktop; on a 915×412 touch screen the stick moves (rim = sprint, half push = slower), right-side drag looks, every button works (fire + slide to aim, aim, reload, crouch/prone, jump, grenade cook/throw, weapon switch, scoreboard, Use only with a prompt, pause/resume without mouse lock), light aim assist slows turning over an enemy, Battery saver on first start, portrait shows the rotate message. Finger events reach the page on the next real frame, so the test waits ~35 ms after each.

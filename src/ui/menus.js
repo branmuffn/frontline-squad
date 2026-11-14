@@ -5,6 +5,7 @@ import { ATTACH, ATTACH_OK, MODES, WEAPONS, PRIMARIES, SECONDARIES, ALL_PRIMARIE
 import { $, esc, clamp } from '../core/util.js';
 import { saveProfile, resetSettings, KEY_LABELS, DEFAULT_KEYS, exportProfile, importProfile, applyQuality, detectQuality } from '../core/storage.js';
 import { input } from '../core/input.js';
+import { touchCapable } from '../core/touch.js';
 import { MAP_LIST } from '../world/maps/index.js';
 import { rankProgress, rankFor } from '../game/progression.js';
 import { badgeSVG } from './badges.js';
@@ -272,6 +273,7 @@ const SLIDERS = [
   ['fov', 'Field of view', 60, 95, 1, (v) => v + '°'],
   ['volume', 'Volume', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
   ['music', 'Music volume (menus only)', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
+  ['touchSens', 'Touch look speed', 0.5, 4, 0.05, (v) => v.toFixed(2), true],
 ];
 const CROSS = ['#eaf2e4', '#7dff9a', '#ffd34d', '#5fd0ff', '#ff6b6b'];
 function refreshXh() {
@@ -287,10 +289,13 @@ function refreshXh() {
 }
 function refreshSettings() {
   const s = G.profile.settings;
-  $('sliders').innerHTML = SLIDERS.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
-  for (const [k, , , , , f] of SLIDERS) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
+  const tOk = touchCapable() || s.touch !== 'auto'; // touch settings: only on touch screens (or when switched on by hand)
+  const SL = SLIDERS.filter((r) => !r[6] || tOk);
+  $('sliders').innerHTML = SL.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
+  for (const [k, , , , , f] of SL) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
   const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
-    ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1]];
+    ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1],
+    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy']] : [])];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
   const tg = ([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
   $('toggles').innerHTML = TOG.filter((t) => !t[2] && t[0] !== 'showFps' && t[0] !== 'killcam' && t[0] !== 'wheelSwitch').map(tg).join(''); $('gfxToggles').innerHTML = TOG.filter((t) => t[2] || t[0] === 'showFps' || t[0] === 'killcam' || t[0] === 'wheelSwitch').map(tg).join('');
@@ -308,6 +313,8 @@ function refreshSettings() {
   seg($('pixSel'), [{ v: 1, html: '1×' }, { v: 1.25, html: '1.25' }, { v: 1.5, html: '1.5' }, { v: 2, html: '2×' }], s.pixelMax, (v) => gfx('pixelMax', Number(v)));
   seg($('shadowSel'), [{ v: 'off', html: 'Off' }, { v: 'low', html: 'Low' }, { v: 'high', html: 'High' }], s.shadowQ, (v) => gfx('shadowQ', v));
   seg($('partSel'), [{ v: 'reduced', html: 'Reduced' }, { v: 'full', html: 'Full' }], s.particles, (v) => gfx('particles', v));
+  $('touchField').classList.toggle('hidden', !tOk);
+  seg($('touchSel'), [{ v: 'auto', html: 'Auto' }, { v: 'on', html: 'On' }, { v: 'off', html: 'Off' }], s.touch, (v) => { s.touch = v; cb.onSetting('touch'); saveProfile(); refreshSettings(); });
   seg($('namesSel'), [{ v: 'real', html: 'Real' }, { v: 'fictional', html: 'Fictional' }], s.names, (v) => { s.names = v; cb.onSetting('names'); saveProfile(); });
   seg($('setSlotSel'), slotItems(false), s.slots, (v) => { if (!pickSlots(v, false)) { /* locked */ } refreshSettings(); });
   seg($('scaleSel'), [{ v: 0.6, html: 'Low' }, { v: 0.8, html: 'Med' }, { v: 1, html: 'Full' }], s.renderScale, (v) => gfx('renderScale', Number(v)));

@@ -43,6 +43,7 @@ flowchart TB
 `tests/ship.sh` builds both, commits, copies the HTML and zip to the outputs folder and updates the artifact. Keep the zip as the master record; the HTML can always be regenerated from it. Decisions: `PLAN.md`; playing/building: `README.md`; tests: `tests/README.md`.
 
 ## Rev 4 additions (where things live)
+- Touch controls (phones/tablets): `src/core/touch.js` builds the on-screen controls and presses the bound keys / mouse handlers (`input.h`), so every action runs through `main.js` `onKeyDown`; analog stick in `input.moveX/moveY` (read in `player.js`); `input.touch` = no pointer lock; light aim assist in `entities/aimassist.js` (touch only, `AIM_ASSIST` in config).
 - `src/engine/power.js` perf readout counters, battery prompt, persistent storage, backup reminder; presets in `core/storage.js` (QUALITY).
 - `src/game/objectives.js` Domination / King of the Hill / Search & Destroy hooks (objective points from spawns or `def.objectives`).
 - `src/game/modes.js` hooks for Gun Game, Infection, CTF, Zombies (difficulty, revives), Practice range (rack, drills).

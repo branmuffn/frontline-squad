@@ -584,3 +584,58 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .menu-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .menu-nav button { padding: 8px 6px; font-size: clamp(13px, 1.6vh, 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 700px) { .menu-col { width: 100%; } }
+
+/* ---- Touch controls: phones and tablets only (body.touch, src/core/touch.js). Layout A "thumb arc" (Brian, 2026-11-14). ---- */
+#touchUI { position: fixed; inset: 0; z-index: 12; display: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+body.touch.t-play #touchUI { display: block; }
+.t-zone, .t-hit { position: absolute; }
+.t-left { left: 0; top: 0; bottom: 0; width: 42%; }
+.t-right { left: 42%; right: 0; top: 0; bottom: 0; }
+.t-board { left: 50%; top: 0; width: 220px; height: 64px; transform: translateX(-50%); }
+.t-weapon { left: 50%; bottom: 0; width: 170px; height: 76px; transform: translateX(-50%); }
+.t-stick { position: absolute; left: calc(34px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); width: 116px; height: 116px; border-radius: 50%; border: 2px solid rgba(235, 230, 214, 0.45); background: rgba(14, 19, 21, 0.25); pointer-events: none; }
+.t-stick.free { left: -58px; top: -58px; bottom: auto; }
+.t-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(235, 230, 214, 0.55); border: 2px solid rgba(235, 230, 214, 0.8); }
+.t-btn { position: absolute; width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink);
+  background: rgba(14, 19, 21, 0.42); border: 2px solid rgba(235, 230, 214, 0.6); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); font-weight: 700; }
+.t-btn svg { width: 20px; height: 20px; pointer-events: none; }
+.t-btn small { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1; pointer-events: none; }
+.t-btn.down { background: rgba(235, 230, 214, 0.35); transform: scale(0.94); }
+.t-btn.on { border-color: var(--brass); color: var(--brass); }
+.t-fire { width: 92px; height: 92px; right: calc(23px + env(safe-area-inset-right, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); background: rgba(200, 60, 40, 0.5); border-color: rgba(255, 190, 170, 0.85); }
+.t-fire svg { width: 30px; height: 30px; } .t-fire small { font-size: 11px; }
+.t-fire.down { background: rgba(230, 80, 55, 0.7); }
+.t-aim { width: 60px; height: 60px; right: calc(151px + env(safe-area-inset-right, 0px)); bottom: calc(30px + env(safe-area-inset-bottom, 0px)); }
+.t-reload { right: calc(145px + env(safe-area-inset-right, 0px)); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+.t-crouch { right: calc(94px + env(safe-area-inset-right, 0px)); bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
+.t-jump { width: 56px; height: 56px; right: calc(25px + env(safe-area-inset-right, 0px)); bottom: calc(172px + env(safe-area-inset-bottom, 0px)); }
+.t-nade { width: 46px; height: 46px; right: calc(20px + env(safe-area-inset-right, 0px)); bottom: calc(251px + env(safe-area-inset-bottom, 0px)); }
+.t-use, .t-streak { display: none; width: 56px; height: 56px; border-style: dashed; border-color: var(--brass); color: var(--brass); }
+.t-use { right: calc(232px + env(safe-area-inset-right, 0px)); bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+.t-streak { right: calc(232px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); }
+.t-use.show, .t-streak.show { display: flex; }
+.t-pause { width: 38px; height: 38px; border-radius: 10px; right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
+#touchUI.t-dead .t-btn:not(.t-pause), #touchUI.t-dead .t-weapon, #touchUI.t-dead .t-stick { display: none; }
+#touchUI.t-veh .t-aim, #touchUI.t-veh .t-reload, #touchUI.t-veh .t-nade, #touchUI.t-veh .t-weapon { display: none; }
+/* smaller HUD on touch screens, kept clear of the thumbs */
+body.touch #radar { width: 84px; height: 84px; }
+body.touch #mapLabel, body.touch #hint, body.touch #vhKeys, body.touch #prompt kbd { display: none; }
+body.touch .hud-tl { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
+body.touch .score { transform: translateX(-50%) scale(0.6); transform-origin: top center; top: calc(4px + env(safe-area-inset-top, 0px)); }
+body.touch .hud-health { left: calc(104px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); bottom: auto; width: 110px; }
+body.touch .hp-row b { font-size: 22px; } body.touch .hp-row span { font-size: 11px; } body.touch .hp-bar { height: 4px; }
+body.touch .hud-ammo { right: auto; left: 50%; transform: translateX(-50%); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); min-width: 0; text-align: center;
+  background: rgba(14, 19, 21, 0.45); border: 1.5px solid rgba(235, 230, 214, 0.35); border-radius: 10px; padding: 3px 12px 4px; }
+body.touch .w-row { justify-content: center; } body.touch .w-row span { font-size: 12px; } body.touch .w-row small { font-size: 10px; }
+body.touch .a-row b { font-size: 22px; } body.touch .a-row span { font-size: 12px; } body.touch .nades { justify-content: center; min-height: 0; }
+body.touch .hud-streak { bottom: auto; top: calc(12px + env(safe-area-inset-top, 0px)); left: auto; right: calc(200px + env(safe-area-inset-right, 0px)); transform: scale(0.75); transform-origin: top right; }
+body.touch #killfeed { top: calc(52px + env(safe-area-inset-top, 0px)); right: 12px; transform: scale(0.75); transform-origin: top right; }
+body.touch #death small, body.touch #killcam .kc-tag small { font-size: 0; }
+body.touch #death small::after { content: 'Tap the score at the top for the scoreboard'; font-size: 13px; }
+body.touch #killcam .kc-tag small::after { content: 'Tap to skip'; font-size: 14px; }
+body.touch #freeLook, body.touch #relock, body.touch #lockMsg, body.touch #pauseControls { display: none; }
+/* phones held upright: ask for landscape */
+#rotateMsg { display: none; }
+@media (orientation: portrait) {
+  body.touch #rotateMsg { display: flex; position: fixed; inset: 0; z-index: 95; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: var(--bg); color: var(--ink); font-size: 20px; }
+}

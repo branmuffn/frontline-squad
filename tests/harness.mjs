@@ -13,9 +13,11 @@ window.__rafq=[];window.__t=0;
 window.requestAnimationFrame=function(f){window.__rafq.push(f);return window.__rafq.length;};
 window.__step=function(n,dtms){dtms=dtms||16.6667;for(let i=0;i<n;i++){window.__t+=dtms;const q=window.__rafq;window.__rafq=[];for(const f of q)f(window.__t);}};
 `;
-export async function open({ stub = true, w = 1280, h = 720, html = path.join(HERE, '../dist-standalone/frontline_solo_ops.html') } = {}) {
+// touch: true emulates a phone (touch screen, mobile viewport) for the on-screen controls (tests/touch.mjs).
+export async function open({ stub = true, w = 1280, h = 720, touch = false, html = path.join(HERE, '../dist-standalone/frontline_solo_ops.html') } = {}) {
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const page = await browser.newPage({ viewport: { width: w, height: h } });
+  const page = touch ? await (await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true })).newPage()
+    : await browser.newPage({ viewport: { width: w, height: h } });
   const errors = [];
   page.on('request', (q) => { if (!q.url().startsWith('http://game.local/') && !q.url().startsWith('data:') && !q.url().startsWith('blob:')) errors.push('EXTERNAL REQUEST ' + q.url()); });
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

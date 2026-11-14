@@ -1,5 +1,7 @@
 // Central tuning data. Gameplay feel lives here, so balance changes rarely need code changes.
 
+// Light aim assist, touch players only: turning slows while the crosshair is on a visible enemy (within range, radius m of the aim line).
+export const AIM_ASSIST = { range: 70, radius: 0.9, slow: 0.55 };
 export const PHYS = {
   fallSafe: 4,         // drops up to this height (m) are free
   fallLethal: 12,      // drops from this height kill

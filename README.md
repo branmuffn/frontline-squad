@@ -11,7 +11,7 @@ Inspired by Combat Arms, with some Halo and Call of Duty mixed in.
 | --- | --- |
 | ![Main menu](docs/screenshots/menu.png) | ![Cascade Gorge](docs/screenshots/gorge-tdm-2.png) |
 
-Desktop browser with a mouse and keyboard. Press **Controls** in the main menu for the key bindings.
+Desktop browser with a mouse and keyboard (press **Controls** in the main menu for the key bindings), or a phone or tablet held sideways with on-screen touch controls.
 
 ## Highlights
 

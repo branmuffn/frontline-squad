@@ -3,6 +3,7 @@ import { G } from './state.js';
 export const input = {
   keys: Object.create(null), mdx: 0, mdy: 0, fire: false, aim: false,
   freeLook: false, capture: null, h: null, canvas: null,
+  touch: false, moveX: 0, moveY: 0, // touch controls (src/core/touch.js): on/off, analog stick (-1..1, +Y = forward)
 };
 
 const ALIASES = { sprint: ['ShiftRight'], crouch: [], crouchAlt: ['ControlRight'] };
@@ -16,7 +17,7 @@ export function down(action) {
 }
 export function matches(action, code) { return binding(action) === code || (ALIASES[action] || []).includes(code); }
 export const isLocked = () => document.pointerLockElement === input.canvas;
-export const lookActive = () => isLocked() || input.freeLook;
+export const lookActive = () => isLocked() || input.freeLook || input.touch;
 
 export function requestLock() {
   const c = input.canvas;
@@ -63,4 +64,4 @@ export function initInput(canvas, handlers) {
 }
 
 export function consumeMouse() { const r = [input.mdx, input.mdy]; input.mdx = 0; input.mdy = 0; return r; }
-export function clearInput() { input.keys = Object.create(null); input.fire = false; input.aim = false; input.mdx = input.mdy = 0; }
+export function clearInput() { input.keys = Object.create(null); input.fire = false; input.aim = false; input.mdx = input.mdy = 0; input.moveX = input.moveY = 0; }
