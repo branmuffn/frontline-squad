@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 node scripts/build-standalone.mjs >/dev/null
 failed=()
 t() { node "$@" | tail -1 || failed+=("${*#tests/}"); }
+t tests/buildlabel.mjs
 t tests/power.mjs
 t tests/touch.mjs
 t tests/menulayout.mjs

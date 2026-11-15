@@ -1,5 +1,8 @@
 # Frontline: Solo Ops — hand-off (end of Rev 4 / build ~100)
 
+> **2026-11-15:** hosting moved to Vercel (https://frontlinesquad.vercel.app): every push to `main` deploys it, see
+> `docs/HOSTING.md`. The Netlify steps below are historical.
+
 This is a clean break point: everything below is built, tested and committed. Use this page to (1) update your
 Netlify site, (2) play-test, (3) move the project to GitHub + Claude Code so future work is faster and cheaper.
 

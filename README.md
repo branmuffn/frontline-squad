@@ -3,7 +3,7 @@
 **A first-person shooter that runs in your browser: no install, no account, no game server.**
 Inspired by Combat Arms, with some Halo and Call of Duty mixed in.
 
-### [▶ Play it now: frontline-squad.netlify.app](https://frontline-squad.netlify.app)
+### [▶ Play it now: frontlinesquad.vercel.app](https://frontlinesquad.vercel.app)
 
 ![Team Deathmatch on Cascade Gorge](docs/screenshots/gorge-tdm.png)
 

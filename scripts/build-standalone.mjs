@@ -1,7 +1,7 @@
-import { execSync } from 'child_process';
 // Bundles the same source into one fully offline HTML file: three.js r128 and the Barlow Condensed font are inlined.
 import { build } from 'esbuild';
 import fs from 'node:fs';
+import { buildLabel } from './build-label.mjs';
 
 const res = await build({
   entryPoints: ['src/main.js'], bundle: true, format: 'iife', minify: true, write: false,
@@ -16,9 +16,8 @@ html = html.replace('<link rel="stylesheet" href="/src/fonts.css">\n', () => `<s
 html = html.replace('<link rel="stylesheet" href="/src/styles.css">', () => `<style>\n${css}</style>`);
 // plain <a href> links and link-preview <meta> tags load nothing, so they don't break offline play
 if (/https?:\/\//.test(html.replace(/http:\/\/www\.w3\.org\/[^"']*/g, '').replace(/<a [^>]*href="https?:\/\/[^"]*"/g, '').replace(/<meta [^>]*content="https?:\/\/[^"]*">/g, ''))) console.warn('WARNING: external URL left in the standalone build');
-// build label (menu + lobby): lets friends check they run the same version
-let n = 0; try { n = +execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim() + 1; } catch { n = 0; }
-const BUILD = `build ${n} · ${new Date().toISOString().slice(0, 10)}`;
+// build label (menu + lobby): lets friends check they run the same version (scripts/build-label.mjs)
+const BUILD = buildLabel();
 html = html.replace('<script type="module" src="/src/main.js"></script>', () =>
   `<script>window.__BUILD=${JSON.stringify(BUILD)};</script>\n<script>\n${three}\n</script>\n<script>\n${js}\n</script>`);
 fs.mkdirSync('dist-standalone', { recursive: true });

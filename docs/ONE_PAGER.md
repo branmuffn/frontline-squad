@@ -6,7 +6,7 @@
 A browser FPS delivered as **one self-contained HTML file (~1.3 MB)**: three.js r128, the game and a font are inlined,
 so single-player runs with no network at all. Multiplayer (**12 players, 16 experimental**) is peer to peer over WebRTC;
 the only outside services are a free matchmaking broker (room codes) and public STUN/TURN servers. Hosted at
-https://frontline-squad.netlify.app (or open the file directly). All art, audio and music are generated in code.
+https://frontlinesquad.vercel.app (or open the file directly). All art, audio and music are generated in code.
 
 ## What's in the game
 - **12 modes:** Free for All, Team Deathmatch, Survival (co-op waves), Gun Game, Infection, Capture the Flag,
@@ -32,7 +32,7 @@ https://frontline-squad.netlify.app (or open the file directly). All art, audio 
   balance number in `src/core/config.js`. Maps are data → merged meshes + axis-aligned colliders in a spatial hash; a
   2 m nav grid drives bot A* (on a **Web Worker** in the browser).
 - **Build:** `scripts/build-standalone.mjs` (esbuild + inlining) → `dist-standalone/frontline_solo_ops.html`;
-  `scripts/site.sh` → `site/index.html` for Netlify (`netlify.toml` for GitHub auto-deploys).
+  `scripts/site.sh` → `site/index.html`, which Vercel builds and deploys on every push (`vercel.json`).
 - **Quality loop:** 67 headless-Chromium test scripts (every mode × map, multiplayer with 2–16 pages, screens fit at
   4 sizes, a visual-vs-collider audit of every map, spawn separation, weapons, vehicles, editor) + screenshots reviewed.
   `bash tests/quick.sh` is the 3-minute smoke suite. ~11,800 lines of game code, ~100 commits (one per item).

@@ -9,10 +9,11 @@ host-authoritative). Read `docs/ONE_PAGER.md` (what exists), `docs/ARCHITECTURE.
 - Dev server: `npm run dev`
 - Smoke suite (~15 s on an M4): `bash tests/quick.sh` — run before every commit (exits non-zero if any test fails)
 - Full checks by area: see `tests/README.md` (regress, fit, walls, spawnsep, mp*, w3e, editor, seats, ...)
-- Ship: commit and `git push` to `main`; Netlify builds `netlify.toml` and deploys https://frontline-squad.netlify.app.
+- Ship: commit and `git push` to `main`; Vercel builds `vercel.json` and deploys https://frontlinesquad.vercel.app (moved
+  from Netlify 2026-11-15; Netlify retired). Vercel clones shallowly, so the build label there is the short commit id.
   (`tests/ship.sh` is from the claude.ai sandbox era and writes to /mnt/user-data; don't use it locally.)
 - Commit author: Brian Tea (noreply address, set in this repo's git config); add the Claude co-author line.
-- Netlify site folder: `sh scripts/site.sh` -> `site/index.html` (also what netlify.toml builds)
+- Site folder: `sh scripts/site.sh` -> `site/index.html` (what vercel.json builds)
 
 ## Rules (keep these)
 - Lightweight and offline: no new runtime dependencies, no network except matchmaking/STUN/TURN; all art and audio generated in code.

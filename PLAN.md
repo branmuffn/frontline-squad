@@ -137,6 +137,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Menu: the map list is a horizontal strip (9 maps); armory body scrolls; fit.mjs clean except the allowed 1024 settings body.
 - [x] 3f complete.
 - [x] Review pass (Rev 4 close-out): one-seat vehicles (pressing 2 froze the game: seat range checks everywhere incl. the MP mirror), power pickups respawn after bots take them, S&D joiners' death text, expired votes, editor preview cleanup, warm-up banner guard. tests/seats.mjs.
+- [x] Hosting moved to Vercel (frontlinesquad.vercel.app, vercel.json; build label = short commit id on Vercel), Netlify retired (2026-11-15)
 - [x] Hand-off: CLAUDE.md, docs/HANDOFF.md (Netlify, play-test checklist, GitHub + auto-deploy + Claude Code), netlify.toml, scripts/site.sh, NEXT_CHAT_PROMPT.md, one-pager + infographic refreshed.
 **STATUS: Rev 4 complete — clean break point.**
 - Longer-term: Claude Code locally, Host-only mode, MP Custom/Sandbox, spray patterns, match demos, accounts (later, not now), gamepad + touch, PWA, colour-blind, light tank, weather, destructible cover, ragdolls, daily challenges, prestige, weapon levels, full-state host migration. Removed by choice: coin shop, buy phase, economy/loss bonus, voice chat.

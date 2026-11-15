@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the standalone game and lay it out as a static site (site/index.html) for Netlify or any static host.
+# Build the standalone game and lay it out as a static site (site/index.html) for Vercel (vercel.json) or any static host.
 set -e
 cd "$(dirname "$0")/.."
 node scripts/build-standalone.mjs
