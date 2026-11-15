@@ -283,9 +283,11 @@ export class MapBuilder {
     }
     let hw = w / 2, hd = d / 2;
     if (o.rot) { const c = Math.abs(Math.cos(o.rot)), s = Math.abs(Math.sin(o.rot)); [hw, hd] = [hw * c + hd * s, hw * s + hd * c]; }
-    this.colliders.push({ minX: x - hw, maxX: x + hw, minY: y0, maxY: y0 + h, minZ: z - hd, maxZ: z + hd, mat, pass: !!o.pass });
+    this.colliders.push({ minX: x - hw, maxX: x + hw, minY: y0, maxY: y0 + h, minZ: z - hd, maxZ: z + hd, mat, pass: !!o.pass, noRay: !!o.noRay });
     return this;
   }
+  // exact convex hull of some triangles (e.g. b.lastTris) for bullets and line of sight only; pair it with a noRay box for feet
+  hull(tris, mat, floor) { this.colliders.push(hullCollider(tris, mat, floor)); return this; }
   // Merge an arbitrary THREE geometry with transform
   geom(geometry, matKey, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
     const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));

@@ -53,8 +53,11 @@ function cliffRoutes(b, sx) {
   // natural rock shelves jutting from the cliff, staggered: drop from one onto the next (1.6 m each, no fall damage)
   for (let k = 0; k < 5; k++) {
     const top = H - (k + 1) * 1.6, out = 1.05 + (k % 2) * 0.25, r = -5.2 - k * 2.5, [z0, z1] = rr(r, r - 2.3), cx = (wallX(sx, 0) + wallX(sx, out)) / 2, cz = (z0 + z1) / 2;
-    if (top > 0.2) b.col(cx, top - 0.45, cz, out, 0.45, z1 - z0, 'rock');
+    // the flat box is for feet only; bullets and sight lines hit the round rock's exact hull, so its corners don't stop
+    // shots in mid-air (hitbox.mjs found 8 such corners up to 0.6 m outside the rock, 2026-11-14)
+    if (top > 0.2) b.col(cx, top - 0.45, cz, out, 0.45, z1 - z0, 'rock', { noRay: true });
     b.geom(lumpy(new THREE.IcosahedronGeometry(1, 2), 0.22, k), k % 2 ? 'rock' : 'rockDark', wallX(sx, out * 0.3), top - 0.62, cz, 0, k, 0, out * 0.85, 0.66, (z1 - z0) * 0.5); // half sunk into the cliff
+    if (top > 0.2) b.hull(b.lastTris, 'rock');
   }
   // berms with bushes on the canyon floor below the ledges: lie down behind them to hide
   for (const [d0, d1, ra, rb, h] of [[4.2, 6.2, -7, -26, 0.75], [7.2, 9.2, -13, -25, 0.6]]) {
