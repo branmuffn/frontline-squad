@@ -21,10 +21,13 @@ const ICON = {
   use: '<path d="M8 12l3 3 5-6"/><circle cx="12" cy="12" r="9"/>',
   streak: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   pause: '<path d="M9 6v12M15 6v12"/>',
+  equip: '<rect x="5" y="8" width="14" height="8" rx="1.5"/><path d="M8 16l-2 4M16 16l2 4M9 12h6"/>',
+  armory: '<path d="M3 13h13l3-3h2M6 13v4h3l1-4M16 10V8"/>',
 };
 const BUTTONS = [ // [role, label, class]
   ['fire', 'Fire'], ['aim', 'Aim'], ['reload', 'Reload'], ['crouch', 'Crouch'], ['jump', 'Jump'], ['nade', 'Grenade'],
   ['use', 'Use'], ['streak', 'Streak'], ['pause', ''],
+  ['equip', 'Equip'], ['armory', 'Weapons'], // claymore (when carried); Sandbox / Range weapon menu (B on keyboards)
 ];
 const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
 
@@ -145,6 +148,8 @@ function press(p) {
   else if (r === 'nade') keyDown('grenade');
   else if (r === 'use') tap('interact');
   else if (r === 'streak') tap('streak');
+  else if (r === 'equip') tap('equip');
+  else if (r === 'armory') tap('armory');
   else if (r === 'board') keyDown('scoreboard');
   else if (r === 'weapon') opts.onCycle();
   else if (r === 'pause') opts.onPause();
@@ -213,6 +218,8 @@ export function touchTick() {
   const prompt = document.getElementById('prompt'), ready = document.getElementById('streakReady');
   cls(btn.use, 'show', alive && (!!P.vehicle || !!(prompt && prompt.textContent.trim())));
   cls(btn.streak, 'show', alive && !!(ready && ready.textContent.trim()));
+  cls(btn.equip, 'show', alive && !P.vehicle && P.equip === 'claymore' && P.equipLeft > 0);
+  cls(btn.armory, 'show', alive && !P.vehicle && !!G.match && (G.match.mode === 'sandbox' || G.match.mode === 'range'));
   cls(btn.aim, 'on', alive && input.aim);
   cls(btn.crouch, 'on', alive && (P.crouch || P.prone));
 }

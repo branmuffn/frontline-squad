@@ -28,13 +28,13 @@ export function codeName(code) {
   return code;
 }
 // Phones (touch controls on) name the on-screen button instead of a key; actions with no phone button give ''.
-const TOUCH_NAMES = { interact: 'Use', streak: 'Streak', grenade: 'Grenade', reload: 'Reload', jump: 'Jump', crouch: 'Crouch' };
+const TOUCH_NAMES = { interact: 'Use', streak: 'Streak', grenade: 'Grenade', reload: 'Reload', jump: 'Jump', crouch: 'Crouch', equip: 'Equip', armory: 'Weapons' };
 export const keyName = (action) => input.touch ? (TOUCH_NAMES[action] || '') : codeName(binding(action));
 export const pressWord = () => (input.touch ? 'Tap' : 'Press');
 // Killstreak "how to" text: "press {streak}" becomes "press F" on computers, "tap Streak" on phones.
 export const howText = (t) => input.touch ? t.replace(/\b([Pp])ress \{streak\}/g, (m, p) => (p === 'P' ? 'Tap' : 'tap') + ' Streak').replace(/\bpress E\b/g, 'tap Use') : t.replace('{streak}', keyName('streak'));
 // Menu texts written for keyboards: phones drop the key hints (computers see the text unchanged).
-export const phoneText = (t) => input.touch ? t.replace(/ Press B for the weapon menu\./g, '').replace(/ \((key 4|B)\)/g, '') : t;
+export const phoneText = (t) => input.touch ? t.replace(/ Press B for the weapon menu\./g, ' Tap Weapons (top right) for the weapon menu.').replace(/ \(B\)/g, ' (Weapons button)').replace(/ \((key 4|V)\)/g, '') : t;
 
 export function initHud() {
   radarCtx = $('radar').getContext('2d');
@@ -51,7 +51,7 @@ export function startMatch() {
   bannerQ = []; bannerUntil = 0; deathInfo = null;
   $('death').classList.add('hidden'); $('board').classList.add('hidden'); boardOpen = false;
   $('banner').classList.remove('show');
-  const lim = m.mode === 'sandbox' ? (input.touch ? 'Sandbox' : 'Sandbox · press B for weapons') : m.mode === 'tdm' ? (isFinite(m.scoreLimit) ? `First team to ${m.scoreLimit}` : 'No score limit') : m.mode === 'ffa' ? (isFinite(m.scoreLimit) ? `First to ${m.scoreLimit}` : 'No kill limit') : 'Three lives';
+  const lim = m.mode === 'sandbox' ? (input.touch ? 'Sandbox · tap Weapons' : 'Sandbox · press B for weapons') : m.mode === 'tdm' ? (isFinite(m.scoreLimit) ? `First team to ${m.scoreLimit}` : 'No score limit') : m.mode === 'ffa' ? (isFinite(m.scoreLimit) ? `First to ${m.scoreLimit}` : 'No kill limit') : 'Three lives';
   $('score').className = 'score mode-' + (m.teams ? 'tdm' : m.mode === 'survival' ? 'survival' : 'ffa');
   $('score').innerHTML = m.mode === 'survival' || m.mode === 'zombies'
     ? `<div class="sc-side"><small id="scAn">Points</small><b id="scA">0</b></div><div class="sc-mid"><small>${m.mode === 'zombies' ? 'Round' : 'Wave'}</small><b id="scT">1</b></div><div class="sc-side"><small id="scBn">Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`

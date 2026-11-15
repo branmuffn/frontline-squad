@@ -624,6 +624,16 @@ body.touch.t-play #touchUI { display: block; }
 .t-use { right: calc(232px + env(safe-area-inset-right, 0px)); bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 .t-streak { right: calc(232px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); }
 .t-use.show, .t-streak.show { display: flex; }
+/* Equip (claymore, only while you carry one) above Crouch; Weapons (Sandbox / Range menu) beside Pause. 2026-11-15 */
+.t-equip, .t-armory { display: none; }
+.t-equip { width: 46px; height: 46px; right: calc(78px + env(safe-area-inset-right, 0px)); bottom: calc(240px + env(safe-area-inset-bottom, 0px)); }
+.t-armory { width: auto; height: 38px; border-radius: 10px; flex-direction: row; gap: 6px; padding: 0 12px 0 10px; right: calc(56px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
+.t-armory small { font-size: 11px; }
+.t-equip.show, .t-armory.show { display: flex; }
+@media (max-height: 340px) { /* short phones: Weapons moves under the radar, Grenade clears Pause */
+  .t-armory { right: auto; left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(100px + env(safe-area-inset-top, 0px)); }
+  .t-nade { width: 44px; height: 44px; bottom: calc(230px + env(safe-area-inset-bottom, 0px)); }
+}
 .t-pause { width: 38px; height: 38px; border-radius: 10px; right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
 #touchUI.t-dead .t-btn:not(.t-pause), #touchUI.t-dead .t-weapon, #touchUI.t-dead .t-stick { display: none; }
 #touchUI.t-veh .t-aim, #touchUI.t-veh .t-reload, #touchUI.t-veh .t-nade, #touchUI.t-veh .t-weapon { display: none; }

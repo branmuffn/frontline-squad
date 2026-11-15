@@ -203,7 +203,7 @@ function refreshLoadout() {
   $('loTabs').innerHTML = tabs.map(([i, l, v]) => `<button type="button" role="tab" aria-selected="${i === loTab}" class="${i === loTab ? 'sel' : ''}" data-t="${i}"><b>${l}</b><small>${esc(v)}</small></button>`).join('');
   $('loTabs').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { loTab = bt.dataset.t; refreshLoadout(); }));
   const pick = (cards, onPick) => { $('loRow').innerHTML = cards.join(''); $('loRow').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { onPick(bt.dataset.v); saveProfile(); refreshLoadout(); })); };
-  const gearCard = (k, d, sel, ico) => `<button type="button" class="lo-card ${sel ? 'sel' : ''}" data-v="${k}">${icon(ico || k)}<b>${esc(d.name)}</b><small>${esc(d.desc)}</small></button>`;
+  const gearCard = (k, d, sel, ico) => `<button type="button" class="lo-card ${sel ? 'sel' : ''}" data-v="${k}">${icon(ico || k)}<b>${esc(d.name)}</b><small>${esc(hud.phoneText(d.desc))}</small></button>`;
   $('loOpExtra').classList.toggle('hidden', loTab !== 'op');
   // Gun stats W1 (Brian, 2026-11-15): gun tiles show picture, name and type; the picked gun's 5 stats sit once in a bar above them.
   const gunTab = loTab[0] === 'g';
@@ -222,7 +222,7 @@ function refreshLoadout() {
     pick(Object.entries(ATTACH).map(([k, a]) => { const no = a.no(w), on = cur.includes(k); return `<button type="button" class="lo-card ${on ? 'sel' : ''}" data-v="${k}" ${no ? 'disabled' : ''} title="${esc(a.desc)}"><b>${a.name}</b><small>${no ? 'Not for this gun' : esc(a.desc)}</small></button>`; }),
       (k) => { const l = (lo.att[id] || []).slice(), i = l.indexOf(k); if (i >= 0) l.splice(i, 1); else { l.push(k); if (l.length > 2) l.shift(); } lo.att[id] = l; });
   } else if (loTab === 'nade') { $('loDetail').textContent = input.touch ? 'The Grenade button throws it (hold to cook a frag). Free for now.' : 'G throws it (hold to cook a frag). Free for now.'; pick(Object.entries(NADES).map(([k, d]) => gearCard(k, d, lo.grenade === k)), (v) => { lo.grenade = v; }); }
-  else if (loTab === 'equip') { $('loDetail').textContent = input.touch ? '' : `${keyName('equip')} sets it down where you look.`; /* no phone button for equipment yet */ pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
+  else if (loTab === 'equip') { $('loDetail').textContent = `${input.touch ? 'The Equip button' : keyName('equip')} sets it down where you look.`; pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
   else if (loTab === 'vest') { $('loDetail').textContent = 'Armour against speed.'; pick(Object.entries(VESTS).map(([k, d]) => gearCard(k, d, lo.vest === k)), (v) => { lo.vest = v; }); }
   else if (loTab === 'belt') { $('loDetail').textContent = 'One perk carried on the belt.'; pick(Object.entries(BELTS).map(([k, d]) => gearCard(k, d, lo.belt === k, k === 'none' ? 'b-none' : k)), (v) => { lo.belt = v; }); }
   else if (loTab === 'op') {
