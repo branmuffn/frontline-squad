@@ -61,7 +61,7 @@
       <button id="openMp" type="button">Multiplayer</button>
       <button id="openLoadout" type="button">Loadout</button>
       <button id="openOperator" type="button">Operator</button>
-      <button id="openEditor" type="button">Map editor</button>
+      <button id="openEditor" class="mouse-only" type="button">Map editor</button>
       <button id="openSettings" type="button">Settings</button>
       <button id="openStreaks" type="button">Killstreaks</button>
       <button id="openCareer" type="button">Career</button>
@@ -78,6 +78,7 @@
        scrolls), operator + Back / Done on the right. Same on phones and computers. -->
   <div class="panel wide fit lo-panel">
     <div class="lo-head">
+      <button class="back-top" data-back="loadout" type="button"><span aria-hidden="true">‹</span>Back</button>
       <div class="lo-title"><h2 id="loTitle">Loadout</h2><p id="loLede" class="lede">Three saved presets. Pick one, set it up, and it’s remembered.</p></div>
       <div class="lo-top">
         <div class="field"><span class="flabel">Preset</span><div id="presetTabs" class="seg"></div></div>
@@ -112,6 +113,7 @@
        hide the mouse/keyboard-only settings (.mouse-only). -->
   <div class="panel wide fit settings-panel">
     <div class="set-side">
+      <button id="settingsBack" class="back-top" data-back="settingsDone" type="button"><span aria-hidden="true">‹</span>Back</button>
       <h2>Settings</h2>
       <div id="setTabs" class="set-tabs" role="tablist">
         <button type="button" role="tab" data-tab="controls">Controls &amp; sound</button>
@@ -167,7 +169,7 @@
 
 <section id="streaks" class="screen hidden">
   <div class="panel wide fit">
-    <h2>Killstreaks</h2>
+    <div class="ptitle"><button class="back-top" data-back="streaksDone" type="button"><span aria-hidden="true">‹</span>Back</button><h2>Killstreaks</h2></div>
     <p class="lede">Chain kills without dying to earn rewards.</p>
     <div class="pbody">
     <div id="streakCards" class="streak-cards scroll-list"></div>
@@ -179,7 +181,7 @@
 
 <section id="career" class="screen hidden">
   <div class="panel wide fit">
-    <h2>Career</h2>
+    <div class="ptitle"><button class="back-top" data-back="careerDone" type="button"><span aria-hidden="true">‹</span>Back</button><h2>Career</h2></div>
     <div class="pbody">
     <div class="cols c-career"><div><div id="careerStats" class="tiles"></div>
       <div class="save-box">
@@ -201,9 +203,24 @@
 
 <section id="controls" class="screen hidden">
   <div class="panel fit">
-    <h2>Controls</h2>
+    <div class="ptitle"><button class="back-top" data-back="controlsDone" type="button"><span aria-hidden="true">‹</span>Back</button><h2>Controls</h2></div>
     <div class="pbody">
-    <div class="keys">
+    <div class="keys touch-only">
+      <div><kbd>Left side</kbd><span>Move: drag anywhere on the left. Push the stick to the edge to sprint</span></div>
+      <div><kbd>Right side</kbd><span>Look: drag anywhere on the right</span></div>
+      <div><kbd>Fire</kbd><span>Hold to shoot. Dragging on it also looks</span></div>
+      <div><kbd>Aim</kbd><span>Aim down sights on and off · knife stab</span></div>
+      <div><kbd>Reload</kbd><span>Reload</span></div>
+      <div><kbd>Crouch</kbd><span>Tap to crouch · hold to go prone</span></div>
+      <div><kbd>Jump</kbd><span>Jump (vault crates and sandbags)</span></div>
+      <div><kbd>Grenade</kbd><span>Hold to cook a frag, let go to throw</span></div>
+      <div><kbd>Use</kbd><span>Shows up near doors, dropped weapons and vehicles</span></div>
+      <div><kbd>Streak</kbd><span>Shows up when a killstreak is ready</span></div>
+      <div><kbd>Your gun</kbd><span>Tap the gun at the bottom to switch weapons</span></div>
+      <div><kbd>Score</kbd><span>Hold the score at the top for the scoreboard</span></div>
+      <div><kbd>❚❚</kbd><span>Pause</span></div>
+    </div>
+    <div class="keys mouse-only">
       <div><kbd>W A S D</kbd><span>Move</span></div>
       <div><kbd>Mouse</kbd><span>Look</span></div>
       <div><kbd>Left click</kbd><span>Fire · knife slash</span></div>
@@ -221,7 +238,7 @@
       <div><kbd>E</kbd><span>Pick up a dropped weapon</span></div>
       <div><kbd>Esc</kbd><span>Pause</span></div>
     </div>
-    <p class="lede small">These are the defaults. Change any key in Settings. Arrow keys also turn the camera.</p>
+    <p class="lede small mouse-only">These are the defaults. Change any key in Settings. Arrow keys also turn the camera.</p>
     <p class="lede small">Killstreaks: 3 kills earns a Recon UAV, 5 a mortar strike, 7 a sentry gun. Knife an enemy from behind for an instant kill.</p>
     </div>
     <div class="btn-row"><button id="controlsDone" class="btn-primary" type="button">Done</button></div>
@@ -230,7 +247,7 @@
 
 <section id="armory" class="screen hidden">
   <div class="panel wide fit">
-    <h2 id="armTitle">Weapon menu</h2>
+    <div class="ptitle"><button class="back-top" data-back="armClose" type="button"><span aria-hidden="true">‹</span>Back</button><h2 id="armTitle">Weapon menu</h2></div>
     <p id="armLede" class="lede small">Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.</p>
     <div class="pbody scroll-list">
     <h3>Primary</h3><div id="armPrimary" class="arm-grid"></div>
@@ -243,7 +260,7 @@
 
 <section id="mp" class="screen hidden">
   <div class="panel wide fit" data-state="choose">
-    <h2>Multiplayer</h2>
+    <div class="ptitle"><button class="back-top" data-back="mpBack" type="button"><span aria-hidden="true">‹</span>Back</button><h2>Multiplayer</h2></div>
     <p class="lede small">Up to 12 players (16 experimental), peer to peer, no account, any network. Co-op or versus, bots optional.</p>
     <div class="pbody">
       <div class="mp-top">

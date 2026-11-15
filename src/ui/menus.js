@@ -57,8 +57,8 @@ function seg(container, items, current, onPick) {
 function refreshMenu() {
   const pr = G.profile, L = pr.lobby, rp = rankProgress(pr.xp);
   $('rankPlate').innerHTML = `${badgeSVG(rp.rank, 52)}<div class="rp-text"><b>${esc(rp.name)}</b><div class="rp-bar"><i style="width:${(rp.pct * 100).toFixed(1)}%"></i></div><small>${rp.next ? `${(rp.span - rp.into).toLocaleString()} XP to ${esc(rp.next)}` : 'Highest rank reached'}</small></div>`;
-  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(m.desc)}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkill(); refreshSkillVis(); $('mapSel').parentElement.classList.toggle('hidden', v === 'range'); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = MODES[v].desc; });
-  $('modeDesc').textContent = MODES[L.mode].desc;
+  seg($('modeSel'), Object.values(MODES).map((m) => ({ v: m.id, html: `<b>${m.name}</b><small>${esc(hud.phoneText(m.desc))}</small>` })), L.mode, (v) => { L.mode = v; saveProfile(); refreshMatchOpts(); refreshSkill(); refreshSkillVis(); $('mapSel').parentElement.classList.toggle('hidden', v === 'range'); refreshCounts(); refreshBest(); refreshSandbox(); refreshVehicles(); $('modeDesc').textContent = hud.phoneText(MODES[v].desc); });
+  $('modeDesc').textContent = hud.phoneText(MODES[L.mode].desc);
   refreshSkill(); refreshSkillVis();
   if (!$('matchRulesBtn').dataset.on) { $('matchRulesBtn').dataset.on = '1'; $('matchRulesBtn').addEventListener('click', () => { $('matchOpts').classList.toggle('hidden'); $('botOpts').classList.add('hidden'); refreshMatchOpts(); }); $('matchOptsX').addEventListener('click', () => $('matchOpts').classList.add('hidden')); }
   if (!$('botRulesBtn').dataset.on) { $('botRulesBtn').dataset.on = '1'; $('botRulesBtn').addEventListener('click', () => { $('botOpts').classList.toggle('hidden'); $('matchOpts').classList.add('hidden'); refreshBotOpts(); }); $('botOptsX').addEventListener('click', () => $('botOpts').classList.add('hidden')); }
@@ -189,7 +189,7 @@ function refreshLoadout() {
     pr.preset = Number(v); pr.loadout = pr.presets[pr.preset]; saveProfile(); cb.onCamo(pr.loadout.camo); refreshLoadout();
   });
   seg($('slotSel'), slotItems(sandbox), mode, (v) => { pickSlots(v, sandbox); refreshLoadout(); });
-  $('slotDesc').textContent = SLOT_MODES[mode].desc;
+  $('slotDesc').textContent = hud.phoneText(SLOT_MODES[mode].desc);
   const okBtn = $('slotSel').querySelector('[data-v="overkill"]');
   if (okBtn) okBtn.title = overkillLocked(sandbox) ? `Overkill unlocks at ${RANKS[SLOT_MODES.overkill.rank].name} (always open in Sandbox).` : '';
   const guns = loadoutGuns(lo, mode), keys = ['primary', 'secondary', 'third'];
@@ -218,11 +218,11 @@ function refreshLoadout() {
     });
   } else if (loTab === 'att') {
     const id = guns[0], w = WEAPONS[id]; lo.att = lo.att || {}; const cur = lo.att[id] || [];
-    $('loDetail').textContent = `Up to two for your ${w.name}. Click to fit or remove.`;
+    $('loDetail').textContent = `Up to two for your ${w.name}. ${input.touch ? 'Tap' : 'Click'} to fit or remove.`;
     pick(Object.entries(ATTACH).map(([k, a]) => { const no = a.no(w), on = cur.includes(k); return `<button type="button" class="lo-card ${on ? 'sel' : ''}" data-v="${k}" ${no ? 'disabled' : ''} title="${esc(a.desc)}"><b>${a.name}</b><small>${no ? 'Not for this gun' : esc(a.desc)}</small></button>`; }),
       (k) => { const l = (lo.att[id] || []).slice(), i = l.indexOf(k); if (i >= 0) l.splice(i, 1); else { l.push(k); if (l.length > 2) l.shift(); } lo.att[id] = l; });
-  } else if (loTab === 'nade') { $('loDetail').textContent = 'G throws it (hold to cook a frag). Free for now.'; pick(Object.entries(NADES).map(([k, d]) => gearCard(k, d, lo.grenade === k)), (v) => { lo.grenade = v; }); }
-  else if (loTab === 'equip') { $('loDetail').textContent = `${keyName('equip')} sets it down where you look.`; pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
+  } else if (loTab === 'nade') { $('loDetail').textContent = input.touch ? 'The Grenade button throws it (hold to cook a frag). Free for now.' : 'G throws it (hold to cook a frag). Free for now.'; pick(Object.entries(NADES).map(([k, d]) => gearCard(k, d, lo.grenade === k)), (v) => { lo.grenade = v; }); }
+  else if (loTab === 'equip') { $('loDetail').textContent = input.touch ? '' : `${keyName('equip')} sets it down where you look.`; /* no phone button for equipment yet */ pick(Object.entries(EQUIPMENT).map(([k, d]) => gearCard(k, d, lo.equip === k)), (v) => { lo.equip = v; }); }
   else if (loTab === 'vest') { $('loDetail').textContent = 'Armour against speed.'; pick(Object.entries(VESTS).map(([k, d]) => gearCard(k, d, lo.vest === k)), (v) => { lo.vest = v; }); }
   else if (loTab === 'belt') { $('loDetail').textContent = 'One perk carried on the belt.'; pick(Object.entries(BELTS).map(([k, d]) => gearCard(k, d, lo.belt === k, k === 'none' ? 'b-none' : k)), (v) => { lo.belt = v; }); }
   else if (loTab === 'op') {
@@ -245,7 +245,7 @@ function fillSkins() {
   fill('mpSkinU', SKINS.uniform, sk.uniform); fill('mpSkinP', SKINS.pattern, sk.pattern); fill('mpSkinH', SKINS.helmet, sk.helmet);
 }
 // ---------- killstreaks ----------
-export const streakHow = (s) => s.how.replace('{streak}', keyName('streak'));
+export const streakHow = (s) => hud.howText(s.how);
 function refreshStreaks() {
   const st = G.profile.streaks, picks = st.picks;
   $('streakCards').innerHTML = `<p class="small-note">Pick three (${picks.length}/3). Kill counts are yours to tune; in multiplayer the host's counts apply to everyone.</p>` + [...STREAKS].sort((a, b) => (st.kills[a.id] ?? a.kills) - (st.kills[b.id] ?? b.kills)).map((s) => { const on = picks.includes(s.id), k = st.kills[s.id] ?? s.kills;
@@ -370,7 +370,8 @@ function refreshCareer() {
   $('careerStats').innerHTML = tiles.map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join('');
   $('rankLadder').innerHTML = RANKS.map((r) => `<div class="rung ${r.i === rp.rank ? 'cur' : r.i < rp.rank ? 'done' : ''}">${badgeSVG(r.i, 30)}<span>${esc(r.name)}</span><small>${r.xp.toLocaleString()} XP</small></div>`).join('');
   { const md = G.profile.career.medals || {}; $('rankLadder').insertAdjacentHTML('afterbegin', '<div class="medal-case"><span class="flabel">Medal case</span><div>' + Object.entries(MEDALS).map(([k, n]) => `<span class="medal ${md[k] ? '' : 'none'}"><b>${md[k] || 0}</b>${esc(n)}</span>`).join('') + '</div></div>'); }
-  setTimeout(() => { const cur = $('rankLadder').querySelector('.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); }, 0);
+  // centre the current rank inside the ladder list only (scrollIntoView also scrolled the whole phone panel, hiding Back)
+  setTimeout(() => { const lad = $('rankLadder'), cur = lad.querySelector('.cur'); if (cur) lad.scrollTop += cur.getBoundingClientRect().top - lad.getBoundingClientRect().top - (lad.clientHeight - cur.offsetHeight) / 2; }, 0);
 }
 
 // ---------- end of match ----------
@@ -418,7 +419,9 @@ export function showEnd(r) {
 export function showArmory() {
   const P = G.player, cur = P.weapons, isRange = G.match && G.match.mode === 'range';
   $('armTitle').textContent = isRange ? 'Range rack' : 'Weapon menu';
-  $('armLede').textContent = isRange ? 'Tick as many guns as you like: you carry all of them here. Switch with 1–9 or Q (or the mouse wheel, if it’s on in Settings). B or Esc closes.' : 'Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.';
+  $('armLede').textContent = input.touch
+    ? (isRange ? 'Tick as many guns as you like: you carry all of them here. Tap your gun at the bottom of the screen to switch.' : 'Sandbox only. Pick anything; it stays with you when you respawn.')
+    : isRange ? 'Tick as many guns as you like: you carry all of them here. Switch with 1–9 or Q (or the mouse wheel, if it’s on in Settings). B or Esc closes.' : 'Sandbox only. Pick anything; it stays with you when you respawn. Press B or Esc to close.';
   if (isRange) {
     const rk = G.profile.rangeRack || [], rb = (id) => `<button type="button" data-r="${id}" class="${rk.includes(id) ? 'sel' : ''}"><b>${rk.includes(id) ? (rk.indexOf(id) + 1) + ' · ' : ''}${WEAPONS[id].name}</b><small>${WEAPONS[id].cls}</small>${statBars(WEAPONS[id], true)}</button>`;
     $('armPrimary').innerHTML = ALL_PRIMARIES.map(rb).join(''); $('armSecondary').innerHTML = SECONDARIES.map(rb).join('');
@@ -471,6 +474,12 @@ export function initMenus(callbacks) {
     cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, zdiff: L.zdiff, bots: { ...L.bots }, pickups: L.pickups, power: L.power !== false, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
   $('careerDone').addEventListener('click', () => showScreen('menu'));
+  // Phone back buttons (Brian picked B, 2026-11-15): "‹ Back" at the top-left of each screen, touch screens only (CSS).
+  // Each does what that screen's Done / Leave does; the loadout goes back to the menu (before a match: not Deploy).
+  document.querySelectorAll('.back-top').forEach((b) => b.addEventListener('click', () => {
+    const t = b.dataset.back === 'loadout' ? (prematch ? 'loadoutBack' : 'loadoutDone') : b.dataset.back;
+    $(t).click();
+  }));
   // export / import profile
   const saveMsg = (t, ok) => { const m = $('saveMsg'); m.textContent = t; m.className = 'save-msg ' + (ok ? 'ok' : 'err'); };
   $('exportProfile').addEventListener('click', () => {

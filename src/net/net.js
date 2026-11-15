@@ -3,6 +3,7 @@
 // render everyone else from 30 Hz snapshots interpolated 100 ms in the past. Explosives, pickups, doors, barrels,
 // drops, deaths and respawns are decided by the host.
 import { G } from '../core/state.js';
+import { input } from '../core/input.js';
 import { WEAPONS, PHYS, UNIFORMS, ACCENTS, TEAMS, SKINS, skinLook, OPERATORS, operatorLook } from '../core/config.js';
 import { makeUnit, isEnemy, noise, damage } from '../entities/units.js';
 import { swipe, restyleSoldier, makeSoldier, setSoldierGun, startDeath, disposeSoldier, animateSoldier, setFlash } from '../entities/soldier.js';
@@ -494,7 +495,7 @@ function clientStart(m) {
   S.live = true;
   S.cb.deploy(m.cfg);               // startMatch sees G.mp.client: no bots, our team
   const P = G.player; P.name = S.name;
-  if (m.spec) { G.spectating = { i: 0, fp: false }; P.alive = false; P.x = 0; P.y = -50; P.z = 0; G.state = 'playing'; hud.notice('Spectating · click: next player · right-click: previous · V: their eyes / chase cam'); return; }
+  if (m.spec) { G.spectating = { i: 0, fp: false }; P.alive = false; P.x = 0; P.y = -50; P.z = 0; G.state = 'playing'; hud.notice(input.touch ? 'Spectating · tap: next player' : 'Spectating · click: next player · right-click: previous · V: their eyes / chase cam'); return; }
   G.spectating = null;
   spawnPlayer(m.sp.x, m.sp.y, m.sp.z, m.sp.yaw);
   if (m.late) { G.state = 'playing'; hud.notice('Joined a match in progress'); } // no deploy countdown when joining late

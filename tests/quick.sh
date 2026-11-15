@@ -12,6 +12,8 @@ t tests/buildlabel.mjs
 t tests/power.mjs
 t tests/touch.mjs
 t tests/menulayout.mjs
+t tests/phoneui.mjs
+t tests/phonefit.mjs
 t tests/stamina.mjs
 t tests/regress.mjs 6
 t tests/mp.mjs

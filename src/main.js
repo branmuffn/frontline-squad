@@ -27,7 +27,7 @@ import { updateBots } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
 import { updateGrenades, throwGrenade, grenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
-import { updateStreaks, useStreak, grantStreak } from './entities/streaks.js';
+import { updateStreaks, useStreak, grantStreak, checkStreak } from './entities/streaks.js';
 import { startMatch, updateMatch, abandonMatch, pickSpawn, endMatch } from './game/match.js';
 import { initHud, updateHud, toggleBoard, setFps, setWeapon as setWeaponHud } from './ui/hud.js';
 import { setNameStyle, WEAPONS, ALL_GUNS } from './core/config.js';
@@ -91,7 +91,7 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
-  window.__frontline = { kcDebug, streakState, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

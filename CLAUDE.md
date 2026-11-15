@@ -32,6 +32,10 @@ host-authoritative). Read `docs/ONE_PAGER.md` (what exists), `docs/ARCHITECTURE.
 - The nav worker is OFF under the harness (fake clock); `tests/navworker.mjs` tests it in real time.
 - `classList.toggle(x, undefined)` flips; pass booleans. r128 renderer methods are per instance.
 - Self-sizing elements must never feed back into layout (`tests/lostable.mjs`). Screens must fit (`tests/fit.mjs`).
+- Phones: screens must fit at 5 phone sizes too (`tests/phonefit.mjs`). Phone-only UI uses `body.touch` CSS (`.back-top`,
+  `.touch-only`, `.mouse-only`); computers must stay unchanged. On-screen key hints go through `hud.keyName` / `pressWord` /
+  `howText` / `phoneText`, which give phone wording when touch controls are on. Android sends a mouse move after each tap:
+  mouse look only counts with pointer lock or free look.
 - Vehicles: seat numbers must be range-checked (one-seat ATV/Kestrel). Vehicle code keys off `spec.fly` / `spec.tail`.
 - Visual geometry must sit inside colliders (`tests/walls.mjs` audits every map; must report 0 gaps).
 - Spawns/pickups must be clear of geometry (`tests/mapsmoke.mjs <map>`, `tests/spawnsep.mjs`).

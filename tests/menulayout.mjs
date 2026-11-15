@@ -30,7 +30,8 @@ for (const [label, opts] of [['phone 915x330', { w: 915, h: 330, touch: true }],
     for (const t of out.tabs) {
       document.querySelector(`#setTabs [data-tab="${t}"]`).click(); window.__step(1);
       const shown = [...document.querySelectorAll('#settings .set-page')].filter((p) => !p.classList.contains('hidden')).map((p) => p.dataset.page);
-      out.pages[t] = { shown, scroll: scrollers('#settings'), done: onScreen('settingsDone') };
+      // phones leave Settings with "‹ Back" (back button B, 2026-11-15); computers with Done
+      out.pages[t] = { shown, scroll: scrollers('#settings'), done: onScreen(phone ? 'settingsBack' : 'settingsDone') };
     }
     document.querySelector('#setTabs [data-tab="controls"]').click(); window.__step(1);
     out.mouseSens = !!document.getElementById('set_sens').closest('label').offsetParent;

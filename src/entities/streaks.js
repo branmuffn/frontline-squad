@@ -87,12 +87,12 @@ function earn(s) {
     play('radio', null, { delay: 0.3 });
   } else {
     if (!streakState.ready.includes(s.id)) streakState.ready.push(s.id);
-    hud.banner(s.name + ' ready', `Press ${hud.keyName('streak')} to deploy`);
+    hud.banner(s.name + ' ready', `${hud.pressWord()} ${hud.keyName('streak')} to deploy`);
   }
   hud.setStreaks(G.player ? G.player.streak : 0, streakState.ready);
   // first time each reward is earned: explain what it does and how to use it
   const hints = G.profile.hints;
-  if (!hints[s.id]) { hints[s.id] = true; saveProfile(); hud.hint(`New: ${s.name}`, s.how.replace('{streak}', hud.keyName('streak')), 9); }
+  if (!hints[s.id]) { hints[s.id] = true; saveProfile(); hud.hint(`New: ${s.name}`, hud.howText(s.how), 9); }
 }
 
 export function grantStreak(id) {

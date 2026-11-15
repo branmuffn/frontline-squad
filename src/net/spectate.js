@@ -1,6 +1,7 @@
 // Spectator camera (multiplayer): follow any living player or bot. Click = next, right-click = previous,
 // V = switch between their eyes and a chase camera. Humans are listed first.
 import { G } from '../core/state.js';
+import { input } from '../core/input.js';
 import { setListener } from '../engine/audio.js';
 const lerp = (a, b, k) => a + (b - a) * k;
 let cur = null;
@@ -12,7 +13,7 @@ export function spectateStep(dt) {
   if (!list.length) { if (el) el.textContent = 'Spectating · waiting for players'; return; }
   sp.i = ((sp.i % list.length) + list.length) % list.length;
   const t = list[sp.i];
-  if (el) el.textContent = `Spectating ${t.name}${t.human || t.remote ? '' : ' (bot)'} · click: next · right-click: previous · V: ${sp.fp ? 'chase cam' : 'their eyes'}`;
+  if (el) el.textContent = `Spectating ${t.name}${t.human || t.remote ? '' : ' (bot)'} · ${input.touch ? 'tap: next player' : `click: next · right-click: previous · V: ${sp.fp ? 'chase cam' : 'their eyes'}`}`;
   const eye = t.y + 1.55 - (t.crouchT || 0) * 0.5;
   if (sp.fp) { cam.position.set(t.x, eye, t.z); cam.rotation.set(t.aimPitch || t.pitch || 0, t.yaw, 0); }
   else {

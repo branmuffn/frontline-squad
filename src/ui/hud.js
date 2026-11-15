@@ -3,7 +3,7 @@ import { G } from '../core/state.js';
 import { WEAPONS, TEAMS, STREAKS, MODES } from '../core/config.js';
 import { myPicks, killsFor } from '../entities/streaks.js';
 import { $, esc, fmtTime, clamp } from '../core/util.js';
-import { binding } from '../core/input.js';
+import { binding, input } from '../core/input.js';
 import { rayUnits, rayWorld } from '../world/physics.js';
 import { weaponLabel, isEnemy } from '../entities/units.js';
 import { streakState } from '../entities/streaks.js';
@@ -27,7 +27,14 @@ export function codeName(code) {
   if (code.startsWith('Arrow')) return code.slice(5) + ' arrow';
   return code;
 }
-export const keyName = (action) => codeName(binding(action));
+// Phones (touch controls on) name the on-screen button instead of a key; actions with no phone button give ''.
+const TOUCH_NAMES = { interact: 'Use', streak: 'Streak', grenade: 'Grenade', reload: 'Reload', jump: 'Jump', crouch: 'Crouch' };
+export const keyName = (action) => input.touch ? (TOUCH_NAMES[action] || '') : codeName(binding(action));
+export const pressWord = () => (input.touch ? 'Tap' : 'Press');
+// Killstreak "how to" text: "press {streak}" becomes "press F" on computers, "tap Streak" on phones.
+export const howText = (t) => input.touch ? t.replace(/\b([Pp])ress \{streak\}/g, (m, p) => (p === 'P' ? 'Tap' : 'tap') + ' Streak').replace(/\bpress E\b/g, 'tap Use') : t.replace('{streak}', keyName('streak'));
+// Menu texts written for keyboards: phones drop the key hints (computers see the text unchanged).
+export const phoneText = (t) => input.touch ? t.replace(/ Press B for the weapon menu\./g, '').replace(/ \((key 4|B)\)/g, '') : t;
 
 export function initHud() {
   radarCtx = $('radar').getContext('2d');
@@ -44,7 +51,7 @@ export function startMatch() {
   bannerQ = []; bannerUntil = 0; deathInfo = null;
   $('death').classList.add('hidden'); $('board').classList.add('hidden'); boardOpen = false;
   $('banner').classList.remove('show');
-  const lim = m.mode === 'sandbox' ? 'Sandbox · press B for weapons' : m.mode === 'tdm' ? (isFinite(m.scoreLimit) ? `First team to ${m.scoreLimit}` : 'No score limit') : m.mode === 'ffa' ? (isFinite(m.scoreLimit) ? `First to ${m.scoreLimit}` : 'No kill limit') : 'Three lives';
+  const lim = m.mode === 'sandbox' ? (input.touch ? 'Sandbox' : 'Sandbox · press B for weapons') : m.mode === 'tdm' ? (isFinite(m.scoreLimit) ? `First team to ${m.scoreLimit}` : 'No score limit') : m.mode === 'ffa' ? (isFinite(m.scoreLimit) ? `First to ${m.scoreLimit}` : 'No kill limit') : 'Three lives';
   $('score').className = 'score mode-' + (m.teams ? 'tdm' : m.mode === 'survival' ? 'survival' : 'ffa');
   $('score').innerHTML = m.mode === 'survival' || m.mode === 'zombies'
     ? `<div class="sc-side"><small id="scAn">Points</small><b id="scA">0</b></div><div class="sc-mid"><small>${m.mode === 'zombies' ? 'Round' : 'Wave'}</small><b id="scT">1</b></div><div class="sc-side"><small id="scBn">Hostiles</small><b id="scB">0</b></div><div class="sc-sub" id="scSub"></div>`
@@ -108,7 +115,7 @@ export function setStreaks(n, ready) {
   picks.forEach((id, i) => { const el = $('pip' + i); if (!el) return; const k = killsFor(id); el.textContent = k; el.title = (STREAKS.find((s) => s.id === id) || {}).name || ''; el.classList.toggle('on', n >= k); });
   set('streakCount', 'text', n ? `${n} streak` : '');
   const r = ready ?? streakState.ready;
-  set('streakReady', 'html', r.length ? `<kbd>${esc(keyName('streak'))}</kbd> ${esc(STREAKS.find((s) => s.id === r[0]).name)}${r.length > 1 ? ` <small>+${r.length - 1}</small>` : ''}` : '');
+  set('streakReady', 'html', r.length ? `${input.touch ? '' : `<kbd>${esc(keyName('streak'))}</kbd> `}${esc(STREAKS.find((s) => s.id === r[0]).name)}${r.length > 1 ? ` <small>+${r.length - 1}</small>` : ''}` : '');
 }
 
 export function killfeed(killer, victim, weapon, headshot, suicide) {
@@ -174,7 +181,7 @@ export function showDeath(killer, info, respawnAt) {
   } else { $('deathTitle').textContent = 'You died'; $('deathSub').textContent = info.weapon === 'frag' ? 'Your own grenade' : ''; }
   if (respawnAt >= 99 && G.match.mode === 'survival') $('deathTimer').textContent = 'No lives left';
 }
-export function waitRound() { if (deathInfo) deathInfo.respawnAt = 1e9; set('deathTimer', 'text', 'Out until the next round · WASD + mouse to fly · Space / C up and down · Shift faster'); }
+export function waitRound() { if (deathInfo) deathInfo.respawnAt = 1e9; set('deathTimer', 'text', input.touch ? 'Out until the next round' : 'Out until the next round · WASD + mouse to fly · Space / C up and down · Shift faster'); }
 export function hideDeath() { $('death').classList.add('hidden'); deathInfo = null; }
 
 export function toggleBoard(open) { boardOpen = open; $('board').classList.toggle('hidden', !open); if (open) drawBoard(); }
@@ -215,7 +222,7 @@ export function updatePlayerHud(P, o) {
   setAmmo(P);
   const scoped = !!(w.scope && P.adsT > 0.9);
   $('scope').classList.toggle('on', scoped);
-  if (scoped && w.mags) { const m = w.mags[Math.min(P.zoomIdx || 0, w.mags.length - 1)], t = m + '×' + (w.mags.length > 1 ? '   (wheel or ' + keyName('zoom') + ' to change)' : ''); if (hudMagText !== t) { hudMagText = t; $('scopeMag').textContent = t; } }
+  if (scoped && w.mags) { const m = w.mags[Math.min(P.zoomIdx || 0, w.mags.length - 1)], t = m + '×' + (w.mags.length > 1 && !input.touch ? '   (wheel or ' + keyName('zoom') + ' to change)' : ''); if (hudMagText !== t) { hudMagText = t; $('scopeMag').textContent = t; } }
   const hideCh = (P.adsT > 0.55 && !w.melee && !(w.pellets > 1)) || (w.scope && P.adsT < 0.9) || P.sprintT > 0.6;
   const fovRad = THREE.MathUtils.degToRad(G.camera.fov);
   const gap = clamp(o.spread * (window.innerHeight / 2) / Math.tan(fovRad / 2), 3, 120);

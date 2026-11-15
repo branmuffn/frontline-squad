@@ -42,10 +42,11 @@ check('phone: touch mode on', r0.touch === true, r0);
 check('phone: Balanced graphics at 2x sharpness on first start', r0.shadows === 'high' && r0.scale === 1 && r0.px === 2 && r0.auto === true && r0.setup === 2, r0);
 
 // phone menus (Brian picked M2): every screen's main button is on screen without scrolling the page
+// (2026-11-15, back button B: on phones the way out of Settings / Killstreaks / Career / Controls is "‹ Back" at the top)
 const scr = await ev(() => { const F = window.__frontline, out = {};
   const S = { menu: [() => F.ui.showScreen('menu'), '#deploy'], loadout: [() => F.ui.showLoadout(true), '#loadoutDone'],
-    settings: [() => document.getElementById('openSettings').click(), '#settings .btn-row .btn-primary'], streaks: [() => document.getElementById('openStreaks').click(), '#streaksDone'],
-    career: [() => document.getElementById('openCareer').click(), '#careerDone'], controls: [() => document.getElementById('openControls').click(), '#controls .btn-row button'] };
+    settings: [() => document.getElementById('openSettings').click(), '#settings .back-top'], streaks: [() => document.getElementById('openStreaks').click(), '#streaks .back-top'],
+    career: [() => document.getElementById('openCareer').click(), '#career .back-top'], controls: [() => document.getElementById('openControls').click(), '#controls .back-top'] };
   for (const [k, [fn, sel]] of Object.entries(S)) { F.ui.showScreen('menu'); fn(); window.__step(2); const r = document.querySelector(sel).getBoundingClientRect();
     out[k] = r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && document.documentElement.scrollHeight <= innerHeight + 1;
     if (k === 'loadout') { const row = document.querySelector('#loadoutDone').parentElement.getBoundingClientRect(), pan = document.querySelector('#loadout .panel').getBoundingClientRect(); out.loadoutBarNarrow = row.width < pan.width * 0.5; } }
