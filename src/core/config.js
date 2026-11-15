@@ -1,5 +1,8 @@
 // Central tuning data. Gameplay feel lives here, so balance changes rarely need code changes.
 
+// Sprint stamina (Brian, 2026-11-15): a full bar lasts sprintSecs of sprinting; after restDelay s without sprinting it refills
+// in refillSecs; once it runs out you're winded and can sprint again only at minToSprint (share of the bar).
+export const STAMINA = { sprintSecs: 6, refillSecs: 4, restDelay: 1, minToSprint: 0.3 };
 // Light aim assist, touch players only: turning slows while the crosshair is on a visible enemy (within range, radius m of the aim line).
 export const AIM_ASSIST = { range: 70, radius: 0.9, slow: 0.55 };
 export const PHYS = {

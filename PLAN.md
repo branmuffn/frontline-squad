@@ -151,7 +151,7 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Phone menus (Brian picked M2, 2026-11-14): on phones held sideways the main menu is a bit smaller with Deploy pinned to the bottom-right corner; every other screen scrolls as one panel with its Done / Back row pinned at the bottom (Loadout's Done used to be unreachable on a phone). tests/touch.mjs checks every screen's main button.
 - [x] Phone play-test fixes (Brian, Pixel 7, 2026-11-14): graphics were too blurry (Battery saver) -> phones now start at Balanced with 2x sharpness, applied once even to phones that got Battery saver (settings.touchV 2; auto resolution steps down if the frame rate drops); sprint was hard to find -> the stick turns brass with a SPRINT label at the rim, plus a tip for the first 3 matches; the pinned Loadout button bar covered the whole bottom -> now only as wide as its buttons.
 - [x] Old failures from the full run fixed: fit (1024x640 Settings had two nested scroll areas; now the key list grows and only the body scrolls) and hitbox (Cascade Gorge rock shelves: the flat box is now for feet only, bullets hit the rock's exact hull; 8 corners stuck out up to 0.6 m).
-- [ ] Phone follow-ups: stamina for sprint (Brian asked 2026-11-14; mockup first).
+- [x] Sprint stamina (Brian, 2026-11-15; picked bar A, under the health bar): 6 s of sprint, refills in 4 s after a 1 s rest, winded until 30% after running out; desktop and phone; bots unchanged. `STAMINA` in config.js, tests/stamina.mjs.
 - [ ] Ideas (not yet scheduled): shoot from the Kestrel / ATV.
 
 ## Next: roadmap

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
-import { withAttachments, PHYS, WEAPONS, GRENADE, loadoutGuns, magZoom } from '../core/config.js';
+import { withAttachments, PHYS, WEAPONS, GRENADE, STAMINA, loadoutGuns, magZoom } from '../core/config.js';
 import { clamp, damp, lerp, rand, coneDir } from '../core/util.js';
 import { input, down, consumeMouse } from '../core/input.js';
 import { aimAssistFactor } from './aimassist.js';
@@ -31,7 +31,7 @@ export function createPlayer(team) {
     pumpStart: -1, boltStart: -1, adsBlockUntil: 0, meleeStart: -1, meleeHeavy: false, meleeHitAt: -1,
     grenades: GRENADE.perLife, cookStart: -1, throwStart: -1, bob: 0, eye: PHYS.eyeStand, stepDist: 0,
     jumpRequest: -10, lastShotAt: -10, dryAt: 0, autoReloadAt: -1, lastKiller: null, deathT: 0, noSprintUntil: 0,
-    lowHpBeat: 0, mdx: 0, mdy: 0,
+    lowHpBeat: 0, mdx: 0, mdy: 0, stamina: 1, staminaRestAt: -10, winded: false,
   });
   G.player = P;
   return P;
@@ -58,6 +58,7 @@ export function spawnPlayer(x, y, z, yaw) {
     x, y, z, vx: 0, vz: 0, vy: 0, yaw, pitch: 0, alive: true, health: 100, grounded: true, crouch: false, crouchT: 0, prone: false, proneT: 0, h: PHYS.standH,
     slot: 0, lastSlot: 1, adsT: 0, recoilP: 0, recoilY: 0, bloom: 0, reloadStart: -1, meleeStart: -1, meleeHitAt: -1, cookStart: -1, throwStart: -1,
     pumpStart: -1, boltStart: -1, grenades: GRENADE.perLife, protectUntil: G.now + 2.2, streak: 0, eye: PHYS.eyeStand, semiReady: true,
+    stamina: 1, staminaRestAt: -10, winded: false,
   });
   input.aim = false; P.zoomIdx = 0; // toggle-aim: never spawn scoped
   P.weapons = startingWeapons();
@@ -373,7 +374,11 @@ export function updatePlayer(dt) {
   P.crouchT = damp(P.crouchT, P.crouch || P.prone ? 1 : 0, 12, dt);
   P.proneT = damp(P.proneT || 0, P.prone ? 1 : 0, 7, dt);
   const firingRecently = G.now - P.lastShotAt < 0.25;
-  P.sprinting = !frozen && down('sprint') && f > 0 && !P.crouch && !P.prone && P.adsT < 0.35 && P.cookStart < 0 && !firingRecently && G.now > P.noSprintUntil && P.meleeStart < 0;
+  P.sprinting = !frozen && down('sprint') && f > 0 && !P.crouch && !P.prone && P.adsT < 0.35 && P.cookStart < 0 && !firingRecently && G.now > P.noSprintUntil && P.meleeStart < 0 && !P.winded;
+  // stamina: sprinting drains it; after a short rest it refills; running out leaves you winded until it's back to minToSprint
+  if (P.sprinting) { P.stamina = Math.max(0, P.stamina - dt / STAMINA.sprintSecs); P.staminaRestAt = G.now; if (P.stamina <= 0) { P.winded = true; P.sprinting = false; } }
+  else if (G.now - P.staminaRestAt > STAMINA.restDelay) P.stamina = Math.min(1, P.stamina + dt / STAMINA.refillSecs);
+  if (P.winded && P.stamina >= STAMINA.minToSprint) P.winded = false;
   P.sprintT = damp(P.sprintT, P.sprinting ? 1 : 0, 10, dt);
   let speed = PHYS.walk * (w.speed || 1) * (P.speedMul || 1);
   if (P.sprinting) speed *= PHYS.sprintMul; else if (P.prone) speed *= PHYS.proneMul; else if (P.crouch) speed *= PHYS.crouchMul; else if (P.adsT > 0.5) speed *= PHYS.adsMul;

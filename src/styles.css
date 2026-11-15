@@ -258,6 +258,9 @@ tr.dead td { opacity: 0.5; }
 .hp-row span { color: var(--ink-dim); font-size: 15px; }
 .hp-bar { height: 6px; margin-top: 4px; background: rgba(235, 230, 214, 0.15); }
 .hp-bar i { display: block; height: 100%; background: var(--green); transition: width 0.15s; }
+.st-bar { height: 4px; margin-top: 3px; background: rgba(235, 230, 214, 0.15); opacity: 0; transition: opacity 0.3s; } /* sprint stamina (Brian picked A) */
+.st-bar i { display: block; height: 100%; width: 100%; background: var(--brass); }
+body.touch .st-bar { height: 3px; margin-top: 2px; }
 #protect { display: none; margin-top: 6px; font-size: 14px; color: var(--blue); }
 .hud-ammo { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: right; min-width: 210px; }
 .w-row { display: flex; justify-content: flex-end; align-items: baseline; gap: 8px; }

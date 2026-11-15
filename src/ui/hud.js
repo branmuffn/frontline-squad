@@ -206,6 +206,10 @@ export function updatePlayerHud(P, o) {
   set('hpNum', 'text', String(hp));
   set('hpFill', 'width', clamp(P.health / P.maxHealth * 100, 0, 100) + '%');
   set('hpFill', 'background', hp < 35 ? 'var(--red)' : '');
+  const st = P.stamina === undefined ? 1 : P.stamina; // sprint stamina under the health bar: shows only while not full
+  set('stFill', 'width', (st * 100).toFixed(1) + '%');
+  set('stBar', 'opacity', st < 0.999 ? '1' : '0');
+  set('stFill', 'background', P.winded ? 'rgba(229, 180, 67, 0.45)' : '');
   set('protect', 'display', P.protectUntil > G.now ? 'block' : 'none');
   set('vignette', 'opacity', String(clamp((45 - hp) / 45, 0, 0.85).toFixed(2)));
   setAmmo(P);
