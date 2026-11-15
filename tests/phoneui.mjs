@@ -33,9 +33,20 @@ const noFullscreen = () => { Element.prototype.requestFullscreen = function () {
     out.mp = { back: vis(backOf('mp')) }; backOf('mp').click(); window.__step(1); out.mp.after = shown() === 'menu';
     // career scrolled to the bottom: Back stays on screen; opening it doesn't scroll the panel
     $('openCareer').click(); window.__step(2);
-    const cp = document.querySelector('#career .panel'); out.careerStart = cp.scrollTop;
+    const cp = document.querySelector('#career .pbody'); out.careerStart = cp.scrollTop;
+    // one scroll area: the body scrolls, the rank ladder inside it doesn't scroll on its own
+    out.careerOneScroll = cp.scrollHeight > cp.clientHeight && getComputedStyle($('rankLadder')).overflowY === 'visible';
     cp.scrollTop = 99999; out.careerBackStuck = (() => { const b = backOf('career').getBoundingClientRect(); return b.top >= -1 && b.bottom <= innerHeight; })();
     backOf('career').click();
+    // Killstreaks: all cards fit (Pixel 7 with Chrome's bar); Settings sits in the middle of the screen
+    $('openStreaks').click(); window.__step(2);
+    { const pb = document.querySelector('#streaks .pbody').getBoundingClientRect(), cards = [...document.querySelectorAll('.streak-card')];
+      out.streaksFit = [cards.filter((c) => c.getBoundingClientRect().bottom <= pb.bottom + 1).length, cards.length]; }
+    backOf('streaks').click();
+    $('openSettings').click(); window.__step(2);
+    { const page = [...document.querySelectorAll('#settings .set-page')].find((p) => !p.classList.contains('hidden')).getBoundingClientRect(), pb = document.querySelector('#settings .pbody').getBoundingClientRect();
+      out.settingsMid = Math.round((page.top + page.bottom) / 2 - (pb.top + pb.bottom) / 2); }
+    backOf('settings').click();
     // phone wording
     out.editor = vis($('openEditor'));
     $('openControls').click(); out.ctrl = { touchList: vis(document.querySelector('#controls .keys.touch-only')), keyList: vis(document.querySelector('#controls .keys.mouse-only')) }; backOf('controls').click();
@@ -77,7 +88,9 @@ const noFullscreen = () => { Element.prototype.requestFullscreen = function () {
   }
   check('phone loadout before a match: Back to the menu, Deploy kept', r.prematch.back && r.prematch.deploy && r.prematch.oldBack && r.prematch.after, r.prematch);
   check('phone multiplayer: Back leaves', r.mp.back && r.mp.after, r.mp);
-  check('phone career: opens at the top, Back stays on screen when scrolled', r.careerStart === 0 && r.careerBackStuck, r);
+  check('phone career: opens at the top, one scroll area, Back stays on screen when scrolled', r.careerStart === 0 && r.careerOneScroll && r.careerBackStuck, r);
+  check('phone Killstreaks: every card fits on screen', r.streaksFit[0] === r.streaksFit[1] && r.streaksFit[1] >= 8, r.streaksFit);
+  check('phone Settings: centred vertically', Math.abs(r.settingsMid) < 12, r.settingsMid);
   check('phone: no map editor (it needs a keyboard)', r.editor === false);
   check('phone Controls: touch list, not keys', r.ctrl.touchList && !r.ctrl.keyList, r.ctrl);
   check('phone: sandbox text says tap Weapons, not press B', !/press B/i.test(r.sandboxDesc) && /Tap Weapons/.test(r.sandboxDesc), r.sandboxDesc);

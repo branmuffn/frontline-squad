@@ -714,11 +714,33 @@ body.touch #freeLook, body.touch #relock, body.touch #lockMsg, body.touch #pause
   body.touch #menu .menu-nav { order: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
   body.touch #menu .menu-nav button { padding: 0 2px; height: 34px; font-size: 11.5px; }
   body.touch #menu #deploy { order: 2; margin-top: auto; width: 100%; height: 50px; min-height: 50px; padding: 0; font-size: 22px; }
-  /* other screens: the panel scrolls as one page and its Done / Back row stays pinned at the bottom, always reachable */
+  /* other screens (Brian, 2026-11-15: "fits in one screen, no overhang"): the panel fits the screen; its title row
+     (with Back) and its buttons stay put and only the middle part scrolls, as ONE scroll area (lists inside it don't
+     scroll on their own, which made Career hard to scroll). */
   body.touch .screen { padding: 6px 10px; }
-  body.touch .panel.fit { overflow-y: auto; overscroll-behavior: contain; }
-  body.touch .panel.fit > .pbody { flex: none; min-height: auto; overflow: visible; }
-  body.touch .panel.fit > .btn-row { position: sticky !important; bottom: -12px; z-index: 3; margin-top: 8px; padding: 8px 0 12px 10px !important; background: var(--panel) !important; align-self: flex-end; width: auto; }
+  body.touch .panel.fit { overflow: hidden; }
+  body.touch .panel.fit > .pbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  body.touch .panel.fit > .pbody .scroll-list { max-height: none !important; overflow: visible !important; }
+  body.touch .panel.fit > .btn-row { position: static; margin-top: 6px; padding: 0; background: none; }
+  /* Killstreaks: compact cards, two across, so all of them fit a Pixel-size screen */
+  body.touch #streaks .pbody { display: block; overflow-y: auto; }
+  body.touch #streaks .lede { display: none; }
+  body.touch #streakCards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 8px; }
+  body.touch #streakCards > .small-note { grid-column: 1 / -1; margin: 0; font-size: 12px; }
+  /* each card: kills stepper, name and Equip on one line, the how-to text full width under them */
+  body.touch .streak-card { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "kills name pick" "desc desc desc"; gap: 2px 8px; padding: 5px 8px 6px; align-items: center; }
+  body.touch .streak-card > div:not(.sk-kills) { display: contents; }
+  body.touch .streak-card .sk-kills { grid-area: kills; border: 0; flex-wrap: nowrap; gap: 3px; }
+  body.touch .streak-card .sk-kills small { display: none; }
+  body.touch .streak-card h3 { grid-area: name; font-size: 14px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.touch .streak-card .sk-pick { grid-area: pick; padding: 3px 8px; font-size: 12px; }
+  body.touch .streak-card p { grid-area: desc; font-size: 11px; line-height: 1.22; }
+  body.touch .sk-kills b { font-size: 20px; }
+  body.touch .sk-step { width: 24px; height: 24px; }
+  body.touch #streakRules { font-size: 12px; margin: 0; }
+  /* Settings: tabs and the settings themselves sit in the middle of the screen, nearer the thumb */
+  body.touch #settings .pbody { display: flex; flex-direction: column; justify-content: safe center; }
+  body.touch #settings .set-tabs { margin-block: auto; }
 }
 
 /* ===== Settings A + Loadout A (Brian, 2026-11-15): the same layouts on phones and computers ===== */
@@ -765,6 +787,7 @@ body.touch .panel.fit > .ptitle::before { content: ''; position: absolute; top: 
   body.touch #loadout .lo-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0 8px; }
   body.touch #loadout .lo-stats .ls-name { grid-column: 1 / -1; display: flex; gap: 8px; align-items: baseline; }
   body.touch #loadout .lo-detail, body.touch #loadout #slotDesc { white-space: normal; }
+  body.touch #streakCards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 body.touch .keys kbd { white-space: nowrap; flex: none; }
 /* Phone pop-ups never run off the screen: they keep inside it and scroll if they must. */
@@ -1250,7 +1273,7 @@ body.touch #xhPrev { height: 56px; margin: 4px 0 6px; }
   <div id="fps" class="hidden"></div>
 </div>
 
-<script>window.__BUILD="build 127 · 2026-11-15";</script>
+<script>window.__BUILD="build 128 · 2026-11-15";</script>
 <script>
 /**
  * @license
