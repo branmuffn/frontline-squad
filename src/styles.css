@@ -774,3 +774,32 @@ body.touch .mouse-only { display: none !important; }
   #loadout .lo-right .btn-row button { min-height: 46px; padding: 0; }
   #loadout #loadoutDone { font-size: 19px; }
 }
+
+/* Gun stats W1 (Brian, 2026-11-15): one stats bar for the picked gun; gun tiles without stats, 4 across, so all fit. */
+#loadout .lo-mid.guns #loDetail { display: none; }
+#loadout .lo-stats { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(5, minmax(0, 1fr)); gap: 0 16px; align-items: end; padding: 8px 12px; margin: 0 0 8px;
+  border: 1px solid var(--brass); background: rgba(143, 108, 44, 0.18); }
+#loadout .lo-stats .ls-name { min-width: 0; }
+#loadout .lo-stats .ls-name b { display: block; font-size: 19px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#loadout .lo-stats .ls-name small { display: block; color: var(--ink-dim); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#loadout .lo-stats .stat { display: grid; grid-template-columns: auto 1fr; gap: 3px 6px; margin: 0; font-size: 13px; align-items: baseline; }
+#loadout .lo-stats .stat span { white-space: nowrap; }
+#loadout .lo-stats .stat span { grid-row: 1; grid-column: 1; }
+#loadout .lo-stats .stat em { grid-row: 1; grid-column: 2; text-align: left; color: var(--ink); font-size: 13px; }
+#loadout .lo-stats .stat i { grid-row: 2; grid-column: 1 / -1; height: 7px; }
+#loadout .lo-stats .stat i b { background: var(--brass); }
+#loadout .lo-stats .ls-desc { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#loadout .lo-mid.guns .lo-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#loadout .lo-mid.guns .lo-card { gap: 0; }
+@media (max-height: 560px) {
+  #loadout .lo-stats { gap: 0 10px; padding: 5px 8px; margin-bottom: 5px; }
+  #loadout .lo-stats .ls-name b { font-size: 15px; }
+  #loadout .lo-stats .ls-name small, #loadout .lo-stats .stat, #loadout .lo-stats .stat em { font-size: 11px; }
+  #loadout .lo-stats .stat i { height: 5px; }
+  #loadout .lo-stats .ls-desc { display: none; }
+  #loadout .lo-mid.guns .lo-row { gap: 4px; }
+  #loadout .lo-mid.guns .lo-card { padding: 3px 6px 4px; }
+  #loadout .lo-mid.guns .lo-card img { height: 22px; }
+  #loadout .lo-mid.guns .lo-card b { font-size: 12.5px; line-height: 1.1; }
+  #loadout .lo-mid.guns .lo-card small { font-size: 10.5px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

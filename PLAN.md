@@ -153,6 +153,8 @@ Test harness lives in `tests/` (see tests/README.md). Handoff prompt for a new c
 - [x] Old failures from the full run fixed: fit (1024x640 Settings had two nested scroll areas; now the key list grows and only the body scrolls) and hitbox (Cascade Gorge rock shelves: the flat box is now for feet only, bullets hit the rock's exact hull; 8 corners stuck out up to 0.6 m).
 - [x] Sprint stamina (Brian, 2026-11-15; picked bar A, under the health bar): 6 s of sprint, refills in 4 s after a 1 s rest, winded until 30% after running out; desktop and phone; bots unchanged. `STAMINA` in config.js, tests/stamina.mjs.
 - [x] Menu layouts (Brian, 2026-11-15): Main menu A on phones (two columns: mode + map left; logo, bot skill, opponents, the 8 other screens and a big Deploy right; no scrolling; computers unchanged). Settings A everywhere (tabs down the left: Controls & sound, Graphics, Gameplay & HUD, Key bindings; each fits one screen; touch screens hide mouse/keyboard settings). Loadout A everywhere (slots | choices | operator + Back/Done; only the choices list scrolls). tests/menulayout.mjs (in quick.sh).
+- [x] Gun stats W1 (Brian, 2026-11-15): gun tiles show picture, name and type; the picked gun's 5 stats (and its description on bigger screens) sit once in a bar above them, 4 tiles across, so all 12 primaries fit with no scrolling on phones and computers. tests/menulayout.mjs.
+- [ ] tests/mp.mjs is flaky on a busy machine (the M14 under load): 'still running' / 'rematch' fail about 1 run in 3 on old and new builds alike (real-time waits).
 - [ ] Ideas (not yet scheduled): shoot from the Kestrel / ATV.
 
 ## Next: roadmap

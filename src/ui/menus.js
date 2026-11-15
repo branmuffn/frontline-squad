@@ -205,10 +205,15 @@ function refreshLoadout() {
   const pick = (cards, onPick) => { $('loRow').innerHTML = cards.join(''); $('loRow').querySelectorAll('button:not([disabled])').forEach((bt) => bt.addEventListener('click', () => { onPick(bt.dataset.v); saveProfile(); refreshLoadout(); })); };
   const gearCard = (k, d, sel, ico) => `<button type="button" class="lo-card ${sel ? 'sel' : ''}" data-v="${k}">${icon(ico || k)}<b>${esc(d.name)}</b><small>${esc(d.desc)}</small></button>`;
   $('loOpExtra').classList.toggle('hidden', loTab !== 'op');
-  if (loTab[0] === 'g') {
-    const i = +loTab[1], pool = mode === 'classic' ? (i === 0 ? PRIMARIES : SECONDARIES) : ALL_GUNS;
-    $('loDetail').textContent = WEAPONS[guns[i]].desc;
-    pick(pool.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="lo-card ${guns[i] === id ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><img alt="" src="${gunThumb(id)}"><b>${w.name}</b><small>${w.cls}</small>${statBars(w)}</button>`; }), (id) => {
+  // Gun stats W1 (Brian, 2026-11-15): gun tiles show picture, name and type; the picked gun's 5 stats sit once in a bar above them.
+  const gunTab = loTab[0] === 'g';
+  document.querySelector('#loadout .lo-mid').classList.toggle('guns', gunTab);
+  $('loStats').classList.toggle('hidden', !gunTab);
+  if (gunTab) {
+    const i = +loTab[1], pool = mode === 'classic' ? (i === 0 ? PRIMARIES : SECONDARIES) : ALL_GUNS, cw = WEAPONS[guns[i]];
+    $('loDetail').textContent = cw.desc;
+    $('loStats').innerHTML = `<div class="ls-name"><b>${cw.name}</b><small>${cw.cls}</small></div>${statBars(cw)}<p class="ls-desc">${esc(cw.desc)}</p>`;
+    pick(pool.map((id) => { const w = WEAPONS[id]; return `<button type="button" class="lo-card ${guns[i] === id ? 'sel' : ''}" data-v="${id}" title="${esc(w.desc)}"><img alt="" src="${gunThumb(id)}"><b>${w.name}</b><small>${w.cls}</small></button>`; }), (id) => {
       const other = guns.indexOf(id); if (other >= 0 && other !== i) lo[keys[other]] = guns[i]; lo[keys[i]] = id;
     });
   } else if (loTab === 'att') {

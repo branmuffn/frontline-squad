@@ -39,10 +39,17 @@ for (const [label, opts] of [['phone 915x330', { w: 915, h: 330, touch: true }],
     const tabs = document.getElementById('loTabs').getBoundingClientRect(), row = document.getElementById('loRow').getBoundingClientRect(), prev = document.getElementById('loPreview').getBoundingClientRect();
     out.loadout = { scroll: scrollers('#loadout', ['loRow', 'loTabs']), threeCols: tabs.right <= row.left + 1 && row.right <= prev.left + 1, done: onScreen('loadoutDone'),
       slots: [...document.querySelectorAll('#loTabs button')].filter((b) => { const x = b.getBoundingClientRect(); return x.bottom <= innerHeight; }).length,
-      detail: document.getElementById('loDetail').getBoundingClientRect().height };
+      detail: 0 };
+    // gun stats W1: one stats bar for the picked gun, tiles without stats, every primary fits without scrolling
+    const st = document.getElementById('loStats'), row0 = document.getElementById('loRow');
+    out.guns = { bar: !st.classList.contains('hidden') && st.querySelectorAll('.stat').length === 5, tileStats: row0.querySelectorAll('.lo-card .stat').length,
+      fits: row0.scrollHeight <= row0.clientHeight + 2, pw: [st.querySelector('.stat span').getBoundingClientRect().top, st.querySelector('.stat em').getBoundingClientRect().top] };
     // picking a slot still works
     document.querySelector('#loTabs [data-t="g1"]').click(); window.__step(1);
     out.loadout.sidearmCards = document.querySelectorAll('#loRow .lo-card').length;
+    document.querySelector('#loTabs [data-t="nade"]').click(); window.__step(1);
+    out.guns.barHiddenOnGear = document.getElementById('loStats').classList.contains('hidden');
+    out.loadout.detail = document.getElementById('loDetail').getBoundingClientRect().height; // gear tabs keep the one-line description
     return out;
   }, [phone, scrollers.toString(), onScreen.toString()]);
   if (phone) {
@@ -63,6 +70,9 @@ for (const [label, opts] of [['phone 915x330', { w: 915, h: 330, touch: true }],
   check(`${label}: loadout scrolls only the choices list`, r.loadout.scroll.length === 0, r.loadout);
   check(`${label}: loadout Done/Deploy on screen and all 9 slots visible`, r.loadout.done && r.loadout.slots === 9, r.loadout);
   check(`${label}: loadout description line not squashed`, r.loadout.detail >= 12, r.loadout);
+  check(`${label}: gun stats shown once, above the tiles`, r.guns.bar && r.guns.tileStats === 0 && r.guns.barHiddenOnGear, r.guns);
+  check(`${label}: every primary gun fits without scrolling`, r.guns.fits, r.guns);
+  check(`${label}: Power number sits beside its label`, Math.abs(r.guns.pw[0] - r.guns.pw[1]) < 4, r.guns.pw);
   check(`${label}: picking a slot shows its choices`, r.loadout.sidearmCards > 1, r.loadout);
   errs.push(...errors); await browser.close();
 }
