@@ -41,7 +41,9 @@ export function initInput(canvas, handlers) {
   window.addEventListener('keyup', (e) => { input.keys[e.code] = false; handlers.onKeyUp(e.code, e); });
   window.addEventListener('blur', () => { input.keys = Object.create(null); input.fire = false; input.aim = false; handlers.onBlur && handlers.onBlur(); });
   document.addEventListener('mousemove', (e) => {
-    if (!lookActive()) return;
+    // Only a locked (or free-look) mouse turns the camera. Phones look with touch (touch.js); Android also sends a mouse
+    // move after every tap, and those used to pile up in the menus and point the camera at the sky at the start.
+    if (!isLocked() && !input.freeLook) return;
     const dx = e.movementX || 0, dy = e.movementY || 0;
     if (Math.abs(dx) > 450 || Math.abs(dy) > 450) return; // drop spikes some browsers emit on lock
     input.mdx += dx; input.mdy += dy;

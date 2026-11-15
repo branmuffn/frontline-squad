@@ -61,6 +61,7 @@ export function spawnPlayer(x, y, z, yaw) {
     stamina: 1, staminaRestAt: -10, winded: false,
   });
   input.aim = false; P.zoomIdx = 0; // toggle-aim: never spawn scoped
+  input.mdx = input.mdy = 0; // spawn looking level: drop any look movement left over from menus or the death cam
   P.weapons = startingWeapons();
   refillAmmo();
   applyGear(P, G.profile.loadout || {});
