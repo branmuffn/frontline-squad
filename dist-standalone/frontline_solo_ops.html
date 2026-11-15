@@ -756,7 +756,7 @@ body.touch .panel.fit > .ptitle::before { content: ''; position: absolute; top: 
   body.touch #loadout .lo-stats .ls-name { grid-column: 1 / -1; display: flex; gap: 8px; align-items: baseline; }
   body.touch #loadout .lo-detail, body.touch #loadout #slotDesc { white-space: normal; }
 }
-body.touch .keys kbd { white-space: nowrap; }
+body.touch .keys kbd { white-space: nowrap; flex: none; }
 /* Phone pop-ups never run off the screen: they keep inside it and scroll if they must. */
 body.touch .bot-pop { bottom: 8px; max-height: calc(100% - 16px); overflow-y: auto; overscroll-behavior: contain; padding: 10px 14px; }
 body.touch #matchOpts > div { margin-bottom: 4px; }
@@ -1238,7 +1238,7 @@ body.touch #xhPrev { height: 56px; margin: 4px 0 6px; }
   <div id="fps" class="hidden"></div>
 </div>
 
-<script>window.__BUILD="build 124 · 2026-11-15";</script>
+<script>window.__BUILD="build 126 · 2026-11-15";</script>
 <script>
 /**
  * @license
