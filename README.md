@@ -15,7 +15,7 @@ Desktop browser with a mouse and keyboard (press **Controls** in the main menu f
 
 ## Highlights
 
-- **13 modes:** Free for All, Team Deathmatch, Domination, King of the Hill, Search & Destroy, Capture the Flag, Gun Game, Infection, Survival, Zombies (co-op), Practice Range, Sandbox, plus a lobby warm-up.
+- **12 modes:** Free for All, Team Deathmatch, Domination, King of the Hill, Search & Destroy, Capture the Flag, Gun Game, Infection, Survival, Zombies (co-op), Practice Range, Sandbox (plus a lobby warm-up between multiplayer matches).
 - **9 maps**, including Cascade Gorge (canyon, rail bridge with a freight train), Harbour, Snowbound Radar Base and a night variant of Atomic Acres. An **in-game map editor** lets you build your own (export/import as JSON).
 - **17 guns and a knife,** attachments, power weapons, grenades, killstreaks, ranks and medals, and four drivable or flyable vehicles (jeep, helicopter, ATV, Kestrel attack flyer).
 - **Multiplayer for up to 12 players,** peer to peer over WebRTC. Invite links, ready-up, in-match chat and votes, host migration, spectating, and join-in-progress.

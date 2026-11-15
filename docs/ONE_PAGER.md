@@ -9,7 +9,7 @@ the only outside services are a free matchmaking broker (room codes) and public 
 https://frontline-squad.netlify.app (or open the file directly). All art, audio and music are generated in code.
 
 ## What's in the game
-- **13 modes:** Free for All, Team Deathmatch, Survival (co-op waves), Gun Game, Infection, Capture the Flag,
+- **12 modes:** Free for All, Team Deathmatch, Survival (co-op waves), Gun Game, Infection, Capture the Flag,
   **Domination, King of the Hill, Search & Destroy**, Zombies (co-op, difficulty, revives), Practice range (also co-op,
   range rack, flick/tracking drills), Sandbox, plus a lobby **warm-up**.
 - **9 maps:** Steel Yard, Dust Outpost, Atomic Acres, **Atomic Acres · Night**, **Harbour**, Cascade Gorge,
