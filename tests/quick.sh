@@ -10,6 +10,7 @@ failed=()
 t() { node "$@" | tail -1 || failed+=("${*#tests/}"); }
 t tests/power.mjs
 t tests/touch.mjs
+t tests/menulayout.mjs
 t tests/stamina.mjs
 t tests/regress.mjs 6
 t tests/mp.mjs

@@ -268,13 +268,22 @@ export function showLoadout(isPrematch, tab) {
 
 // ---------- settings ----------
 const SLIDERS = [
-  ['sens', 'Mouse sensitivity', 0.2, 3, 0.05, (v) => v.toFixed(2)],
+  ['sens', 'Mouse sensitivity', 0.2, 3, 0.05, (v) => v.toFixed(2), false, 'mouse'],
   ['adsSens', 'Aim-down-sights sensitivity', 0.3, 1.5, 0.05, (v) => Math.round(v * 100) + '%'],
   ['fov', 'Field of view', 60, 95, 1, (v) => v + '°'],
-  ['volume', 'Volume', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
-  ['music', 'Music volume (menus only)', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'],
+  ['volume', 'Volume', 0, 1, 0.05, (v) => Math.round(v * 100) + '%', false, 'sound'],
+  ['music', 'Music volume (menus only)', 0, 1, 0.05, (v) => Math.round(v * 100) + '%', false, 'sound'],
   ['touchSens', 'Touch look speed', 0.5, 4, 0.05, (v) => v.toFixed(2), true],
 ];
+// Settings tabs (Settings A, Brian 2026-11-15). Key bindings is a mouse/keyboard tab, so touch screens fall back to Controls.
+let setTab = 'controls';
+function showSetTab(t = setTab) {
+  if (t === 'keys' && document.body.classList.contains('touch')) t = 'controls';
+  setTab = t;
+  document.querySelectorAll('#setTabs button').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('sel', on); b.setAttribute('aria-selected', String(on)); });
+  document.querySelectorAll('#settings .set-page').forEach((p) => p.classList.toggle('hidden', p.dataset.page !== t));
+  const body = document.querySelector('#settings .pbody'); if (body) body.scrollTop = 0;
+}
 const CROSS = ['#eaf2e4', '#7dff9a', '#ffd34d', '#5fd0ff', '#ff6b6b'];
 function refreshXh() {
   const s = G.profile.settings, x = s.xh, clone = $('xhClone');
@@ -291,14 +300,21 @@ function refreshSettings() {
   const s = G.profile.settings;
   const tOk = touchCapable() || s.touch !== 'auto'; // touch settings: only on touch screens (or when switched on by hand)
   const SL = SLIDERS.filter((r) => !r[6] || tOk);
-  $('sliders').innerHTML = SL.map(([k, label, mn, mx, st, f]) => `<label class="slider"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`).join('');
+  // Settings A (2026-11-15): control sliders in the left column of "Controls & sound", sound sliders on the right.
+  const sl = ([k, label, mn, mx, st, f, , kind]) => `<label class="slider${kind === 'mouse' ? ' mouse-only' : ''}"><span>${label}<output id="out_${k}">${f(s[k])}</output></span><input type="range" id="set_${k}" min="${mn}" max="${mx}" step="${st}" value="${s[k]}"></label>`;
+  $('sliders').innerHTML = SL.filter((r) => r[7] !== 'sound').map(sl).join('');
+  $('soundSliders').innerHTML = SL.filter((r) => r[7] === 'sound').map(sl).join('');
   for (const [k, , , , , f] of SL) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
   const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
     ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1],
     ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy']] : [])];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
-  const tg = ([k, l]) => `<label class="toggle"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
-  $('toggles').innerHTML = TOG.filter((t) => !t[2] && t[0] !== 'showFps' && t[0] !== 'killcam' && t[0] !== 'wheelSwitch').map(tg).join(''); $('gfxToggles').innerHTML = TOG.filter((t) => t[2] || t[0] === 'showFps' || t[0] === 'killcam' || t[0] === 'wheelSwitch').map(tg).join('');
+  const MOUSE = ['scopeToggle', 'wheelSwitch'], HUD = ['killcam', 'showFps'];
+  const tg = ([k, l]) => `<label class="toggle${MOUSE.includes(k) ? ' mouse-only' : ''}"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
+  $('toggles').innerHTML = TOG.filter((t) => !t[2] && !HUD.includes(t[0])).map(tg).join('');
+  $('gfxToggles').innerHTML = TOG.filter((t) => t[2]).map(tg).join('');
+  $('hudToggles').innerHTML = TOG.filter((t) => HUD.includes(t[0])).map(tg).join('');
+  showSetTab();
   for (const [k, , gfx] of TOG) $('set_' + k).addEventListener('change', (e) => {
     const v = e.target.checked;
     if (k === 'shadowFull') s.shadowRate = v ? 'full' : 'half'; else if (k === 'previewSmooth') s.previewFps = v ? 60 : 30; else s[k] = v;
@@ -441,6 +457,7 @@ export function initMenus(callbacks) {
   for (const [id, k] of [['mpSkinU', 'uniform'], ['mpSkinP', 'pattern'], ['mpSkinH', 'helmet']]) $(id).addEventListener('change', (e) => { G.profile.skin[k] = e.target.value; saveProfile(); cb.onSkin && cb.onSkin(G.profile.skin); refreshLoadout(); });
   $('loadoutBack').addEventListener('click', () => showScreen('menu'));
   $('openSettings').addEventListener('click', () => { refreshSettings(); open('settings', 'menu'); });
+  document.querySelectorAll('#setTabs button').forEach((b) => b.addEventListener('click', () => showSetTab(b.dataset.tab)));
   $('openCareer').addEventListener('click', () => { refreshCareer(); open('career'); });
   $('openControls').addEventListener('click', () => open('controls', 'menu'));
   $('loadoutDone').addEventListener('click', () => {

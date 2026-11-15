@@ -18,13 +18,19 @@
 
 <section id="menu" class="screen hidden">
   <div class="menu-col">
+    <div class="menu-r">
     <header class="brand">
       <h1 class="logo">FRONTLINE</h1>
       <p class="sub">Solo Ops</p>
     </header>
     <div id="rankPlate" class="rank-plate"></div>
+    </div>
+    <div class="menu-l">
     <div class="field"><span class="flabel">Mode <button id="matchRulesBtn" class="flink" type="button">Match rules…</button></span><div id="modeSel" class="modes"></div><p id="modeDesc" class="mode-desc"></p></div>
     <div class="field"><span class="flabel">Map</span><div id="mapSel" class="maps scroll-list"></div></div>
+    <div class="field hidden" id="sandboxOpts"><span class="flabel">Sandbox rules</span><div id="ruleSel" class="chips"></div></div>
+    </div>
+    <div class="menu-r menu-r2">
     <div class="row2">
       <div class="field"><span class="flabel"><span id="diffLabel">Bot skill</span> <button id="botRulesBtn" class="flink" type="button">Rules…</button></span><div id="diffSel" class="seg"></div></div>
       <div class="field" id="countRow"><span class="flabel" id="countLabel">Opponents</span><div id="countSel" class="seg"></div></div>
@@ -37,7 +43,6 @@
       <span class="flabel">Health &amp; ammo pickups</span><div id="pickupSel" class="seg small"></div><p class="small-note">Dropped weapons can always be picked up, with their remaining ammo.</p>
       <span class="flabel">Power weapons</span><div id="powerSel" class="seg small"></div></div>
     <div class="field hidden bot-pop" id="botOpts"><button id="botOptsX" class="pop-x" type="button" aria-label="Close">×</button><span class="flabel">Bot skill <b id="skillVal"></b></span><input id="skillRange" type="range" min="1" max="10" step="1" class="skill-range"><span class="flabel">Bots may</span><div id="botRuleSel" class="chips"></div></div>
-    <div class="field hidden" id="sandboxOpts"><span class="flabel">Sandbox rules</span><div id="ruleSel" class="chips"></div></div>
     <button id="deploy" class="btn-primary deploy" type="button">Deploy</button>
     <p id="bestLine" class="best"></p>
     <nav class="menu-nav">
@@ -50,74 +55,100 @@
       <button id="openCareer" type="button">Career</button>
       <button id="openControls" type="button">Controls</button>
     </nav>
+    </div>
     <p id="buildTag" class="build-tag"></p>
     <p class="credit-tag">Made by Brian Tea · <a href="https://github.com/branmuffn/frontline-squad" target="_blank" rel="noopener">GitHub</a> · <a href="https://briantea.vercel.app" target="_blank" rel="noopener">Portfolio</a></p>
   </div>
 </section>
 
 <section id="loadout" class="screen hidden">
-  <div class="panel wide fit">
-    <h2 id="loTitle">Loadout</h2>
-    <p id="loLede" class="lede">Three saved presets. Pick one, set it up, and it’s remembered.</p>
-    <div class="lo-top">
-      <div class="field"><span class="flabel">Preset</span><div id="presetTabs" class="seg"></div></div>
-      <div class="field"><span class="flabel">Weapon slots</span><div id="slotSel" class="seg"></div></div>
+  <!-- Loadout A (Brian, 2026-11-15): slots down the left, the picked slot's choices in the middle (only that list
+       scrolls), operator + Back / Done on the right. Same on phones and computers. -->
+  <div class="panel wide fit lo-panel">
+    <div class="lo-head">
+      <div class="lo-title"><h2 id="loTitle">Loadout</h2><p id="loLede" class="lede">Three saved presets. Pick one, set it up, and it’s remembered.</p></div>
+      <div class="lo-top">
+        <div class="field"><span class="flabel">Preset</span><div id="presetTabs" class="seg"></div></div>
+        <div class="field"><span class="flabel">Weapon slots</span><div id="slotSel" class="seg"></div></div>
+      </div>
     </div>
-    <p id="slotDesc" class="lede small"></p>
     <div class="lo-main">
-      <div class="lo-left">
-        <div id="loTabs" class="lo-tabs" role="tablist"></div>
+      <div id="loTabs" class="lo-tabs" role="tablist"></div>
+      <div class="lo-mid">
+        <p id="slotDesc" class="lede small"></p>
         <p id="loDetail" class="lo-detail"></p>
-        <div id="loRow" class="lo-row scroll-list"></div>
+        <div id="loRow" class="lo-row"></div>
         <div id="loOpExtra" class="op-grid hidden">
           <label class="field"><span class="flabel">Uniform</span><select id="mpSkinU"></select></label>
           <label class="field"><span class="flabel">Pattern</span><select id="mpSkinP"></select></label>
           <label class="field"><span class="flabel">Helmet</span><select id="mpSkinH"></select></label>
         </div>
       </div>
-      <div class="lo-right"><div id="loPreview" class="lo-preview"></div><p id="loSummary" class="lo-sum"></p></div>
+      <div class="lo-right">
+        <div id="loPreview" class="lo-preview"></div>
+        <p id="loSummary" class="lo-sum"></p>
+        <div id="streakSummary"></div>
+        <div class="btn-row"><button id="loadoutBack" class="btn-ghost hidden" type="button">Back</button><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
+      </div>
     </div>
-    <div id="streakSummary"></div>
-    <div class="btn-row"><button id="loadoutBack" class="btn-ghost hidden" type="button">Back</button><button id="loadoutDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
 
 <section id="settings" class="screen hidden">
+  <!-- Settings A (Brian, 2026-11-15): tabs down the left, each tab fits one screen. Phones and other touch screens
+       hide the mouse/keyboard-only settings (.mouse-only). -->
   <div class="panel wide fit settings-panel">
-    <h2>Settings</h2>
+    <div class="set-side">
+      <h2>Settings</h2>
+      <div id="setTabs" class="set-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="controls">Controls &amp; sound</button>
+        <button type="button" role="tab" data-tab="graphics">Graphics</button>
+        <button type="button" role="tab" data-tab="gameplay">Gameplay &amp; HUD</button>
+        <button type="button" role="tab" data-tab="keys" class="mouse-only">Key bindings</button>
+      </div>
+      <div class="btn-row"><button id="resetSettings" class="btn-ghost" type="button">Reset to defaults</button><button id="settingsDone" class="btn-primary" type="button">Done</button></div>
+    </div>
     <div class="pbody">
-    <div class="cols three">
-      <div>
-        <div id="sliders"></div>
-        <div class="field"><span class="flabel">Crosshair <button id="xhEdit" class="flink" type="button">Edit…</button></span><div id="crossSel" class="swatches"></div></div>
-        <div class="row2 tight"><div class="field"><span class="flabel">Weapon slots</span><div id="setSlotSel" class="seg small"></div></div>
-        <div class="field"><span class="flabel">Weapon names</span><div id="namesSel" class="seg small"></div></div></div>
-        <div id="touchField" class="field hidden"><span class="flabel">Touch controls <span class="muted">· Auto = touch screens</span></span><div id="touchSel" class="seg small"></div></div>
-        <div id="toggles" class="toggles"></div>
+      <div class="set-page" data-page="controls">
+        <div><div id="sliders"></div></div>
+        <div>
+          <div id="soundSliders"></div>
+          <div id="toggles" class="toggles"></div>
+          <div id="touchField" class="field hidden"><span class="flabel">Touch controls <span class="muted">· Auto = touch screens</span></span><div id="touchSel" class="seg small"></div></div>
+        </div>
       </div>
-      <div>
-        <div class="field"><span class="flabel">Graphics quality <span id="qualHint" class="muted"></span></span><div id="qualSel" class="seg"></div></div>
-        <div class="field"><span class="flabel">Frame rate limit <span class="muted">· Display = your screen’s rate</span></span><div id="fpsSel" class="seg small"></div></div>
-        <div class="row2 tight"><div class="field"><span class="flabel">Sharpness</span><div id="pixSel" class="seg small"></div></div>
-        <div class="field"><span class="flabel">Shadows</span><div id="shadowSel" class="seg small"></div></div></div>
-        <div class="row2 tight"><div class="field"><span class="flabel">Render resolution</span><div id="scaleSel" class="seg small"></div></div>
-        <div class="field"><span class="flabel">Effects</span><div id="partSel" class="seg small"></div></div></div>
-        <div id="gfxToggles" class="toggles"></div>
+      <div class="set-page" data-page="graphics">
+        <div>
+          <div class="field"><span class="flabel">Graphics quality <span id="qualHint" class="muted"></span></span><div id="qualSel" class="seg"></div></div>
+          <div class="field"><span class="flabel">Frame rate limit <span class="muted">· Display = your screen’s rate</span></span><div id="fpsSel" class="seg small"></div></div>
+          <div id="gfxToggles" class="toggles"></div>
+        </div>
+        <div>
+          <div class="row2 tight"><div class="field"><span class="flabel">Sharpness</span><div id="pixSel" class="seg small"></div></div>
+          <div class="field"><span class="flabel">Shadows</span><div id="shadowSel" class="seg small"></div></div></div>
+          <div class="row2 tight"><div class="field"><span class="flabel">Render resolution</span><div id="scaleSel" class="seg small"></div></div>
+          <div class="field"><span class="flabel">Effects</span><div id="partSel" class="seg small"></div></div></div>
+        </div>
       </div>
-      <div>
-        <h3>Key bindings</h3>
+      <div class="set-page" data-page="gameplay">
+        <div>
+          <div class="field"><span class="flabel">Crosshair <button id="xhEdit" class="flink" type="button">Edit…</button></span><div id="crossSel" class="swatches"></div></div>
+          <div class="row2 tight"><div class="field"><span class="flabel">Weapon slots</span><div id="setSlotSel" class="seg small"></div></div>
+          <div class="field"><span class="flabel">Weapon names</span><div id="namesSel" class="seg small"></div></div></div>
+        </div>
+        <div><div id="hudToggles" class="toggles"></div></div>
+      </div>
+      <div class="set-page" data-page="keys">
         <p class="lede small">Click a key to change it. Press Esc to cancel.</p>
-        <div id="binds" class="binds scroll-list"></div>
+        <div id="binds" class="binds"></div>
         <p id="ctrlWarn" class="warn hidden">Ctrl+W closes the browser tab in most browsers. The game asks before leaving mid-match, but C is the safer crouch key.</p>
       </div>
-    </div>
     </div>
     <div id="xhPop" class="hidden"><button id="xhX" class="pop-x" type="button" aria-label="Close">×</button><span class="flabel">Crosshair</span>
       <div id="xhPrev"><div id="xhClone"></div></div>
       <div id="xhRows"></div><div id="xhChk" class="xchk"></div>
       <div class="xcode"><input id="xhCode" type="text" spellcheck="false" aria-label="Crosshair code"><button id="xhCopy" type="button">Copy</button><button id="xhApply" type="button">Use code</button></div>
       <p id="xhMsg" class="lede small"></p></div>
-    <div class="btn-row"><button id="resetSettings" class="btn-ghost" type="button">Reset to defaults</button><button id="settingsDone" class="btn-primary" type="button">Done</button></div>
   </div>
 </section>
 

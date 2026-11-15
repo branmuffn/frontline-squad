@@ -649,25 +649,128 @@ body.touch #freeLook, body.touch #relock, body.touch #lockMsg, body.touch #pause
 @media (orientation: portrait) {
   body.touch #rotateMsg { display: flex; position: fixed; inset: 0; z-index: 95; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: var(--bg); color: var(--ink); font-size: 20px; }
 }
-/* Phone menus (Brian picked M2, 2026-11-14): touch screens held sideways (short screens). The main menu keeps its column,
-   a bit smaller, and Deploy is pinned to the bottom-right corner; the column scrolls a little behind it. */
+/* Main menu wrappers: on computers they vanish (display: contents), so the menu stays one column in page order. */
+.menu-l, .menu-r { display: contents; }
+/* Phone menus. Main menu A (Brian, 2026-11-15; replaces M2): touch screens held sideways (short screens) get two columns,
+   mode + map on the left; logo, bot skill, opponents, the other screens and a big Deploy on the right. No scrolling. */
 @media (max-height: 560px) {
-  body.touch #menu { padding: 0 14px; align-items: flex-start; }
-  body.touch #menu .menu-col { width: min(620px, calc(100% - 290px)); max-width: none; padding: calc(6px + env(safe-area-inset-top, 0px)) 0 16px; gap: 6px; }
-  body.touch #menu .brand { margin: 0; }
-  body.touch #menu .logo { font-size: 28px !important; }
-  body.touch #menu .sub { font-size: 16px; }
-  body.touch #menu #rankPlate, body.touch #menu .build-tag, body.touch #menu .credit-tag { display: none; }
-  body.touch #menu .modes { gap: 5px; }
-  body.touch #menu .modes button { padding: 6px 8px !important; min-height: 0; }
-  body.touch #menu .modes button b { font-size: 12px !important; }
-  body.touch #menu .maps button small { display: none !important; }
+  body.touch #menu { padding: 0; align-items: stretch; }
+  body.touch #menu .menu-col { width: 100%; max-width: none; height: 100%; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 33vw, 320px);
+    grid-template-rows: auto minmax(0, 1fr); gap: 0 16px; padding: calc(8px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px)); }
+  body.touch #menu .menu-l { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; overflow-y: auto; padding-top: 4px; }
+  body.touch #menu .menu-r { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-left: 14px; border-left: 1px solid var(--line); }
+  body.touch #menu .menu-r2 { grid-row: 2; min-height: 0; overflow-y: auto; padding-top: 4px; }
+  body.touch #menu .brand { margin: 0 0 2px; }
+  body.touch #menu .logo { font-size: 26px !important; }
+  body.touch #menu .sub { font-size: 15px; }
+  body.touch #menu #rankPlate, body.touch #menu #bestLine, body.touch #menu .build-tag, body.touch #menu .credit-tag { display: none; }
   body.touch #menu .flabel { font-size: 12px; }
-  body.touch #menu #deploy { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: 260px; height: 56px; padding: 0; margin: 0; z-index: 40; font-size: 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); }
-  body.touch #menu .menu-nav button { padding: 9px 6px; font-size: 12px; }
+  body.touch #menu .modes { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  body.touch #menu .modes button { min-height: 0; height: 34px; padding: 0 8px !important; }
+  body.touch #menu .modes button b { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.touch #menu .mode-desc { font-size: 12px; margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.touch #menu #mapSel > button { flex: 0 0 168px; padding: 5px; gap: 8px; }
+  body.touch #menu #mapSel canvas { width: 48px; height: 48px; }
+  body.touch #menu #mapSel b { font-size: 13px; }
+  body.touch #menu .maps button small { display: none !important; }
+  body.touch #menu .menu-r2 .row2 { display: flex; flex-direction: column; gap: 6px; }
+  body.touch #menu .seg button { padding: 0 2px; min-height: 34px; font-size: 12px; }
+  body.touch #menu .menu-nav { order: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  body.touch #menu .menu-nav button { padding: 0 2px; height: 34px; font-size: 11.5px; }
+  body.touch #menu #deploy { order: 2; margin-top: auto; width: 100%; height: 50px; min-height: 50px; padding: 0; font-size: 22px; }
   /* other screens: the panel scrolls as one page and its Done / Back row stays pinned at the bottom, always reachable */
   body.touch .screen { padding: 6px 10px; }
   body.touch .panel.fit { overflow-y: auto; overscroll-behavior: contain; }
   body.touch .panel.fit > .pbody { flex: none; min-height: auto; overflow: visible; }
   body.touch .panel.fit > .btn-row { position: sticky !important; bottom: -12px; z-index: 3; margin-top: 8px; padding: 8px 0 12px 10px !important; background: var(--panel) !important; align-self: flex-end; width: auto; }
+}
+
+/* ===== Settings A + Loadout A (Brian, 2026-11-15): the same layouts on phones and computers ===== */
+/* Settings: tabs down the left, Reset / Done under them; each tab fits one screen. */
+#settings .settings-panel { display: grid; grid-template-columns: clamp(150px, 16vw, 210px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+  gap: 0 clamp(14px, 2.2vw, 30px); width: min(1100px, 100%); height: min(600px, 100%); overflow: hidden; }
+#settings .set-side { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding-right: clamp(10px, 1.6vw, 22px); border-right: 1px solid var(--line); }
+#settings .set-side h2 { margin: 0 0 8px; }
+.set-tabs { display: flex; flex-direction: column; gap: 5px; }
+.set-tabs button { text-align: left; padding: 10px 12px; border: 1px solid var(--line); background: rgba(29, 36, 40, 0.8); font-weight: 700; font-size: 16px; line-height: 1.15; }
+.set-tabs button:hover { border-color: var(--ink-faint); }
+.set-tabs button.sel { border-color: var(--brass); background: rgba(143, 108, 44, 0.32); color: #ffe2a6; }
+#settings .set-side .btn-row { margin-top: auto; flex-direction: column; align-items: stretch; gap: 6px; padding: 0; background: none; position: static; }
+#settings .set-side .btn-row button { width: 100%; margin: 0; text-align: center; justify-content: center; }
+#settings .pbody { min-height: 0; overflow: auto; padding-top: 4px; }
+.set-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 clamp(18px, 2.6vw, 36px); align-content: start; }
+.set-page[data-page="keys"] { display: block; }
+#settings .binds { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 24px; max-height: none; overflow: visible; }
+#settings .toggles { margin: 8px 0; }
+/* touch screens: no mouse or keyboard settings */
+body.touch .mouse-only { display: none !important; }
+
+/* Loadout: slots down the left, choices in the middle (only that list scrolls), operator + Back / Done on the right. */
+#loadout .lo-panel { width: min(1240px, 100%); height: min(780px, 100%); display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+#loadout .lo-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; flex: none; }
+#loadout .lo-title { min-width: 0; }
+#loadout .lo-title h2 { margin: 0; }
+#loadout #loLede { margin: 4px 0 0; }
+#loadout .lo-top { display: flex; gap: 16px; margin: 0; flex: 1 1 520px; max-width: 760px; }
+#loadout .lo-top .field:first-child { flex: 1 1 0; }
+#loadout .lo-top .field:last-child { flex: 1.3 1 0; }
+#loadout .lo-main { display: grid; grid-template-columns: clamp(170px, 18vw, 240px) minmax(0, 1fr) clamp(180px, 22vw, 290px); gap: clamp(10px, 1.4vw, 18px); flex: 1 1 auto; min-height: 0; }
+#loadout .lo-tabs { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; border: 0; overflow-y: auto; min-height: 0; }
+#loadout .lo-tabs button { flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; margin: 0; padding: 8px 12px;
+  border: 1px solid var(--line); background: rgba(29, 36, 40, 0.8); text-align: left; }
+#loadout .lo-tabs button b { font-size: 16px; flex: none; }
+#loadout .lo-tabs button small { font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+#loadout .lo-tabs button.sel { border: 1px solid var(--brass); background: rgba(143, 108, 44, 0.32); }
+#loadout .lo-mid { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#loadout .lo-mid > * { flex: none; }
+#loadout #slotDesc { margin: 0 0 4px; }
+#loadout .lo-detail { margin: 0 0 8px; }
+#loadout .lo-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 13vw, 190px), 1fr)); gap: 8px; overflow-y: auto; overflow-x: hidden;
+  padding: 2px 4px 4px 2px; flex: 1 1 auto; min-height: 0; align-content: start; scroll-snap-type: none; }
+#loadout .lo-card { flex: none; }
+#loadout .lo-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+#loadout .lo-preview { flex: 1 1 auto; min-height: 0; }
+#loadout .lo-sum { margin: 0; }
+#loadout .lo-right .btn-row { position: static; margin: 0; padding: 0; background: none; gap: 8px; }
+#loadout .lo-right .btn-row button { flex: 1; justify-content: center; text-align: center; padding-left: 8px; padding-right: 8px; }
+#loadout #loadoutDone { flex: 2; }
+
+/* Phones held sideways (and other short screens): the same layouts, compact. */
+@media (max-height: 560px) {
+  #settings .settings-panel { width: 100%; height: 100%; grid-template-columns: 150px minmax(0, 1fr); gap: 0 16px; padding: 8px 14px; }
+  #settings .set-side h2 { font-size: 22px; margin-bottom: 4px; }
+  .set-tabs { gap: 4px; }
+  .set-tabs button { padding: 0 10px; min-height: 36px; font-size: 14px; }
+  #settings .set-side .btn-row button { min-height: 38px; padding: 0; font-size: 14px; }
+  #settings .slider { margin-bottom: 4px; }
+  #settings .slider span { font-size: 13px; }
+  #settings .field { margin-bottom: 6px; gap: 3px; }
+  #settings .flabel { font-size: 12px; }
+  #settings .seg button { padding: 0 4px; min-height: 30px; font-size: 12.5px; line-height: 1.05; }
+  #settings .toggles { gap: 4px; margin: 4px 0; }
+  #settings .toggle { font-size: 13px; }
+  #settings .swatches button { width: 26px; height: 26px; }
+  #loadout .lo-panel { width: 100%; height: 100%; padding: 8px 12px; gap: 6px; }
+  #loadout #loLede, #loadout #slotDesc, #loadout #streakSummary, #loadout .lo-sum { display: none !important; }
+  #loadout .lo-head { flex-wrap: nowrap; align-items: center; gap: 14px; }
+  #loadout .lo-title h2 { font-size: 20px; white-space: nowrap; }
+  #loadout .lo-top { flex: 1; max-width: none; gap: 14px; }
+  #loadout .lo-top .field { flex-direction: row; align-items: center; gap: 6px; }
+  #loadout .lo-top .seg { flex: 1; }
+  #loadout .flabel { font-size: 11px; }
+  #loadout .seg button { min-height: 28px; padding: 0 6px; font-size: 12.5px; }
+  #loadout .lo-main { grid-template-columns: 190px minmax(0, 1fr) 200px; gap: 12px; }
+  #loadout .lo-tabs { gap: 3px; }
+  #loadout .lo-tabs button { min-height: 25px; padding: 0 8px; align-items: center; }
+  #loadout .lo-tabs button b { font-size: 12.5px; }
+  #loadout .lo-tabs button small { font-size: 11px; max-width: 92px; }
+  #loadout .lo-detail { font-size: 12px; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 0; }
+  #loadout .lo-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  #loadout .lo-card { padding: 5px 6px; gap: 1px; }
+  #loadout .lo-card img, #loadout .lo-card .ico, #loadout .lo-card .camo-sw { height: 30px; }
+  #loadout .lo-card b { font-size: 13px; }
+  #loadout .lo-card small { font-size: 11px; }
+  #loadout .lo-card .stat { font-size: 10.5px; line-height: 1.05; }
+  #loadout .lo-right .btn-row button { min-height: 46px; padding: 0; }
+  #loadout #loadoutDone { font-size: 19px; }
 }
