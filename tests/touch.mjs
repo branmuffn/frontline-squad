@@ -1,6 +1,6 @@
 // Touch controls (phones/tablets): desktop shows none of it; on a touch screen the stick moves, the right side looks,
 // and every button works (fire, aim, reload, crouch/prone, jump, grenade, weapon, scoreboard, pause/resume, use);
-// light aim assist slows turning over an enemy; phone defaults (Battery saver) apply once; portrait asks to rotate;
+// light aim assist slows turning over an enemy; phone defaults (Balanced at 2x sharpness) apply once; portrait asks to rotate;
 // phone menus keep every screen's main button on screen.
 import { open } from './harness.mjs';
 const fails = [], errs = [];
@@ -13,12 +13,12 @@ const check = (name, ok, info) => { if (!ok) fails.push(name + (info !== undefin
     const F = window.__frontline, G = F.G; F.input.freeLook = true;
     F.deploy({ mode: 'tdm', map: 'yard', skill: 5, count: 2 }); window.__step(240);
     const ui = document.getElementById('touchUI');
-    return { touch: F.input.touch, body: document.body.className, ui: ui && getComputedStyle(ui).display, q: G.profile.settings.quality, setup: G.profile.settings.touchSetup,
+    return { touch: F.input.touch, body: document.body.className, ui: ui && getComputedStyle(ui).display, q: G.profile.settings.quality, setup: G.profile.settings.touchV,
       field: document.getElementById('touchField').classList.contains('hidden'), rot: getComputedStyle(document.getElementById('rotateMsg')).display };
   });
   check('desktop: no touch mode', r.touch === false && !/\btouch\b/.test(r.body), r);
   check('desktop: controls hidden', r.ui === 'none' && r.rot === 'none', r);
-  check('desktop: graphics untouched', r.q === 'balanced' && r.setup === false, r);
+  check('desktop: graphics untouched', r.q === 'balanced' && r.setup === 0, r);
   check('desktop: touch settings hidden', r.field === true, r);
   errs.push(...errors); await browser.close();
 }
@@ -37,9 +37,9 @@ const ev = (fn, arg) => page.evaluate(fn, arg);
 const center = (sel) => ev((sel) => { const b = document.querySelector(sel).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, sel);
 const tapAt = async ([x, y], frames = 2) => { await down(9, x, y); await step(frames); await up(9); await step(2); };
 
-const r0 = await ev(() => { const F = window.__frontline, G = F.G; return { touch: F.input.touch, q: G.profile.settings.quality, setup: G.profile.settings.touchSetup }; });
+const r0 = await ev(() => { const F = window.__frontline, G = F.G, s = G.profile.settings; return { touch: F.input.touch, shadows: s.shadowQ, scale: s.renderScale, px: s.pixelMax, auto: s.autoRes, setup: s.touchV }; });
 check('phone: touch mode on', r0.touch === true, r0);
-check('phone: Battery saver graphics on first start', r0.q === 'battery' && r0.setup === true, r0);
+check('phone: Balanced graphics at 2x sharpness on first start', r0.shadows === 'high' && r0.scale === 1 && r0.px === 2 && r0.auto === true && r0.setup === 2, r0);
 
 // phone menus (Brian picked M2): every screen's main button is on screen without scrolling the page
 const scr = await ev(() => { const F = window.__frontline, out = {};
@@ -47,7 +47,8 @@ const scr = await ev(() => { const F = window.__frontline, out = {};
     settings: [() => document.getElementById('openSettings').click(), '#settings .btn-row .btn-primary'], streaks: [() => document.getElementById('openStreaks').click(), '#streaksDone'],
     career: [() => document.getElementById('openCareer').click(), '#careerDone'], controls: [() => document.getElementById('openControls').click(), '#controls .btn-row button'] };
   for (const [k, [fn, sel]] of Object.entries(S)) { F.ui.showScreen('menu'); fn(); window.__step(2); const r = document.querySelector(sel).getBoundingClientRect();
-    out[k] = r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && document.documentElement.scrollHeight <= innerHeight + 1; }
+    out[k] = r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && document.documentElement.scrollHeight <= innerHeight + 1;
+    if (k === 'loadout') { const row = document.querySelector('#loadoutDone').parentElement.getBoundingClientRect(), pan = document.querySelector('#loadout .panel').getBoundingClientRect(); out.loadoutBarNarrow = row.width < pan.width * 0.5; } }
   F.ui.showScreen('menu'); return out; });
 check('phone menus: main buttons reachable', Object.values(scr).every(Boolean), scr);
 
@@ -65,11 +66,11 @@ const openYaw = () => ev(() => { const F = window.__frontline, P = F.G.player; l
 const fwdOf = (a, b) => (a.x - b.x) * Math.sin(a.yaw) + (a.z - b.z) * Math.cos(a.yaw); // distance moved along the facing direction
 let a = await openYaw();
 await down(1, 150, 300); await move(1, 150, 270); await move(1, 150, 236); await page.waitForFunction(() => window.__frontline.input.moveY > 0.95); await step(40);
-let b = await ev(() => { const F = window.__frontline, P = F.G.player; return { x: P.x, z: P.z, sprint: P.sprinting, my: F.input.moveY }; });
+let b = await ev(() => { const F = window.__frontline, P = F.G.player; return { x: P.x, z: P.z, sprint: P.sprinting, my: F.input.moveY, label: document.querySelector('.t-stick').classList.contains('sprint') }; });
 await up(1); await step(30);
 const fwd = fwdOf(a, b);
 check('stick: moves forward', fwd > 3 && Math.hypot(b.x - a.x, b.z - a.z) - fwd < 0.5, { fwd, a, b });
-check('stick: rim = sprint', b.sprint === true && b.my > 0.95, b);
+check('stick: rim = sprint (with the SPRINT label)', b.sprint === true && b.my > 0.95 && b.label === true, b);
 const rest = await ev(() => ({ my: window.__frontline.input.moveY, k: window.__frontline.input.keys.KeyW }));
 check('stick: release stops', rest.my === 0 && !rest.k, rest);
 // half push walks slower

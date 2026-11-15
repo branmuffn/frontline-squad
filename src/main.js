@@ -2,7 +2,7 @@ import * as chat from './ui/chat.js';
 import { streakState } from './entities/streaks.js';
 import { initChat } from './ui/chat.js';
 import { G, isLive } from './core/state.js';
-import { loadProfile, saveProfile, applyQuality } from './core/storage.js';
+import { loadProfile, saveProfile, applyQuality, detectQuality } from './core/storage.js';
 import { initTouch, setTouch, wantTouch, touchTick, goFullscreen } from './core/touch.js';
 import { $ } from './core/util.js';
 import { initInput, input, matches, requestLock, exitLock, isLocked, clearInput } from './core/input.js';
@@ -53,8 +53,10 @@ let wantResume = false, lastCfg = null;
 function boot() {
   if (!window.WebGLRenderingContext) throw new Error('WebGL is not available in this browser.');
   loadProfile();
-  const st0 = G.profile.settings; // first start on a phone or tablet: Battery saver graphics (cooler, smoother); changeable in Settings
-  if (!st0.touchSetup && wantTouch(st0)) { applyQuality(st0, 'battery'); st0.touchSetup = true; saveProfile(); }
+  // Phones and tablets, once: Balanced graphics at 2x sharpness (auto resolution steps down if the frame rate drops).
+  // v1 used Battery saver, which Brian found too blurry on a Pixel 7 (2026-11-14); v2 replaces it. Changeable in Settings.
+  const st0 = G.profile.settings;
+  if ((st0.touchV || 0) < 2 && wantTouch(st0)) { applyQuality(st0, 'balanced'); st0.pixelMax = 2; st0.quality = detectQuality(st0); st0.touchV = 2; saveProfile(); }
   initRenderer($('game'));
   initFx();
   initViewmodel();

@@ -28,7 +28,7 @@ const BUTTONS = [ // [role, label, class]
 ];
 const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
 
-let opts = null, root = null, stick = null, knob = null, playing = false, ctxT = 0;
+let opts = null, root = null, stick = null, knob = null, tip = null, playing = false, ctxT = 0, lastP = null, tipUntil = 0;
 const btn = {};
 const ptrs = new Map(); // pointerId -> { role, el, x, y, cx, cy, t0, long }
 const cls = (el, c, on) => { if (el) el.classList.toggle(c, !!on); };
@@ -51,10 +51,11 @@ export function initTouch(o) {
   root = document.createElement('div');
   root.id = 'touchUI'; root.setAttribute('aria-hidden', 'true');
   root.innerHTML = '<div class="t-zone t-left" data-t="move"></div><div class="t-zone t-right" data-t="look"></div>'
-    + '<div class="t-stick"><i class="t-knob"></i></div><div class="t-hit t-board" data-t="board"></div><div class="t-hit t-weapon" data-t="weapon"></div>'
+    + '<div class="t-stick"><i class="t-knob"></i></div><div class="t-tip">Push the stick all the way to the edge to sprint</div>'
+    + '<div class="t-hit t-board" data-t="board"></div><div class="t-hit t-weapon" data-t="weapon"></div>'
     + BUTTONS.map(([r, l]) => `<div class="t-btn t-${r}" data-t="${r}">${svg(r)}${l ? `<small>${l}</small>` : ''}</div>`).join('');
   document.body.appendChild(root);
-  stick = root.querySelector('.t-stick'); knob = root.querySelector('.t-knob');
+  stick = root.querySelector('.t-stick'); knob = root.querySelector('.t-knob'); tip = root.querySelector('.t-tip');
   for (const [r] of BUTTONS) btn[r] = root.querySelector('.t-' + r);
   const rot = document.createElement('div');
   rot.id = 'rotateMsg';
@@ -154,7 +155,7 @@ function release(p) {
   if (r === 'move') {
     input.moveX = input.moveY = 0;
     for (const a of ['forward', 'back', 'left', 'right', 'sprint']) setKey(a, false);
-    stick.classList.remove('free'); stick.style.transform = ''; knob.style.transform = '';
+    stick.classList.remove('free', 'sprint'); stick.style.transform = ''; knob.style.transform = '';
   } else if (r === 'fire') { if (![...ptrs.values()].some((q) => q.role === 'fire')) input.fire = false; }
   else if (r === 'jump') keyUp('jump');
   else if (r === 'crouch') {
@@ -177,7 +178,10 @@ function stickTo(p) {
   // keys too, for code that reads them (vehicles, ladders); pushing to the rim while heading forward = sprint
   setKey('forward', input.moveY > 0.35); setKey('back', input.moveY < -0.35);
   setKey('right', input.moveX > 0.35); setKey('left', input.moveX < -0.35);
-  setKey('sprint', d >= R * 0.95 && input.moveY > 0.6);
+  const sprint = d >= R * 0.95 && input.moveY > 0.6;
+  setKey('sprint', sprint);
+  stick.classList.toggle('sprint', sprint); // brass rim + "SPRINT" label, so players can see where sprint is
+  if (sprint) tipUntil = 0;
 }
 
 function releaseAll() {
@@ -193,6 +197,11 @@ export function touchTick() {
   if (live !== playing) { playing = live; document.body.classList.toggle('t-play', live); if (!live) releaseAll(); }
   if (!live) return;
   const P = G.player, alive = !!(P && P.alive) && !G.spectating && (G.state === 'playing' || G.state === 'deploy');
+  if (P && P !== lastP) { // a new match (or respawn): the sprint tip shows for the first few matches on this device
+    lastP = P; const s = G.profile.settings;
+    if (G.state === 'deploy' && (s.touchTipN || 0) < 3) { s.touchTipN = (s.touchTipN || 0) + 1; tipUntil = G.realTime + 8; }
+  }
+  cls(tip, 'show', alive && G.realTime < tipUntil);
   for (const p of ptrs.values()) {
     if (p.role === 'crouch' && !p.long && alive && !P.vehicle && G.realTime - p.t0 > LONG) {
       p.long = true; keyUp('crouch'); if (!P.prone) tap('prone');

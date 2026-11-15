@@ -377,6 +377,8 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .settings-panel .field { margin-bottom: clamp(6px, 1.2vh, 12px); }
 .settings-panel .cols.three > div:last-child h3 { margin-top: 0; }
 .binds { max-height: clamp(150px, calc(100vh - 350px), 560px); }
+/* short laptop screens (1024x640): one scroll area, not two nested ones: the key list grows and the Settings body scrolls (fit.mjs) */
+@media (max-height: 680px) and (min-width: 900px) { #settings .binds { max-height: none; overflow: visible; } }
 .ladder { max-height: clamp(220px, calc(100vh - 220px), 560px); }
 
 /* loadout: tabs + one list at a time */
@@ -596,6 +598,11 @@ body.touch.t-play #touchUI { display: block; }
 .t-stick { position: absolute; left: calc(34px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); width: 116px; height: 116px; border-radius: 50%; border: 2px solid rgba(235, 230, 214, 0.45); background: rgba(14, 19, 21, 0.25); pointer-events: none; }
 .t-stick.free { left: -58px; top: -58px; bottom: auto; }
 .t-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(235, 230, 214, 0.55); border: 2px solid rgba(235, 230, 214, 0.8); }
+.t-stick.sprint { border-color: var(--brass); }
+.t-stick.sprint .t-knob { background: rgba(229, 180, 67, 0.8); border-color: var(--brass); }
+.t-stick.sprint::after { content: 'SPRINT'; position: absolute; left: 50%; top: -22px; transform: translateX(-50%); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--brass); text-shadow: 0 1px 2px #000; }
+.t-tip { position: absolute; left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(166px + env(safe-area-inset-bottom, 0px)); max-width: 190px; display: none; padding: 6px 10px; background: rgba(14, 19, 21, 0.82); border-left: 3px solid var(--brass); font-size: 13px; line-height: 1.3; color: var(--ink); pointer-events: none; }
+.t-tip.show { display: block; }
 .t-btn { position: absolute; width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink);
   background: rgba(14, 19, 21, 0.42); border: 2px solid rgba(235, 230, 214, 0.6); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); font-weight: 700; }
 .t-btn svg { width: 20px; height: 20px; pointer-events: none; }
@@ -659,5 +666,5 @@ body.touch #freeLook, body.touch #relock, body.touch #lockMsg, body.touch #pause
   body.touch .screen { padding: 6px 10px; }
   body.touch .panel.fit { overflow-y: auto; overscroll-behavior: contain; }
   body.touch .panel.fit > .pbody { flex: none; min-height: auto; overflow: visible; }
-  body.touch .panel.fit > .btn-row { position: sticky !important; bottom: -12px; z-index: 3; margin-top: 8px; padding: 8px 0 12px !important; background: var(--panel) !important; }
+  body.touch .panel.fit > .btn-row { position: sticky !important; bottom: -12px; z-index: 3; margin-top: 8px; padding: 8px 0 12px 10px !important; background: var(--panel) !important; align-self: flex-end; width: auto; }
 }
