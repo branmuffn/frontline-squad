@@ -92,6 +92,9 @@ function boot() {
   window.addEventListener('pointerdown', firstGesture, true); window.addEventListener('keydown', firstGesture, true);
   window.addEventListener('beforeunload', (e) => { if (isLive() || G.state === 'paused') { e.preventDefault(); e.returnValue = ''; } });
   // handle for debugging from the console
+  { const xf = document.getElementById('exitFull'), sync = () => xf.classList.toggle('hidden', !document.fullscreenElement);
+    document.addEventListener('fullscreenchange', sync); sync();
+    xf.addEventListener('click', () => { try { const o = screen.orientation; if (o && o.unlock) o.unlock(); } catch (e) { /* not supported */ } document.exitFullscreen?.().catch(() => {}); }); }
   window.__frontline = { kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');

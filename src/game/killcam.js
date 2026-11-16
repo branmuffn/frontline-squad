@@ -139,7 +139,9 @@ function startReplay() {
   r.shotI = shots.findIndex((e) => e.t >= r.start); if (r.shotI < 0) r.shotI = shots.length;
   // the round that did it: shown as a glowing slug (slow motion while it flies; long shots get a bullet-follow camera)
   const kill = cam.killer && !ORBIT.has((cam.info || {}).weapon) ? shots.filter((e) => e.s.shooter === cam.killer && e.s.k === 0 && e.t <= cam.deathAt + 0.06 && e.t >= r.start).pop() : null;
-  if (kill) { const d = Math.hypot(kill.s.x - kill.x0, kill.s.y - kill.y0, kill.s.z - kill.z0); r.kill = kill; r.flight = Math.max(0.16, d / 140); r.bulletCam = d > 22; r.end = Math.max(r.end, kill.t + r.flight + 0.8); }
+  if (kill) { const d = Math.hypot(kill.s.x - kill.x0, kill.s.y - kill.y0, kill.s.z - kill.z0); r.kill = kill; r.flight = Math.max(0.16, d / 140); const ks0 = sample(cam.killer, kill.t); r.scoped = !!(ks0 && ks0.sc);
+    // Brian (2026-11-16): a scoped kill plays through the killer's scope, then the camera leaves the scope and follows the round
+    r.bulletCam = d > (r.scoped ? 12 : 22); if (r.scoped) r.flight = Math.max(r.flight, 0.45); r.end = Math.max(r.end, kill.t + r.flight + 0.8); }
   // the victim stays up until the round lands (+ a short beat), then falls: footage timing ≠ slug flight timing
   r.hitT = (kill ? kill.t + r.flight : cam.deathAt) + 0.08; r.fell = false;
   ensureBody(G.player);
@@ -251,14 +253,18 @@ function replayStep(dt, P) {
     G.camera.rotation.set(m.pitch, m.yaw, 0);
     const w = WEAPONS[ks.w] ? ks.w : 'm4';
     const fov = G.profile.settings.fov * (ks.fk || 1); // their zoom: iron sights, 2x, 4x or 8x scope
-    const flying = slugStep(r), bcam = flying && r.bulletCam && (r.t - r.kill.t) / r.flight >= BULLET_CAM_FROM;
+    const from = r.scoped ? 0.4 : BULLET_CAM_FROM;
+    const flying = slugStep(r), bcam = flying && r.bulletCam && (r.t - r.kill.t) / r.flight >= from;
+    // scoped kills ease out of the scope (position, aim and zoom blend over the first part) instead of cutting
+    const bu = bcam ? ((r.t - r.kill.t) / r.flight - from) / (1 - from) : 0, bb = r.scoped ? Math.min(1, bu / 0.35) : 1, b = bb * bb * (3 - 2 * bb);
     if (bcam) { // follow the round
       const e = r.kill, dx = e.s.x - e.x0, dy = e.s.y - e.y0, dz = e.s.z - e.z0, L = Math.hypot(dx, dy, dz) || 1;
-      G.camera.position.set(slug.position.x - dx / L * 1.3, slug.position.y - dy / L * 1.3 + 0.12, slug.position.z - dz / L * 1.3);
-      G.camera.lookAt(e.s.x, e.s.y, e.s.z);
+      G.camera.position.set(lerp(m.x, slug.position.x - dx / L * 1.3, b), lerp(m.y, slug.position.y - dy / L * 1.3 + 0.12, b), lerp(m.z, slug.position.z - dz / L * 1.3, b));
+      if (b >= 1) G.camera.lookAt(e.s.x, e.s.y, e.s.z);
+      else { const q0 = G.camera.quaternion.clone(); G.camera.lookAt(e.s.x, e.s.y, e.s.z); G.camera.quaternion.slerpQuaternions(q0, G.camera.quaternion.clone(), b); }
     }
-    const f2 = bcam ? G.profile.settings.fov * 0.8 : fov; if (Math.abs(G.camera.fov - f2) > 0.1) { G.camera.fov = f2; G.camera.updateProjectionMatrix(); }
-    document.getElementById('scope').classList.toggle('on', !!ks.sc && !bcam);
+    const f2 = bcam ? lerp(fov, G.profile.settings.fov * 0.8, b) : fov; if (Math.abs(G.camera.fov - f2) > 0.1) { G.camera.fov = f2; G.camera.updateProjectionMatrix(); }
+    document.getElementById('scope').classList.toggle('on', !!ks.sc && (!bcam || b < 0.25));
     setListener(ks.x, ks.y + eye, ks.z, ks.yaw);
     // replay shots that happened up to now in the footage
     while (r.shotI < shots.length && shots[r.shotI].t <= r.t) {

@@ -6,7 +6,7 @@ let voices = 0;
 const L = { x: 0, y: 1.6, z: 0, yaw: 0 };
 
 export function initAudio() {
-  if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return; }
+  if (ctx) { if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(() => {}); return; }
   try {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = G.profile.settings.volume;
@@ -27,6 +27,17 @@ export function initAudio() {
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   } catch (e) { ctx = null; }
 }
+
+// Brian (2026-11-16): no sound while the game isn't on screen (another app, home screen, another tab, screen off).
+// Suspending the one AudioContext silences effects and music together; it resumes when the page is visible again.
+function syncHidden() {
+  if (!ctx) return;
+  if (document.hidden) { if (ctx.state === 'running') ctx.suspend().catch(() => {}); }
+  else if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+}
+document.addEventListener('visibilitychange', syncHidden);
+window.addEventListener('pagehide', () => { if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {}); });
+window.addEventListener('pageshow', syncHidden);
 
 export const audioCtx = () => ctx;
 export const masterNode = () => master;
