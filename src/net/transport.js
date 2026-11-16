@@ -12,10 +12,11 @@ const opts = () => window.__NET_OPTS || {}; // test hook: { signal: 'localhost:9
 const HOST_CAND = /^(a=candidate:\S+ \d+ \S+ \d+ )(\d{1,3}(?:\.\d{1,3}){3}|[\w-]+\.local)( \d+ typ host)/gm;
 const loSdp = (sdp) => (opts().loopback ? sdp.replace(HOST_CAND, (_, head, addr, tail) => head + '127.0.0.1' + tail) : sdp);
 // STUN finds a direct route (works for most home networks). When both sides sit behind strict NATs (mobile hotspots,
-// carrier-grade NAT, some office/school Wi-Fi) a TURN relay forwards the traffic instead: PeerJS's free relay is always
-// offered, plus an optional relay of the user's own (lobby > Advanced), e.g. a free Metered or Cloudflare account.
+// carrier-grade NAT, some office/school Wi-Fi) only a TURN relay can forward the traffic. PeerJS's free relay
+// (eu-0/us-0.turn.peerjs.com) was shut down by the PeerJS team (late 2023; the names no longer resolve, checked
+// 2026-11-15), so there is no built-in relay right now: only the optional relay of the user's own (lobby > Advanced).
 const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-const RELAY = [{ urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }];
+const RELAY = [];
 export function customTurn() {
   try { const t = (JSON.parse(localStorage.getItem('frontline_mp_v1')) || {}).turn; if (t && /^turns?:/.test(t.url || '')) return { urls: t.url.trim(), username: (t.user || '').trim(), credential: (t.pass || '').trim() }; } catch {}
   return null;
@@ -69,7 +70,8 @@ export class Link {
 
 function fromPeerConn(conn) {
   return new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('Connection timed out')), 20000);
+    // The broker found the other device but no network route opened between them (no relay, see RELAY above).
+    const t = setTimeout(() => reject(new Error(NO_ROUTE)), 20000);
     conn.on('open', () => {
       clearTimeout(t);
       const pc = conn.peerConnection;
@@ -85,6 +87,7 @@ function fromPeerConn(conn) {
   });
 }
 
+const NO_ROUTE = 'Found the host, but your two networks wouldn’t link. Put both devices on the same Wi-Fi (on a phone, turn off mobile data) and try again.';
 const brokerMsg = (e) => e && e.type === 'peer-unavailable' ? 'Room not found. Check the code (and that the host is still in the lobby).'
   : e && ['network', 'server-error', 'socket-error', 'socket-closed', 'unavailable-id'].includes(e.type) ? 'Can’t reach the matchmaking server. Use manual codes below.'
   : e && e.type === 'browser-incompatible' ? 'This browser doesn’t support WebRTC.' : (e && e.message) || 'Connection failed';
@@ -113,7 +116,7 @@ export function hostRoom(onLink, onStatus, want) {
 export function joinRoom(code) {
   const peer = new Peer(peerOpts());
   const p = new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('No answer from the host. Check the code or use manual codes.')), 25000);
+    const t = setTimeout(() => reject(new Error('No answer from the host. Check the code, and that the host is still in the lobby.')), 25000);
     peer.on('open', () => {
       const conn = peer.connect(PREFIX + code.trim().toUpperCase(), { serialization: 'raw', reliable: true });
       fromPeerConn(conn).then((L) => { clearTimeout(t); L.peer = peer; resolve(L); }).catch((e) => { clearTimeout(t); reject(new Error(brokerMsg(e))); });
