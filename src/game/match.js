@@ -147,7 +147,8 @@ export function pickSpawn(u, opts = {}) {
   { const H = G.match && G.match.hook; const f = H && H.spawnFor && H.spawnFor(u); if (f) return f; }
   const sp = G.world.spawns, m = G.match;
   let list = sp.ffa;
-  if (m.teams && !(m.hook && m.hook.ffaSpawns)) list = G.now < 20 ? sp.teams[u.team] : sp.teams[u.team].concat(sp.ffa);
+  const tl = sp.teams[u.team]; // none for a spectator (team -1): free-for-all spots (a team mode used to crash its deploy)
+  if (m.teams && !(m.hook && m.hook.ffaSpawns) && tl) list = G.now < 20 ? tl : tl.concat(sp.ffa);
   if ((m.mode === 'survival' || (m.hook && m.hook.waves)) && !u.isPlayer) list = sp.ffa.concat(sp.teams[0], sp.teams[1]);
   let best = null, bs = -1e9;
   for (const [x, z, sy] of list) {

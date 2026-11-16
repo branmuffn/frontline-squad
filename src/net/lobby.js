@@ -30,7 +30,9 @@ const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(
 
 function fillSettings(cfg) {
   $('mpMode').innerHTML = net.MP_MODES.map((m) => opt(m, MODES[m].name + (net.COOP(m) ? ' (co-op)' : ' (versus)'), m === cfg.mode)).join('');
-  $('mpMap').innerHTML = Object.entries(MAPS).filter(([id]) => id !== 'range' && id !== 'custom') // custom maps live in each player's own browser.map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
+  // no range (its own mode) and no custom map (custom maps live in each player's own browser)
+  $('mpMap').innerHTML = Object.entries(MAPS).filter(([id]) => id !== 'range' && id !== 'custom').map(([id, d]) => opt(id, d.name, id === cfg.map)).join('');
+  if (!MAPS[cfg.map] || cfg.map === 'range' || cfg.map === 'custom') cfg.map = $('mpMap').value; // e.g. '' saved while the list was empty
   $('mpMap').closest('.field').classList.toggle('hidden', cfg.mode === 'range'); // the range is its own map
   $('mpDiff').innerHTML = Array.from({ length: 10 }, (_, i) => opt(i + 1, `${i + 1} · ${DIFFICULTY[skillBand(i + 1)].label}`, i + 1 === +cfg.skill)).join('');
   const counts = MP_COUNTS[cfg.mode];
@@ -74,6 +76,7 @@ function updateStart() {
   $('mpStart').disabled = !ok;
   $('mpWarm').classList.toggle('hidden', !net.session.host); $('mpWarm').disabled = !net.session.host || !net.session.remotes.some((r) => r.hello);
   $('mpStart').textContent = wait.length ? `Waiting: ${wait.length} not ready` : 'Start match';
+  $('mpReady').classList.toggle('hidden', !!(net.session.client && net.session.spectate)); // spectators are always ready
   $('mpReady').classList.toggle('on', !!net.session.ready); $('mpReady').textContent = net.session.ready ? 'Ready ✓' : 'Ready';
 }
 // skins: uniform / pattern / helmet, locked until the listed rank
@@ -105,7 +108,7 @@ export function initLobby(cb) {
     code: (c) => { $('mpRoomCode').textContent = c; },
     players: (list, cfg) => {
       const host = net.session.host, route = { relay: 'relayed', lan: 'LAN', direct: 'direct' };
-      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
+      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : p.spec ? ' <i class="rdy">spectating</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
         + (list.length < net.maxPlayers() ? `<li><i>Waiting for players… (up to ${net.maxPlayers()})</i></li>` : '');
       $('mpCount8').textContent = `${list.length}/${net.maxPlayers()}`;
       // big rooms: the host's upload grows with every player (each gets the whole match ~20-30 times a second)

@@ -57,7 +57,7 @@ export function init(cb) { S.cb = cb; }
 export function setUi(ui) { S.ui = ui; }
 function status(msg, kind) { if (S.ui) S.ui.status(msg, kind); }
 function players() {
-  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true, ready: true }].concat(S.remotes.filter((r) => r.hello).map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000), ready: r.ready, route: r.route })));
+  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true, ready: true }].concat(S.remotes.filter((r) => r.hello).map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000), ready: r.ready, route: r.route, spec: r.spec || undefined })));
   return S.lobby || [];
 }
 function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobbyCfg); }
@@ -184,7 +184,7 @@ function attach(L) {
   L.onmsg = clientMsg;
   L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was && !S.leaving && S.succ && S.succ.code && migrate()) return; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
   L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate });
-  status('Connected. Waiting for the host to start…', 'ok');
+  status(S.spectate ? 'Connected as a spectator (watching only). Waiting for the host to start…' : 'Connected. Waiting for the host to start…', 'ok');
 }
 
 export function leave(silent) {
@@ -248,7 +248,7 @@ function migrate() {
 }
 function lateJoin(r) {
   const cfg = S.liveCfg, mode = cfg.mode;
-  if (r.spec) { r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
+  if (r.spec) { sendSpecStart(r, cfg); sendRoster(true); chat.add('', `${r.name} is spectating`, 'sys'); return; }
   const back = S.dropped[r.name];
   if (COOP(mode)) r.team = 0; else if (mode === 'infection') r.team = 0; else if (['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(mode)) { const n = [0, 1].map((t) => G.units.filter((u) => u.team === t && (u.isPlayer || u.remote)).length); r.team = back && back.team < 2 ? back.team : cfg.sameTeam ? 0 : n[0] <= n[1] ? 0 : 1; } else r.team = 100 + r.slot;
   const [u] = makeRemoteUnits(mode, [r]);
@@ -275,10 +275,21 @@ function launch(cfg) {
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
+  for (const r of joined()) if (r.spec) sendSpecStart(r, cfg); // spectators watch from the start (they used to be left in the lobby)
   sendRoster(true); sendSuccession();
   return true;
 }
 const spawnOf = (u) => ({ x: u.x, y: u.y, z: u.z, yaw: u.yaw });
+const sendSpecStart = (r, cfg) => (r.out = false, r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }));
+// A joiner still in the lobby while the host plays (its start went missing) asks again; it drops straight in, like a
+// late joiner. Only players the host still counts as in the match (a unit, or watching): one who quit stays out.
+function resendStart(r) {
+  if (!S.live || !r.hello) return;
+  if (r.spec) { if (!r.out) sendSpecStart(r, S.liveCfg); return; }
+  if (!r.unit) return;
+  r.link.send({ t: 'start', cfg: S.liveCfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name, late: true });
+  sendRoster(true);
+}
 // called by startMatch on the host: one unit per connected player (bots count is adjusted by match.js)
 export function remoteTeams() { return joined().filter((r) => !r.spec).map((r) => r.team); }
 export function makeRemoteUnits(mode, only) {
@@ -398,7 +409,8 @@ function hostMsg(r, m) {
       for (const o of S.remotes) if (o !== r && o.hello && (!team || (o.unit && o.unit.team === u.team))) o.link.send({ t: 'chat', n: r.name, m: msg, tm: u ? u.team : 0, tt: team ? 1 : 0 });
       return;
     }
-    case 'quit': if (u) { removeRemoteUnit(r); hud.notice(`${r.name} left the match`); } return;
+    case 'quit': if (u) { removeRemoteUnit(r); hud.notice(`${r.name} left the match`); } else if (r.spec) r.out = true; return;
+    case 'need': resendStart(r); return;
   }
   if (!S.live || !u) return;
   switch (m.t) {
@@ -451,7 +463,11 @@ function clientMsg(m) {
     case 'succ': S.succ = m; return;
     case 'abort': if (S.live) { S.live = false; clearProxies(); S.cb.abort(m.w ? 'Warm-up over: press Ready, the match starts when everyone is ready.' : 'The host ended the match.'); } return;
   }
-  if (!S.live) return;
+  if (!S.live) {
+    // match snapshots while we're still in the lobby: the host is playing with us in it, so our start never arrived
+    if ((m.t === 'sn' || m.t === 'ro') && S.link && now() - (S.needT || -9) > 2) { S.needT = now(); S.link.send({ t: 'need' }); }
+    return;
+  }
   switch (m.t) {
     case 'sn': onSnap(m); break;
     case 'ro': syncRoster(m.u); break;
@@ -640,7 +656,7 @@ function sendSnap() {
   // snapshot; units far away AND outside the view only every 3rd snapshot (10 Hz at 30 Hz); keyframes carry everyone
   const full = key || S.snapN % 3 === 0;
   for (const r of S.remotes) {
-    if (!r.hello || (!r.unit && !r.spec)) continue;
+    if (!r.hello || (!r.unit && !(r.spec && !r.out))) continue;
     snap.sh = r.unit ? S.shots.filter((s) => s[0] !== r.unit.id) : S.shots;
     snap.u = full || !r.unit ? us : us.filter((a, i) => wanted(r.unit, G.units[i]));
     r.link.sendFast(snap);
