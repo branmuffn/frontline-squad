@@ -249,7 +249,13 @@ function autoFire(P, alive) {
   const s = G.profile.settings, w = alive && P.weapons ? WEAPONS[P.weapons[P.slot]] : null;
   const manual = [...ptrs.values()].some((q) => q.role === 'fire');
   const reach = w ? autoReach(w) : 0;
-  const want = !!(s.autoFire && w && !manual && !w.melee && !AUTO_FIRE.skip.test(w.cls || '') && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
+  // Brian (2026-11-16): never auto-fire through a scope (the Mk 14 / Barrett kick threw his aim off every shot); you
+  // fire scoped shots yourself. Unzoomed it still helps. Semi-auto guns also wait for the last kick to settle, so
+  // each auto shot lands where you aim instead of climbing (pistols, shotguns, marksman rifles).
+  const scoped = w && w.scope && P.adsT > 0.3;
+  const settled = !w || w.auto || !w.recoil || Math.abs(P.recoilP) < w.recoil.v * 0.65 * AUTO_FIRE.settle;
+  const want = !!(s.autoFire && w && !manual && !w.melee && !scoped && !AUTO_FIRE.skip.test(w.cls || '') && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
+  if (want && !settled) { input.fire = false; autoPulse = false; autoOn = true; cls(btn.fire, 'auto', true); return; }
   if (want) { autoPulse = w.auto ? true : !autoPulse; input.fire = autoPulse; autoOn = true; }
   else if (autoOn) { if (!manual) input.fire = false; autoOn = false; }
   cls(btn.fire, 'auto', want);
