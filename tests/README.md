@@ -63,6 +63,7 @@ Setup: `sh tests/setup.sh` (fetches three.js r128 into tests/three.min.js). Play
 - `drill.mjs` — range flick + tracking drills, bests.
 - `mpvote.mjs` — ping relay to the team, /votekick, /surrender (host + 2 joiners).
 - `mpwarm.mjs` — warm-up without ready, back to lobby, real match, no XP.
+- `mappreview.mjs` — main-menu map previews fill their square (long maps: half trimmed, half squashed) and are 160 px (in quick.sh).
 - `mplobby.mjs` — multiplayer through the real lobby buttons, phone host (touch, 915x356) + laptop joiner and the other pairings: Map list filled and the pick reaches the joiner, Ready -> Start, Warm-up, a spectator (list says "spectating", goes in watching in every MP mode, stays out after quitting), a lost start message heals.
 - `spawnsep.mjs` — nobody spawns inside another soldier (every mode x map). `spawnshot.mjs [mode] [map]` screenshots the countdown.
 - `kczombie.mjs` — Zombies kill cam: orbit + claw swipe (/tmp/kc_zombie.png).

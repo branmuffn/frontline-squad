@@ -31,18 +31,23 @@ function previewColliders(def) {
   const ramps = mb.ramps.map((r) => ({ x0: r.minX, x1: r.maxX, z0: r.minZ, z1: r.maxZ }));
   return { cols, ramps };
 }
+// Long maps (Harbour, Cascade Gorge, Snowbound Radar Base) fill the square (Brian picked C, 2026-11-15): half by
+// trimming the long sides a little, half by squashing them a little (k = sqrt of the side ratio each). Square maps are
+// drawn whole, as before. Canvases are 160 px for sharp tiles on 2x and phone screens (they show at 48-72 px).
 function drawPreview(canvas, def) {
-  const ctx = canvas.getContext('2d'), S = canvas.width, b = def.bounds;
-  const span = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) + 4, sc = S / span, ox = -(b.minX - 2), oz = -(b.minZ - 2);
+  const ctx = canvas.getContext('2d'), S = canvas.width, b = def.bounds, px = S / 96; // thinnest line, as at 96 px
+  const w = b.maxX - b.minX + 4, h = b.maxZ - b.minZ + 4, k = Math.sqrt(Math.max(w, h) / Math.min(w, h));
+  const sx = S / (w > h ? w / k : w), sz = S / (w > h ? h : h / k), cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
+  const X = (x) => (x - cx) * sx + S / 2, Z = (z) => (z - cz) * sz + S / 2;
   const { cols, ramps } = previewColliders(def);
   ctx.fillStyle = def.id === 'outpost' ? '#3b342a' : '#262d30'; ctx.fillRect(0, 0, S, S);
   for (const c of cols) {
     if (c.x1 < b.minX - 3 || c.x0 > b.maxX + 3 || c.z1 < b.minZ - 3 || c.z0 > b.maxZ + 3) continue;
     ctx.fillStyle = c.pass ? 'rgba(232,227,211,.25)' : c.top > 2.5 ? 'rgba(232,227,211,.75)' : 'rgba(232,227,211,.4)';
-    ctx.fillRect((c.x0 + ox) * sc, (c.z0 + oz) * sc, Math.max(1, (c.x1 - c.x0) * sc), Math.max(1, (c.z1 - c.z0) * sc));
+    ctx.fillRect(X(c.x0), Z(c.z0), Math.max(px, (c.x1 - c.x0) * sx), Math.max(px, (c.z1 - c.z0) * sz));
   }
   ctx.fillStyle = 'rgba(217,164,65,.6)';
-  for (const r of ramps) ctx.fillRect((r.x0 + ox) * sc, (r.z0 + oz) * sc, (r.x1 - r.x0) * sc, (r.z1 - r.z0) * sc);
+  for (const r of ramps) ctx.fillRect(X(r.x0), Z(r.z0), (r.x1 - r.x0) * sx, (r.z1 - r.z0) * sz);
 }
 
 // ---------- main menu ----------
@@ -66,7 +71,7 @@ function refreshMenu() {
   const mapSel = $('mapSel');
   if (!mapSel.dataset.built) {
     mapSel.dataset.built = '1';
-    mapSel.innerHTML = MAP_LIST.map((d) => `<button type="button" data-v="${d.id}"><canvas width="96" height="96"></canvas><span><b>${d.name}</b><small>${esc(d.blurb)}</small></span></button>`).join('');
+    mapSel.innerHTML = MAP_LIST.map((d) => `<button type="button" data-v="${d.id}"><canvas width="160" height="160"></canvas><span><b>${d.name}</b><small>${esc(d.blurb)}</small></span></button>`).join('');
     mapSel.querySelectorAll('button').forEach((bt, i) => {
       drawPreview(bt.querySelector('canvas'), MAP_LIST[i]);
       bt.addEventListener('click', () => { L.map = bt.dataset.v; saveProfile(); refreshVehicles(); mapSel.querySelectorAll('button').forEach((q) => q.classList.toggle('sel', q === bt)); cb.onMapPreview(L.map); });
