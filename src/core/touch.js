@@ -1,4 +1,4 @@
-// Touch controls for phones and tablets (layout A, "thumb arc"): a move stick on the left, drag on the right to look,
+// Touch controls for phones and tablets (layout A, "thumb arc"): a fixed move stick bottom left, drag anywhere else to look,
 // a big Fire button with Aim / Reload / Crouch / Jump / Grenade around it. Only built into the page's behaviour when
 // input.touch is on (Settings > Touch controls: Auto = touch screens only); desktop play never runs any of this.
 // Buttons press the player's bound keys and the mouse handlers, so every action goes through the same code as the
@@ -9,6 +9,7 @@ import { WEAPONS } from './config.js';
 
 const R = 52;             // stick travel (px)
 const DEAD = 0.12;        // stick dead zone (share of R)
+const SLACK = 30;         // px around the stick's ring that still count as the stick (a thumb that lands a bit off)
 const LONG = 0.45;        // seconds: holding Crouch this long goes prone
 const FAKE = { repeat: false, preventDefault() {}, stopPropagation() {} };
 const ICON = {
@@ -99,6 +100,9 @@ function onDown(e) {
   e.preventDefault();
   try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events */ }
   const p = { role: el.dataset.t, el, x: e.clientX, y: e.clientY, cx: 0, cy: 0, t0: G.realTime, long: false };
+  // Only the stick moves you (Brian, 2026-11-15): a left thumb anywhere else on the left side turns, like the right side,
+  // which leaves the right thumb free for Fire. A touch keeps its job until it lifts (slide off the stick = still moving).
+  if (p.role === 'move' && !onStick(p.x, p.y)) p.role = 'look';
   ptrs.set(e.pointerId, p);
   el.classList.add('down');
   press(p);
@@ -131,8 +135,8 @@ function press(p) {
     if (r === 'look' || r === 'move' || r === 'fire') { h.onMouseDown(0); if (r !== 'look') return; }
   }
   if (r === 'move') {
-    // Fixed stick (Brian, 2026-11-15): it stays in its corner instead of jumping to where the thumb lands. The thumb can
-    // still land anywhere on the left side; the knob points from the stick's centre toward it.
+    // Fixed stick (Brian, 2026-11-15): it stays in its corner instead of jumping to where the thumb lands; the knob points
+    // from the stick's centre toward the thumb.
     const s = stick.getBoundingClientRect();
     p.cx = s.left + s.width / 2; p.cy = s.top + s.height / 2;
     stickTo(p);
@@ -172,6 +176,11 @@ function release(p) {
   }
   else if (r === 'nade') keyUp('grenade');
   else if (r === 'board') keyUp('scoreboard');
+}
+
+function onStick(x, y) {
+  const s = stick.getBoundingClientRect();
+  return s.width > 0 && Math.hypot(x - (s.left + s.width / 2), y - (s.top + s.height / 2)) <= s.width / 2 + SLACK;
 }
 
 function stickTo(p) {

@@ -1,4 +1,4 @@
-// Touch controls (phones/tablets): desktop shows none of it; on a touch screen the fixed stick moves you, the right side looks,
+// Touch controls (phones/tablets): desktop shows none of it; on a touch screen the fixed stick moves you, the rest of the screen looks,
 // and every button works (fire, aim, reload, crouch/prone, jump, grenade, weapon, scoreboard, pause/resume, use);
 // light aim assist slows turning over an enemy; phone defaults (Balanced at 2x sharpness) apply once; portrait asks to rotate;
 // phone menus keep every screen's main button on screen.
@@ -80,11 +80,28 @@ check('stick: rim = sprint (with the SPRINT label)', b.sprint === true && b.my >
 const rest = await ev(() => ({ my: window.__frontline.input.moveY, k: window.__frontline.input.keys.KeyW }));
 check('stick: release stops', rest.my === 0 && !rest.k, rest);
 check('stick: stays put while pushed and after', JSON.stringify(held) === JSON.stringify(home) && JSON.stringify(await stickBox()) === JSON.stringify(home), { home, held });
-// a thumb landing beside the stick (not on it) pushes toward itself; the stick doesn't move there
-await down(1, sx + 90, sy - 10); await step(2);
+// a thumb landing just outside the ring still counts as the stick (pushes toward itself); the stick doesn't move there
+await down(1, sx + 75, sy - 8); await step(2);
 const side = await ev(() => ({ mx: window.__frontline.input.moveX, my: window.__frontline.input.moveY }));
 const sideBox = await stickBox(); await up(1); await step(2);
-check('stick: thumb right of the stick = move right, stick stays', side.mx > 0.9 && Math.abs(side.my) < 0.3 && JSON.stringify(sideBox) === JSON.stringify(home), { side, sideBox, home });
+check('stick: thumb just right of the ring = move right, stick stays', side.mx > 0.9 && Math.abs(side.my) < 0.3 && JSON.stringify(sideBox) === JSON.stringify(home), { side, sideBox, home });
+// only the stick moves you (Brian, 2026-11-15): a left thumb anywhere else on the left side turns, like the right side
+const mv = () => ev(() => { const F = window.__frontline, P = F.G.player; return { mx: F.input.moveX, my: F.input.moveY, yaw: P.yaw, pitch: P.pitch, x: P.x, z: P.z }; });
+await step(30); // let the last push's walk stop
+let m0 = await mv();
+await down(1, 250, 120); for (let i = 1; i <= 4; i++) { await move(1, 250 + 25 * i, 120); await step(1); }
+let m1 = await mv(); await up(1); await page.waitForTimeout(40); await step(2);
+check('left side off the stick: drag turns, no walking', m0.yaw - m1.yaw > 0.2 && m1.mx === 0 && m1.my === 0 && Math.hypot(m1.x - m0.x, m1.z - m0.z) < 0.05, { m0, m1 });
+// a touch keeps its job: starts on the stick and slides far off = still moving (and doesn't turn)
+m0 = await mv();
+await down(1, sx, sy); await move(1, sx + 60, sy - 120); await move(1, 300, 120); await step(2);
+m1 = await mv(); await up(1); await step(2);
+check('stick: sliding off the stick keeps moving, no turning', Math.hypot(m1.mx, m1.my) > 0.9 && Math.abs(m1.yaw - m0.yaw) < 0.01, { m0, m1 });
+// starts off the stick and slides over it = still turning (no walking)
+m0 = await mv();
+await down(1, sx + 140, sy - 140); await move(1, sx + 60, sy - 60); await move(1, sx, sy); await step(2);
+m1 = await mv(); await up(1); await page.waitForTimeout(40); await step(2);
+check('left look sliding over the stick keeps turning, no walking', m1.mx === 0 && m1.my === 0 && Math.abs(m1.yaw - m0.yaw) > 0.1, { m0, m1 });
 // half push walks slower
 a = await openYaw();
 await down(1, sx, sy); await move(1, sx, sy - 24); await page.waitForFunction(() => window.__frontline.input.moveY > 0.2); await step(40);
@@ -108,6 +125,13 @@ await up(3); await step(2);
 check('fire: hold shoots', fr.mag < mag0 && fr.fire === true, { mag0, fr });
 check('fire: slide aims', Math.abs(fr.yaw - yawF) > 0.05, { yawF, fr });
 check('fire: release stops', await ev(() => window.__frontline.input.fire) === false);
+// left thumb turns while the right thumb holds Fire (the reason for the change)
+const magL = await ev(() => { const P = window.__frontline.G.player; return P.ammo[P.weapons[P.slot]].mag; });
+m0 = await mv();
+await down(3, ...fire); await down(1, 250, 140); for (let i = 1; i <= 4; i++) { await move(1, 250 - 20 * i, 140); await step(5); }
+const both = await ev(() => { const F = window.__frontline, P = F.G.player; return { mag: P.ammo[P.weapons[P.slot]].mag, fire: F.input.fire, yaw: P.yaw }; });
+await up(1); await up(3); await step(2);
+check('left thumb turns while right thumb fires', both.mag < magL && both.fire === true && both.yaw - m0.yaw > 0.1, { magL, both, m0 });
 
 // reload, aim, crouch, prone, jump, grenade, weapon, scoreboard
 await tapAt(await center('.t-reload'));
