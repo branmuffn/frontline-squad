@@ -51,11 +51,10 @@ async function pair(hostPhone, joinPhone, { spectate = false } = {}) {
   const step = async (n = 3) => { await H.evaluate((n) => window.__step(n), n); await C.evaluate((n) => window.__step(n), n); };
   await press(H, '#openMp'); await press(C, '#openMp'); await step();
   await press(H, '#mpHost'); await sleep(200); await step();
-  if (spectate) await C.check('#mpSpec');
   // the copy-paste panel is folded away in a <details>; fill and press its buttons directly
   await H.evaluate(() => document.getElementById('mpInvite').click());
   let inv = ''; for (let i = 0; i < 100 && !(inv = await H.evaluate(() => document.getElementById('mpInviteOut').value)); i++) await sleep(50);
-  await C.evaluate((c) => { document.getElementById('mpInviteIn').value = c; document.getElementById('mpReply').click(); }, inv);
+  await C.evaluate(([c, w]) => { document.getElementById('mpInviteIn').value = c; document.getElementById(w ? 'mpReplyWatch' : 'mpReply').click(); }, [inv, spectate]);
   let rep = ''; for (let i = 0; i < 100 && !(rep = await C.evaluate(() => document.getElementById('mpReplyOut').value)); i++) await sleep(50);
   await H.evaluate((c) => { document.getElementById('mpReplyIn').value = c; document.getElementById('mpAccept').click(); }, rep);
   for (let i = 0; i < 100 && !(await H.evaluate(() => window.__frontline.net.session.remotes.some((r) => r.hello))); i++) { await sleep(50); await step(1); }
@@ -117,6 +116,20 @@ async function settle(P, n = 12) { for (let i = 0; i < n; i++) { await P.step(10
   }
   check('spectator in every mode', !Object.keys(bad).length, bad);
   await P.close();
+}
+// --- 2c. Join plays, Watch spectates (SP1: two buttons instead of a Spectate box beside Join); no box left anywhere
+{
+  const C = await mk('JOIN', true);
+  await press(C, '#openMp'); await C.evaluate(() => window.__step(3));
+  const noBox = await C.evaluate(() => !document.querySelector('#mp input[type=checkbox]'));
+  await C.fill('#mpCode', 'ABCDE'); await press(C, '#mpWatch');
+  const watching = await C.evaluate(() => window.__frontline.net.session.spectate === true);
+  await C.evaluate(() => window.__frontline.net.leave(true));
+  await C.fill('#mpCode', 'ABCDE'); await C.locator('#mpCode').press('Enter');
+  const playing = await C.evaluate(() => window.__frontline.net.session.spectate === false);
+  check('Watch spectates, Join / Enter plays, no checkbox', noBox && watching && playing, { noBox, watching, playing });
+  await C.evaluate(() => window.__frontline.net.leave(true));
+  await C.ctx.close();
 }
 // --- 3. the joiner's start message goes missing: it asks again and drops in
 {

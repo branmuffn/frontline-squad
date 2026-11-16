@@ -129,14 +129,16 @@ export function initLobby(cb) {
   $('mpPlayers').addEventListener('click', (e) => { const b = e.target.closest('.kick'); if (b) net.kick(+b.dataset.slot); });
   $('mpReady').addEventListener('click', () => { net.setReady(!net.session.ready); updateStart(); });
   $('mpChatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { net.sendChat(e.target.value); e.target.value = ''; } });
-  const join = () => {
+  // Join plays, Watch spectates (SP1, Brian 2026-11-15: two buttons instead of a Spectate box that was easy to tick)
+  const join = (watch) => {
     const code = $('mpCode').value.trim().toUpperCase();
     if (code.length < 5) { status('Type the 5-letter room code from the host.', 'warn'); return; }
     setState('client');
-    net.joinCode(name(), code, G.profile.skin, $('mpSpec').checked).catch(() => setState('choose'));
+    net.joinCode(name(), code, G.profile.skin, watch).catch(() => setState('choose'));
   };
-  $('mpJoin').addEventListener('click', join);
-  $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); e.stopPropagation(); });
+  $('mpJoin').addEventListener('click', () => join(false));
+  $('mpWatch').addEventListener('click', () => join(true));
+  $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(false); e.stopPropagation(); });
   for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig', 'mpPower']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
@@ -152,15 +154,17 @@ export function initLobby(cb) {
     try { await net.hostAccept($('mpReplyIn').value); $('mpReplyIn').value = ''; $('mpInviteOut').value = ''; }
     catch (e) { status(e.message, 'warn'); }
   });
-  $('mpReply').addEventListener('click', async () => {
+  const reply = async (watch) => {
     try {
       status('Making reply code…');
       setState('client');
-      const c = await net.joinManual(name(), $('mpInviteIn').value, G.profile.skin, $('mpSpec').checked);
+      const c = await net.joinManual(name(), $('mpInviteIn').value, G.profile.skin, watch);
       $('mpReplyOut').value = c; copy(c);
       status('Reply copied. Send it to the host; you connect as soon as they paste it.', 'ok');
     } catch (e) { status(e.message, 'warn'); setState('choose'); }
-  });
+  };
+  $('mpReply').addEventListener('click', () => reply(false));
+  $('mpReplyWatch').addEventListener('click', () => reply(true));
   $('mpWarm').addEventListener('click', () => { if (!net.hostWarmup()) status('Warm-up starts once a friend has joined.', 'warn'); });
   $('mpStart').addEventListener('click', () => { if (!net.hostStart()) status(net.notReady().length ? 'Waiting for everyone to press Ready.' : 'Wait for a player to join first.', 'warn'); });
   $('mpBack').addEventListener('click', () => {
