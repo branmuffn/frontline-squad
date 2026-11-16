@@ -5,7 +5,8 @@
 // keyboard (main.js onKeyDown / onKeyUp). Multiplayer sends state, not inputs, so touch and desktop players mix freely.
 import { G, isLive } from './state.js';
 import { input, binding } from './input.js';
-import { WEAPONS } from './config.js';
+import { WEAPONS, AUTO_FIRE } from './config.js';
+import { enemyUnderCrosshair } from '../entities/aimassist.js';
 import { killcamActive, skipKillcam, onKillcamBanner } from '../game/killcam.js';
 
 const R = 52;             // stick travel (px)
@@ -14,6 +15,7 @@ const SLACK = 30;         // px around the stick's ring that still count as the 
 const LONG = 0.45;        // seconds: holding Crouch this long goes prone
 const FAKE = { repeat: false, preventDefault() {}, stopPropagation() {} };
 const ICON = {
+  turn: '<path d="M5 12a7 7 0 1 0 2-5"/><path d="M5 3v5h5"/>',
   fire: '<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
   aim: '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
   reload: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
@@ -29,7 +31,7 @@ const ICON = {
 const BUTTONS = [ // [role, label, class]
   ['fire', 'Fire'], ['aim', 'Aim'], ['reload', 'Reload'], ['crouch', 'Crouch'], ['jump', 'Jump'], ['nade', 'Grenade'],
   ['use', 'Use'], ['streak', 'Streak'], ['pause', ''],
-  ['equip', 'Equip'], ['armory', 'Weapons'], // claymore (when carried); Sandbox / Range weapon menu (B on keyboards)
+  ['equip', 'Equip'], ['armory', 'Weapons'], ['turn', '180°'], // turn: turn around (Brian picked A, 2026-11-16) // claymore (when carried); Sandbox / Range weapon menu (B on keyboards)
 ];
 const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
 
@@ -126,7 +128,9 @@ function onUp(e) {
 }
 
 function look(dx, dy) {
-  const s = G.profile.settings, k = (s.touchSens || 1.5) / (s.sens || 1); // independent of mouse sensitivity
+  const s = G.profile.settings, F = AUTO_FIRE, m = Math.hypot(dx, dy);
+  // quick swipes turn faster (up to 2x), so a half turn doesn't take a long thumb drag; slow drags stay precise
+  const k = (s.touchSens || 1.5) / (s.sens || 1) * (1 + (F.flickMax - 1) * Math.min(1, Math.max(0, (m - F.flick) / F.flickSpan)));
   input.mdx += dx * k; input.mdy += dy * k;
 }
 
@@ -162,6 +166,7 @@ function press(p) {
   else if (r === 'board') keyDown('scoreboard');
   else if (r === 'weapon') opts.onCycle();
   else if (r === 'pause') opts.onPause();
+  else if (r === 'turn') { if (P && P.alive && !P.vehicle) turnLeft = Math.PI; }
 }
 
 function release(p) {
@@ -210,6 +215,19 @@ function releaseAll() {
 }
 
 // Every frame: show the controls only during play, swap buttons for the situation, long-press Crouch = prone.
+// Auto-fire (phones; Settings switch, on by default): holds the trigger while an enemy is under the crosshair (single-shot
+// guns get a fresh pull each frame); the Fire button still works and takes over while pressed.
+let turnLeft = 0, lastTick = 0, autoOn = false, autoPulse = false;
+function autoFire(P, alive) {
+  const s = G.profile.settings, w = alive && P.weapons ? WEAPONS[P.weapons[P.slot]] : null;
+  const manual = [...ptrs.values()].some((q) => q.role === 'fire');
+  const reach = w ? Math.min(AUTO_FIRE.range, w.falloff ? w.falloff[1] : w.range || AUTO_FIRE.range) : 0;
+  const want = !!(s.autoFire && w && !manual && !w.melee && !AUTO_FIRE.skip.test(w.cls || '') && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
+  if (want) { autoPulse = w.auto ? true : !autoPulse; input.fire = autoPulse; autoOn = true; }
+  else if (autoOn) { if (!manual) input.fire = false; autoOn = false; }
+  cls(btn.fire, 'auto', want);
+}
+
 export function touchTick() {
   if (!input.touch || !root) return;
   const live = isLive() && !G.netPaused;
@@ -221,6 +239,9 @@ export function touchTick() {
     if (G.state === 'deploy' && (s.touchTipN || 0) < 3) { s.touchTipN = (s.touchTipN || 0) + 1; tipUntil = G.realTime + 8; }
   }
   cls(tip, 'show', alive && G.realTime < tipUntil);
+  const now = G.realTime, dt = Math.min(0.05, Math.max(0, now - (lastTick || now))); lastTick = now;
+  if (turnLeft > 0 && alive && !P.vehicle) { const st = Math.min(turnLeft, dt * Math.PI / AUTO_FIRE.turn); P.yaw += st; turnLeft -= st; } else turnLeft = 0;
+  autoFire(P, alive);
   for (const p of ptrs.values()) {
     if (p.role === 'crouch' && !p.long && alive && !P.vehicle && G.realTime - p.t0 > LONG) {
       p.long = true; keyUp('crouch'); if (!P.prone) tap('prone');
@@ -236,4 +257,5 @@ export function touchTick() {
   cls(btn.armory, 'show', alive && !P.vehicle && !!G.match && (G.match.mode === 'sandbox' || G.match.mode === 'range'));
   cls(btn.aim, 'on', alive && input.aim);
   cls(btn.crouch, 'on', alive && (P.crouch || P.prone));
+  const fl = btn.fire && btn.fire.querySelector('small'); if (fl) fl.textContent = G.profile.settings.autoFire ? 'Auto' : 'Fire';
 }

@@ -185,6 +185,24 @@ const useVis = await ev(() => getComputedStyle(document.querySelector('.t-use'))
 await ev(() => { document.getElementById('prompt').textContent = ''; window.__step(10); });
 check('use: shows only with a prompt', useVis === 'flex' && await ev(() => getComputedStyle(document.querySelector('.t-use')).display) === 'none', useVis);
 
+// phone controls A (Brian picked, 2026-11-16): auto-fire on by default, turn-around button
+const aimAt = () => ev(() => { const F = window.__frontline, G = F.G, P = G.player; P.protectUntil = 1e9;
+  const e = G.bots.find((q) => q.alive && q.team !== P.team); e.protectUntil = 1e9; e.health = 1e6;
+  e.x = P.x - Math.sin(P.yaw) * 9; e.z = P.z - Math.cos(P.yaw) * 9; e.y = P.y; if (e.brain) e.brain.frozen = true;
+  const c = G.camera.position; P.pitch = Math.atan2(e.y + e.h * 0.6 - c.y, 9); const s0 = G.match.stats.shots;
+  for (let i = 0; i < 40; i++) { e.x = P.x - Math.sin(P.yaw) * 9; e.z = P.z - Math.cos(P.yaw) * 9; window.__step(1); }
+  return { shots: G.match.stats.shots - s0, on: G.profile.settings.autoFire, label: document.querySelector('.t-fire small').textContent }; });
+const af1 = await aimAt();
+check('auto-fire: on by default, shoots at an enemy under the crosshair', af1.on === true && af1.shots >= 3 && af1.label === 'Auto', af1);
+await ev(() => { window.__frontline.G.profile.settings.autoFire = false; window.__frontline.input.fire = false; });
+const af2 = await aimAt();
+check('auto-fire: off in Settings, no shots without Fire', af2.shots === 0 && af2.label === 'Fire', af2);
+await ev(() => { window.__frontline.G.profile.settings.autoFire = true; });
+const y0 = await ev(() => window.__frontline.G.player.yaw);
+await tapAt(await center('.t-turn')); await step(20);
+const turned = await ev((y0) => { const d = window.__frontline.G.player.yaw - y0; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))); }, y0);
+check('turn-around button: half a turn', Math.abs(turned - Math.PI) < 0.15, turned);
+
 // kill cam (Brian 2026-11-16: it often didn't play): taps on the screen, the stick or Fire don't skip it; a tap on its
 // banner does, after the first second
 const kcShown = () => ev(() => !document.getElementById('killcam').classList.contains('hidden'));

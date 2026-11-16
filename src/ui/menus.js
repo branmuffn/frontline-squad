@@ -317,7 +317,7 @@ function refreshSettings() {
   for (const [k, , , , , f] of SL) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
   const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
     ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1],
-    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy']] : [])];
+    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy'], ['autoFire', 'Auto-fire (touch only): shoots when the crosshair is on an enemy']] : [])];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
   const MOUSE = ['scopeToggle', 'wheelSwitch'], HUD = ['killcam', 'showFps'];
   const tg = ([k, l]) => `<label class="toggle${MOUSE.includes(k) ? ' mouse-only' : ''}"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
@@ -411,11 +411,12 @@ export function showEnd(r) {
     $('endBoard').innerHTML = [0, 1].map((t) => { const us = G.units.filter((u) => u.team === t && !u.dummy); return `<div class="board-team t${t}"><div class="bt-name">${esc(names[t] && names[t].name ? names[t].name : names[t] || '')}<b>${inf ? us.length : r.teamScores[t]}</b></div><table>${head}${us.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths).map(row).join('')}</table></div>`; }).join('');
   } else if (coopB) $('endBoard').innerHTML = `<table>${head}${G.units.filter((u) => u.isPlayer || u.remote || u.human).sort((a, b) => b.kills - a.kills).map(row).join('')}</table>`;
   else $('endBoard').innerHTML = `<table>${head}${r.standings.filter((u) => !u.dummy).map(row).join('')}</table>`;
+  $('endBoard').classList.toggle('teams', !!(m && m.teams)); // E1: the two teams side by side
   const s = r.summary;
   $('xpLines').innerHTML = s.lines.map((l) => `<div><span>${esc(l.label)}${l.count > 1 ? ` ×${l.count}` : ''}</span><b>+${l.xp.toLocaleString()}</b></div>`).join('') + `<div class="total"><span>Total</span><b>+${s.total.toLocaleString()} XP</b></div>`;
   $('newBest').classList.toggle('hidden', !s.newBest);
   const before = rankProgress(s.xpBefore), after = rankProgress(s.xpAfter);
-  $('endRank').innerHTML = `${badgeSVG(after.rank, 46)}<div class="rp-text"><b>${esc(after.name)}</b><div class="rp-bar"><i id="endBar" style="width:${(before.rank === after.rank ? before.pct : 0) * 100}%"></i></div><small>${after.rank > before.rank ? `Promoted from ${esc(before.name)}` : after.next ? `${(after.span - after.into).toLocaleString()} XP to ${esc(after.next)}` : 'Highest rank reached'}</small></div>`;
+  $('endRank').innerHTML = `${badgeSVG(after.rank, 46)}<div class="rp-text"><b>${esc(after.name)}</b><div class="rp-bar"><i id="endBar" style="width:${(before.rank === after.rank ? before.pct : 0) * 100}%"></i></div><small>${after.rank > before.rank ? `Promoted from ${esc(before.name)}` : after.next ? `${(after.span - after.into).toLocaleString()} XP to ${esc(after.next)}` : 'Highest rank reached'}</small></div><span class="rp-xp">+${s.total.toLocaleString()} XP</span>`;
   showScreen('end');
   requestAnimationFrame(() => setTimeout(() => { const bar = $('endBar'); if (bar) bar.style.width = (after.pct * 100).toFixed(1) + '%'; }, 120));
 }

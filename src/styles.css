@@ -905,3 +905,45 @@ body.touch #mp .btn-row #mpStatus { margin: 0 auto 0 0; min-height: 0; font-size
 #mppPlayers .mp-manual { margin-top: 8px; }
 #mp [data-state=client] .mpp select { pointer-events: none; opacity: 0.75; } /* joiners see the host's settings */
 #mppChat .mp-chat { margin-top: 0; } #mppChat .mp-chatlog { height: auto; min-height: 7.5em; }
+
+/* End screen E1 (Brian picked, 2026-11-16): everything on one screen. Title, score and "New personal best" share a row;
+   you (MVP, your numbers, rank + XP total) on the left, the board on the right (two teams side by side). */
+.end-head { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
+.end-head .end-title { font-size: 48px; margin: 0; line-height: 1.05; }
+.end-head .lede { margin: 0; }
+.end-head .flag { margin: 0 0 0 auto; align-self: center; }
+#end .pbody { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr); grid-auto-rows: min-content; gap: 10px 22px; margin-top: 12px; }
+#end #endMvp, #end #endStats, #end .cols > div:last-child { grid-column: 1; }
+#end #endStats { grid-template-columns: repeat(3, 1fr); margin: 0; }
+#end .cols { display: contents; }
+#end #endBoard { grid-column: 2; grid-row: 1 / span 4; align-content: start; }
+#end #endBoard.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+#end #endBoard .board-team { margin: 0; }
+#end #endBoard th:not(:first-child), #end #endBoard td:not(:first-child) { width: 30px; }
+#end #xpLines { display: none; }
+#endRank .rp-xp { margin-left: auto; padding-left: 10px; color: var(--brass); font-weight: 800; font-size: 19px; white-space: nowrap; }
+@media (max-height: 520px) {
+  #end .panel { padding-top: 10px; padding-bottom: 10px; }
+  .end-head .end-title { font-size: 34px; }
+  .end-head .lede { font-size: 15px; }
+  .end-head .flag { font-size: 12px; padding: 1px 8px; }
+  #end .pbody { margin-top: 8px; gap: 6px 18px; }
+  #end #endMvp { padding: 4px 8px; font-size: 13px; margin: 0; }
+  #end #endStats { gap: 5px; }
+  #end #endStats .tile { padding: 2px 8px; } #end #endStats .tile small { font-size: 11px; } #end #endStats .tile b { font-size: 16px; }
+  #end #endBoard .bt-name { font-size: 13px; padding: 2px 4px; }
+  #end #endBoard table { font-size: 12.5px; } #end #endBoard th, #end #endBoard td { padding: 1px 4px; }
+  #end #endBoard th:not(:first-child), #end #endBoard td:not(:first-child) { width: 20px; }
+  #endRank { padding: 4px 8px; gap: 8px; } #endRank svg { width: 28px; height: 28px; } #endRank .rp-text b { font-size: 14px; } #endRank .rp-text small { font-size: 11px; } #endRank .rp-xp { font-size: 15px; }
+  #end .panel.fit > .btn-row { margin-top: 6px; }
+}
+@media (max-width: 600px) { /* narrow windows: one column */
+  #end .pbody { grid-template-columns: 1fr; }
+  #end #endBoard { grid-column: 1; grid-row: auto; }
+}
+
+/* Phone controls A (2026-11-16): turn-around button above the stick; the Fire button glows while auto-fire shoots */
+.t-turn { width: 50px; height: 50px; left: calc(40px + env(safe-area-inset-left, 0px)); bottom: calc(clamp(158px, 100% - 172px, 186px) + env(safe-area-inset-bottom, 0px)); }
+.t-turn small { font-size: 10px; }
+.t-fire.auto { background: rgba(230, 80, 55, 0.75); box-shadow: 0 0 14px rgba(255, 74, 58, 0.8); }
+#touchUI.t-veh .t-turn { display: none; }
