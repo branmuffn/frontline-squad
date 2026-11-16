@@ -6,7 +6,7 @@ import { loadProfile, saveProfile, applyQuality, detectQuality } from './core/st
 import { initTouch, setTouch, wantTouch, touchTick, goFullscreen } from './core/touch.js';
 import { $ } from './core/util.js';
 import { initInput, input, matches, requestLock, exitLock, isLocked, clearInput } from './core/input.js';
-import { initRenderer, render, resize } from './engine/render.js';
+import { initRenderer, render, resize, onGraphicsLost } from './engine/render.js';
 import { initFx, updateFx } from './engine/fx.js';
 import { initAudio, setVolume, play, ambienceTick } from './engine/audio.js';
 import { setScene, stinger, setMusicVolume, musicScene } from './engine/music.js';
@@ -58,6 +58,7 @@ function boot() {
   const st0 = G.profile.settings;
   if ((st0.touchV || 0) < 2 && wantTouch(st0)) { applyQuality(st0, 'balanced'); st0.pixelMax = 2; st0.quality = detectQuality(st0); st0.touchV = 2; saveProfile(); }
   initRenderer($('game'));
+  onGraphicsLost(graphicsLost);
   initFx();
   initViewmodel();
   loadMap(G.profile.lobby.map);
@@ -348,9 +349,37 @@ function loop(t) {
   perfTick();
 }
 
+// Phones can drop the 3D graphics after switching apps or when short of memory. The 3D library brings them back by
+// itself when the phone allows; meanwhile solo play pauses, and if they're still gone after 3 s, offer a reload.
+let lostTimer = 0;
+function graphicsLost(lost) {
+  clearTimeout(lostTimer);
+  const el = $('glLost');
+  if (!lost) { if (el) el.classList.add('hidden'); return; }
+  if (!G.mp) pause(false);
+  lostTimer = setTimeout(() => {
+    if (!G.glLost) return;
+    let box = $('glLost');
+    if (!box) {
+      box = document.createElement('section'); box.id = 'glLost'; box.className = 'screen'; box.style.zIndex = '80';
+      box.innerHTML = '<div class="panel"><h2>Graphics paused</h2><p class="lede">Your device stopped the game’s 3D graphics, which can happen after switching apps. Reload to get back in. Your rank and settings are kept; this match ends.</p><div class="btn-row"><button class="btn-primary" type="button">Reload</button></div></div>';
+      box.querySelector('button').addEventListener('click', () => location.reload());
+      document.body.appendChild(box);
+    }
+    box.classList.remove('hidden');
+  }, 3000);
+}
+
 try { boot(); } catch (err) {
   console.error(err);
   const l = $('loader');
   l.classList.remove('hidden');
-  l.querySelector('.load-msg').textContent = `Couldn’t start the game: ${err.message}. Try a browser with WebGL enabled, then reload.`;
+  const m = l.querySelector('.load-msg'), gfx = /NO_3D|WebGL|context|Shader/i.test(String(err && err.message));
+  m.textContent = '';
+  const line = (t, tag = 'div') => { const e = document.createElement(tag); e.textContent = t; m.appendChild(e); return e; };
+  if (gfx) {
+    line('This browser couldn’t start 3D graphics, which the game needs.');
+    line('Try: reload the page · update your browser, or use Chrome, Safari or Firefox · turn on “hardware acceleration” (or “graphics acceleration”) in the browser’s settings.').style.marginTop = '8px';
+  } else line('Couldn’t start the game. Reload the page to try again.');
+  line(`(${err && err.message})`, 'small').style.cssText = 'display:block;margin-top:10px;opacity:.6';
 }

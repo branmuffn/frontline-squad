@@ -1,8 +1,23 @@
 import * as THREE from 'three';
 import { G } from '../core/state.js';
 
+let lostFn = null; // main.js: what to do when a phone drops the 3D graphics (and when they come back)
+export const onGraphicsLost = (fn) => { lostFn = fn; };
+
 export function initRenderer(container) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  // Every device (Brian, 2026-11-16): some refuse the sharpest settings (laptops with two graphics chips, low-memory
+  // phones), so try simpler ones before giving up. 'NO_3D' tells boot() to show the plain-language message.
+  let renderer = null;
+  for (const o of [{ antialias: true, powerPreference: 'high-performance' }, { antialias: false }]) {
+    try {
+      renderer = new THREE.WebGLRenderer(o);
+      if (renderer.getContext().isContextLost()) { try { renderer.dispose(); } catch (e) { /* half-made */ } renderer = null; }
+    } catch (e) { renderer = null; }
+    if (renderer) break;
+  }
+  if (!renderer) throw new Error('NO_3D');
+  renderer.domElement.addEventListener('webglcontextlost', () => { G.glLost = true; if (lostFn) lostFn(true); });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { G.glLost = false; if (lostFn) lostFn(false); });
   renderer.autoClear = false;
   renderer.shadowMap.enabled = G.profile.settings.shadows;
   renderer.shadowMap.type = THREE.PCFShadowMap; // PCF honours shadow.radius -> softer, blurred edges

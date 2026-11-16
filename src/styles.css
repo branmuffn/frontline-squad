@@ -32,9 +32,9 @@ kbd { display: inline-block; min-width: 1.6em; padding: 1px 6px; border: 1px sol
 .load-msg { color: var(--ink-dim); max-width: 520px; text-align: center; padding: 0 24px; }
 
 /* ---------- screens & panels ---------- */
-.screen { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 12, 14, 0.7); backdrop-filter: blur(3px); }
-#menu { justify-content: flex-start; align-items: stretch; padding: 0; background: linear-gradient(90deg, rgba(9, 12, 14, 0.95) 0%, rgba(9, 12, 14, 0.86) 36%, rgba(9, 12, 14, 0.25) 62%, rgba(9, 12, 14, 0) 80%); backdrop-filter: none; }
-.panel { width: min(560px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 26px 30px 24px; background: var(--panel); border: 1px solid var(--line); position: relative;
+.screen { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(9, 12, 14, 0.7); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+#menu { justify-content: flex-start; align-items: stretch; padding: 0; background: linear-gradient(90deg, rgba(9, 12, 14, 0.95) 0%, rgba(9, 12, 14, 0.86) 36%, rgba(9, 12, 14, 0.25) 62%, rgba(9, 12, 14, 0) 80%); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.panel { width: min(560px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow: auto; padding: 26px 30px 24px; background: var(--panel); border: 1px solid var(--line); position: relative;
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%); }
 .panel::before { content: ''; position: absolute; top: 0; left: 0; width: 72px; height: 3px; background: var(--brass); }
 .panel.wide { width: min(980px, 100%); }
@@ -379,10 +379,10 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 .settings-panel .slider { margin-bottom: clamp(4px, 1vh, 10px); }
 .settings-panel .field { margin-bottom: clamp(6px, 1.2vh, 12px); }
 .settings-panel .cols.three > div:last-child h3 { margin-top: 0; }
-.binds { max-height: clamp(150px, calc(100vh - 350px), 560px); }
+.binds { max-height: clamp(150px, calc(100vh - 350px), 560px); max-height: clamp(150px, calc(100dvh - 350px), 560px); }
 /* short laptop screens (1024x640): one scroll area, not two nested ones: the key list grows and the Settings body scrolls (fit.mjs) */
 @media (max-height: 680px) and (min-width: 900px) { #settings .binds { max-height: none; overflow: visible; } }
-.ladder { max-height: clamp(220px, calc(100vh - 220px), 560px); }
+.ladder { max-height: clamp(220px, calc(100vh - 220px), 560px); max-height: clamp(220px, calc(100dvh - 220px), 560px); }
 
 /* loadout: tabs + one list at a time */
 .lo-top { margin: 2px 0 4px; }
