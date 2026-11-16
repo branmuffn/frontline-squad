@@ -8,7 +8,7 @@ const r = await page.evaluate(() => {
     G.match.scoreLimit = 1; const P = G.player, b = G.bots.find((q) => q.alive); b.protectUntil = 0; b.x = P.x + 6; b.z = P.z; window.__step(30);
     F.damage(b, 999, P, { weapon: 'm4', zone: 'head', headshot: true, dist: 6 });
     const a = { state: G.state, tag: document.querySelector('#killcam .kc-tag b').textContent, vis: !document.getElementById('killcam').classList.contains('hidden') };
-    if (skip) { window.__step(20); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })); window.__step(3); a.afterSkip = G.state; }
+    if (skip) { window.__step(70); /* keys skip only after the first second (2026-11-16) */ window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })); window.__step(3); a.afterSkip = G.state; }
     else { let n = 0; while (G.state === 'finale' && n++ < 600) window.__step(1); a.frames = n; a.after = G.state; }
     a.endShown = !document.getElementById('end').classList.contains('hidden');
     return a;

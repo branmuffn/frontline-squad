@@ -19,9 +19,14 @@ const r = await s.page.evaluate(() => {
 if (SHOTS) await s.shot('/tmp/kc_replay.png');
 const r2 = await s.page.evaluate(() => {
   const F = window.__frontline, G = F.G, P = G.player;
-  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyQ' }));
-  window.__step(2);
-  const out = { skipped: document.getElementById('killcam').classList.contains('hidden') };
+  const key = () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyQ' })); window.__step(2); };
+  const shown = () => !document.getElementById('killcam').classList.contains('hidden');
+  // Brian 2026-11-16: the replay often didn't play. A click never skips; a key in the first second doesn't either.
+  F.input.h.onMouseDown(0); window.__step(2);
+  const out = { clickKept: shown() };
+  key(); out.earlyKeyKept = shown();
+  window.__step(40); key();
+  out.skipped = !shown();
   const c0 = G.camera.position.clone();
   F.input.keys.KeyW = true; window.__step(30); F.input.keys.KeyW = false;
   out.drift = +G.camera.position.distanceTo(c0).toFixed(2);
@@ -31,6 +36,7 @@ const r2 = await s.page.evaluate(() => {
   return out;
 });
 if (SHOTS) await s.shot('/tmp/kc_after.png');
-console.log(JSON.stringify(r), JSON.stringify(r2), 'ERRORS', s.errors.length, s.errors.slice(0, 3));
-process.exitCode = s.errors.length ? 1 : 0; // exit non-zero on FAIL
+const bad = !r.kcVisible || !r2.clickKept || !r2.earlyKeyKept || !r2.skipped;
+console.log(JSON.stringify(r), JSON.stringify(r2), 'ERRORS', s.errors.length, s.errors.slice(0, 3), bad ? 'FAIL killcam' : 'PASS killcam');
+process.exitCode = s.errors.length || bad ? 1 : 0; // exit non-zero on FAIL
 await s.browser.close();

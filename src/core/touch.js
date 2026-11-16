@@ -6,6 +6,7 @@
 import { G, isLive } from './state.js';
 import { input, binding } from './input.js';
 import { WEAPONS } from './config.js';
+import { killcamActive, skipKillcam, onKillcamBanner } from '../game/killcam.js';
 
 const R = 52;             // stick travel (px)
 const DEAD = 0.12;        // stick dead zone (share of R)
@@ -131,7 +132,11 @@ function look(dx, dy) {
 
 function press(p) {
   const h = input.h, P = G.player, r = p.role;
-  if (G.state === 'dead' || G.spectating) { // a tap skips the kill cam / changes who you watch; dragging still looks
+  if (killcamActive() || G.state === 'finale') { // a replay: only a tap on its banner skips it (Brian, 2026-11-16)
+    if (onKillcamBanner(p.x, p.y)) skipKillcam();
+    return;
+  }
+  if (G.state === 'dead' || G.spectating) { // a tap changes who you watch; dragging still looks
     if (r === 'look' || r === 'move' || r === 'fire') { h.onMouseDown(0); if (r !== 'look') return; }
   }
   if (r === 'move') {

@@ -14,6 +14,7 @@ const r = await page.evaluate(() => {
   o.replay = !!F.kcDebug();
   A.respawnAt = G.now; window.__step(10); // A respawns mid-replay
   o.aAliveInReplay = A.alive;
+  window.__step(55); // past the first second, when a key may skip (2026-11-16)
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyX' })); window.__step(5); // skip
   o.replayOver = !F.kcDebug();
   o.aUpright = A.alive && A.soldier.deathT < 0 && Math.abs(A.soldier.pose.rotation.x) < 0.01 && Math.abs(A.soldier.pose.rotation.z) < 0.01 && A.soldier.root.visible;

@@ -6,7 +6,7 @@
 import { G } from '../core/state.js';
 import { WEAPONS, TEAMS } from '../core/config.js';
 import { damp, clamp, lerp } from '../core/util.js';
-import { down } from '../core/input.js';
+import { down, input } from '../core/input.js';
 import { losClear } from '../world/physics.js';
 import { makeSoldier, setSoldierGun, poseSoldier, setFlash, startDeath, swipe } from '../entities/soldier.js';
 import * as THREE from 'three';
@@ -17,6 +17,10 @@ import { updateViewmodel, vmFire } from '../entities/viewmodel.js';
 const RATE = 0.05, KEEP = 5.5, MAX_FOOTAGE = 4, MAX_SPEED = 1.4, FALL = 0.5, TAIL = 0.35;
 // long shots: stay in the killer's eyes (and scope) for this share of the round's flight, then follow the round to the hit
 const BULLET_CAM_FROM = 0.6;
+// Skipping (Brian, 2026-11-16: the replay often didn't play): nothing skips in the replay's first GRACE seconds, a mouse
+// click never skips (players keep clicking after they die), and on phones only a tap on the kill cam banner skips
+// (a thumb landing back on the screen used to skip it).
+const GRACE = 1.0;
 // final blow: the last SLOW_PRE s before the kill and SLOW_POST after play at SLOW speed
 // (short respawn windows get a milder, shorter slow-down so there is still footage before it)
 const SLOWS = [{ k: 0.35, pre: 0.6, post: 0.15 }, { k: 0.6, pre: 0.4, post: 0.12 }].map((q) => ({ ...q, real: (q.pre + q.post) / q.k }));
@@ -116,7 +120,17 @@ export const killcamActive = () => !!(cam && cam.phase === 'replay');
 export const deathCamActive = () => !!cam;
 // tests: replay time, victim hold/fall state, body + slug visibility
 export const kcDebug = () => { const r = cam && cam.phase === "replay" && cam.replay; return r ? { t: r.t, hitT: r.hitT, fell: r.fell, body: !!(body && body.s.root.visible), slug: !!(slug && slug.visible), flight: r.flight, vp: cam.victim === G.player, end: r.end, st: sample(G.player, r.t), dA: cam.deathAt, orbit: !!r.orbit } : null; };
-export function skipKillcam() { if (cam && cam.phase === 'replay') { endReplay(); cam.phase = 'free'; cam.t = 0; return true; } return false; }
+export function skipKillcam() {
+  if (!cam || cam.phase !== 'replay') return false;
+  if ((cam.replay.age || 0) < GRACE) return true; // too soon: swallowed, so the key/tap does nothing else either
+  endReplay(); cam.phase = 'free'; cam.t = 0; return true;
+}
+// phones: is this point on the kill cam banner (with a thumb's margin)?
+export function onKillcamBanner(x, y) {
+  const el = document.querySelector('#killcam .kc-tag'); if (!el || !killcamActive()) return false;
+  const b = el.getBoundingClientRect(), m = 24;
+  return x >= b.left - m && x <= b.right + m && y >= b.top - m && y <= b.bottom + m;
+}
 
 function startReplay() {
   const r = cam.replay; r.t = r.start; cam.phase = 'replay';
@@ -158,6 +172,7 @@ function showTag(on, name) {
   el.classList.toggle('hidden', !on);
   document.getElementById('hud').classList.toggle('kc-on', !!on);
   const tagB = document.querySelector('#killcam .kc-tag b'); if (tagB) tagB.textContent = cam && cam.finale ? cam.finale : 'Kill cam';
+  const hint = document.querySelector('#killcam .kc-tag small'); if (hint) hint.textContent = input.touch ? 'Tap here to skip' : 'Press any key to skip';
   if (on && cam && cam.killer) {
     const i = cam.info || {}, wl = WEAPONS[i.weapon] ? WEAPONS[i.weapon].name : String(i.weapon || '').toUpperCase();
     document.getElementById('killcamName').textContent = cam.killer.name;
@@ -191,6 +206,7 @@ function victimFall(s, ghost, dt) {
 }
 function replayStep(dt, P) {
   const r = cam.replay;
+  r.age = (r.age || 0) + dt;
   const q = r.slow, inSlow = !!q && r.t >= cam.deathAt - q.pre && r.t < Math.max(cam.deathAt + q.post, r.kill ? r.kill.t + r.flight + 0.05 : 0);
   r.t += dt * (inSlow ? q.k : r.speed);
   document.getElementById('killcam').classList.toggle('slow', !!inSlow);

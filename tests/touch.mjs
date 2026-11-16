@@ -185,6 +185,26 @@ const useVis = await ev(() => getComputedStyle(document.querySelector('.t-use'))
 await ev(() => { document.getElementById('prompt').textContent = ''; window.__step(10); });
 check('use: shows only with a prompt', useVis === 'flex' && await ev(() => getComputedStyle(document.querySelector('.t-use')).display) === 'none', useVis);
 
+// kill cam (Brian 2026-11-16: it often didn't play): taps on the screen, the stick or Fire don't skip it; a tap on its
+// banner does, after the first second
+const kcShown = () => ev(() => !document.getElementById('killcam').classList.contains('hidden'));
+const kcDie = async () => { await ev(() => { const F = window.__frontline, G = F.G, P = G.player; G.profile.settings.killcam = true;
+  if (!P.alive) { let n = 0; while (G.state === 'dead' && n++ < 600) window.__step(1); }
+  const P2 = G.player, kb = G.bots.find((q) => q.alive && q.team !== P2.team); kb.x = P2.x + 6; kb.z = P2.z; kb.y = P2.y; window.__step(20); P2.protectUntil = 0;
+  F.damage(P2, 999, kb, { weapon: 'm4', sx: kb.x, sz: kb.z }); window.__step(45); }); };
+await kcDie();
+const kc0 = await kcShown();
+const kcHint = await ev(() => document.querySelector('#killcam .kc-tag small').textContent);
+await tapAt([700, 220]); await tapAt([150, 260]); await tapAt(await center('.t-fire'));
+const kcKept = await kcShown();
+await step(40);
+const ban = await center('#killcam .kc-tag');
+await tapAt(ban);
+check('kill cam: plays, says tap here', kc0 && kcHint === 'Tap here to skip', { kc0, kcHint });
+check('kill cam: screen, stick and Fire taps keep it', kcKept);
+check('kill cam: a tap on the banner skips it', !(await kcShown()));
+await ev(() => { const G = window.__frontline.G; let n = 0; while (G.state === 'dead' && n++ < 600) window.__step(1); });
+
 // pause and resume without mouse lock
 await tapAt(await center('.t-pause'));
 const pz = await ev(() => ({ st: window.__frontline.G.state, pause: !document.getElementById('pause').classList.contains('hidden'), ui: getComputedStyle(document.getElementById('touchUI')).display,
