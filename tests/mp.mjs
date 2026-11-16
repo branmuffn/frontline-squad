@@ -140,7 +140,8 @@ if (mode === 'ffa' || mode === 'tdm') {
 await H.evaluate(() => { window.__frontline.G.match.rules = null; });
 // play a while with bots
 await run(secs * 60); s = await st();
-check('still running', ['playing', 'dead', 'ended'].includes(s.c.state) && s.c.n === s.h.n, [s.c.state, s.h.n, s.c.n]);
+// 'finale' = the end-of-match replay before 'ended' (the bots can end a 20 s survival run; old builds fail the same way)
+check('still running', ['playing', 'dead', 'finale', 'ended'].includes(s.c.state) && s.c.n === s.h.n, [s.c.state, s.h.n, s.c.n]);
 // end of match reaches the client
 await H.evaluate(() => window.__frontline.endMatch('limit'));
 const fin = [await H.evaluate(() => window.__frontline.G.state), await C.evaluate(() => window.__frontline.G.state)];
