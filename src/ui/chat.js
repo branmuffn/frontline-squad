@@ -1,10 +1,12 @@
 // Multiplayer text chat: one log shown in the lobby and (fading) on the HUD; T or Enter opens the in-match input.
 import { esc } from '../core/util.js';
-let lines = [], fade = 0, sendFn = null;
+let lines = [], fade = 0, sendFn = null, heard = 0;
 const el = (id) => document.getElementById(id);
-export function reset() { lines = []; render(); }
+export function reset() { lines = []; heard = 0; render(); }
+export const heardCount = () => heard; // messages from others and system lines since the last reset
 export function add(name, msg, kind = '', team = false) {
   lines.push({ name, msg, kind, team }); if (lines.length > 60) lines.shift();
+  if (kind !== 'me') heard++;
   render(true);
 }
 const line = (l) => l.name ? `<div class="cl ${l.kind}">${l.team ? '<i>[Team]</i> ' : ''}<b>${esc(l.name)}</b> ${esc(l.msg)}</div>` : `<div class="cl sys">${esc(l.msg)}</div>`;

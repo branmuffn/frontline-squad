@@ -7,6 +7,7 @@ import { saveProfile } from '../core/storage.js';
 import { MAPS } from '../world/maps/index.js';
 import * as net from './net.js';
 import { VEHICLE_MODES } from '../entities/vehicles.js';
+import * as chat from '../ui/chat.js';
 
 const KEY = 'frontline_mp_v1';
 // bot counts in multiplayer (0 = humans only)
@@ -25,7 +26,11 @@ function load() {
 }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {} }
 const panel = () => $('mp').querySelector('.panel');
-const setState = (s) => { panel().dataset.state = s; };
+const setState = (s) => {
+  const was = panel().dataset.state; panel().dataset.state = s;
+  if (s !== 'choose' && was === 'choose') panel().dataset.tab = 'match'; // a new room starts on the Match tab
+  placeManual(); refreshPhone();
+};
 const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(t)}</option>`;
 
 function fillSettings(cfg) {
@@ -60,6 +65,80 @@ function fillSettings(cfg) {
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
   $('mpVehRow').classList.toggle('hidden', !vOk); $('mpVeh').value = cfg.vehicles ? '1' : '0';
   $('mpTeams').value = cfg.sameTeam ? '1' : '0';
+  refreshPhone();
+}
+
+// ---------- phones: the lobby as tabs down the left (VT2, Brian 2026-11-15) ----------
+// On touch screens the host / joiner lobby shows Match, Players, Rules and Chat as tabs down the left, each with a
+// one-line summary; Mode is a row of chips and Map a row of picture tiles (they set the same selects). The existing
+// controls move into the tabs (their listeners come along) and move back if touch controls are switched off.
+const SHORT = { survival: 'Survival', zombies: 'Zombies', ffa: 'Free for all', tdm: 'Team DM', gungame: 'Gun Game', ctf: 'Capture the Flag', dom: 'Domination', koth: 'King of the Hill', snd: 'Search & Destroy', infection: 'Infection', range: 'Practice range' };
+let phoneMoved = null, manualMark = null, lastList = [], chatSeen = 0, tilesKey = '';
+const isPhone = () => document.body.classList.contains('touch');
+const title = (s) => String(s).toLowerCase().replace(/(^|[\s·-])(\w)/g, (m, a, c) => a + c.toUpperCase()); // HARBOUR -> Harbour
+function phoneLayout() {
+  if (isPhone() === !!phoneMoved) return;
+  if (!isPhone()) { for (const [node, mark] of phoneMoved) mark.replaceWith(node); phoneMoved = null; placeManual(); return; }
+  const mp = $('mp'), field = (id) => $(id).closest('.field');
+  const moves = [
+    [field('mpDiff'), 'mppBots'], [field('mpZdiff'), 'mppBots'], [$('mpCountRow'), 'mppBots'],
+    [mp.querySelector('.mp-plist'), 'mppPlayers'],
+    [$('mpScoreRow'), 'mppRules'], [$('mpTimeRow'), 'mppRules'], [field('mpPick'), 'mppRules'], [field('mpPower'), 'mppRules'],
+    [$('mpVehRow'), 'mppRules'], [field('mpBig'), 'mppRules'], [$('mpTeamRow'), 'mppRules'], [mp.querySelector('.mp-botrules'), 'mppRules'],
+    [mp.querySelector('.mp-chat'), 'mppChat'],
+    [mp.querySelector('.mp-codebox'), mp.querySelector('.ptitle')], // room code beside the title
+    [$('mpStatus'), mp.querySelector('.btn-row'), true], // status line bottom-left, beside the buttons
+  ];
+  phoneMoved = moves.map(([node, to, first]) => {
+    const mark = document.createComment('mp phone layout'); node.before(mark);
+    const box = typeof to === 'string' ? $(to) : to;
+    if (first) box.prepend(node); else box.append(node);
+    return [node, mark];
+  });
+  tilesKey = ''; placeManual(); refreshPhone();
+}
+// the copy-paste codes: under Players in a room on a phone; where they were otherwise (the first screen needs them)
+function placeManual() {
+  const man = $('mp').querySelector('.mp-manual'), inRoom = phoneMoved && panel().dataset.state !== 'choose';
+  if (inRoom && !manualMark) { manualMark = document.createComment('mp manual'); man.before(manualMark); $('mppPlayers').append(man); }
+  else if (!inRoom && manualMark) { manualMark.replaceWith(man); manualMark = null; }
+}
+function previewInto(cv, id) { // the main menu's map picture, cropped to the tile
+  const src = document.querySelector(`#mapSel [data-v="${id}"] canvas`); if (!src) return;
+  const S = src.width, sh = S * cv.height / cv.width;
+  cv.getContext('2d').drawImage(src, 0, (S - sh) / 2, S, sh, 0, 0, cv.width, cv.height);
+}
+function refreshPhone() {
+  if (!phoneMoved) return;
+  const host = !!net.session.host, mode = $('mpMode').value, map = $('mpMap').value;
+  const modes = [...$('mpMode').options].map((o) => o.value), maps = [...$('mpMap').options].map((o) => o.value);
+  const key = [host, modes, maps].join('|');
+  if (key !== tilesKey) { // rebuild only when the choices change (keeps each row's scroll position)
+    tilesKey = key;
+    $('mpModeChips').innerHTML = modes.map((v) => `<button type="button" data-v="${v}"${host ? '' : ' disabled'}>${esc(SHORT[v] || MODES[v].name)}</button>`).join('');
+    $('mpMapTiles').innerHTML = maps.map((v) => `<button type="button" data-v="${v}"${host ? '' : ' disabled'}><canvas width="192" height="104"></canvas><span>${esc(MAPS[v].name)}</span></button>`).join('');
+    $('mpMapTiles').querySelectorAll('button').forEach((b) => previewInto(b.querySelector('canvas'), b.dataset.v));
+  }
+  $('mpModeChips').querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.v === mode));
+  $('mpMapTiles').querySelectorAll('button').forEach((b) => b.classList.toggle('sel', b.dataset.v === map));
+  $('mpMapLine').classList.toggle('hidden', mode === 'range'); // the range is its own map
+  refreshTabs();
+}
+function refreshTabs() {
+  if (!phoneMoved) return;
+  const mode = $('mpMode').value, map = $('mpMap').value, tab = panel().dataset.tab || 'match';
+  if (tab === 'chat') chatSeen = chat.heardCount();
+  const unread = Math.max(0, chat.heardCount() - chatSeen);
+  const n = lastList.length, waiting = lastList.filter((p) => !p.host && !p.ready && !p.spec).length;
+  const pick = (id) => { const s = $(id); return s.closest('.hidden') || !s.selectedOptions[0] ? '' : s.selectedOptions[0].textContent; };
+  const score = pick('mpScore'), time = pick('mpTime');
+  const rules = [/^\d+$/.test(score) && `${score} to win`, /min/.test(time) && time].filter(Boolean).join(' · ') || ((score || time) ? 'No limits' : ''); // short: one line
+  const set = (id, t) => { if ($(id).textContent !== String(t)) $(id).textContent = t; };
+  set('mpSumMatch', (SHORT[mode] || '') + (mode === 'range' || !MAPS[map] ? '' : ' · ' + title(MAPS[map].name)));
+  set('mpSumPlayersN', n || ''); set('mpSumPlayers', n <= 1 ? 'Waiting for players' : waiting ? `${waiting} not ready` : 'All ready');
+  set('mpSumRules', rules || `Pickups ${$('mpPick').value === '1' ? 'on' : 'off'}`);
+  set('mpSumChatN', unread || ''); set('mpSumChat', unread ? `${unread} new message${unread > 1 ? 's' : ''}` : 'No new messages');
+  for (const b of $('mp').querySelectorAll('.mpp-tabs button')) { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
 }
 function readSettings() {
   const c = saved.cfg;
@@ -107,6 +186,7 @@ export function initLobby(cb) {
     status,
     code: (c) => { $('mpRoomCode').textContent = c; },
     players: (list, cfg) => {
+      lastList = list;
       const host = net.session.host, route = { relay: 'relayed', lan: 'LAN', direct: 'direct' };
       $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : p.spec ? ' <i class="rdy">spectating</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
         + (list.length < net.maxPlayers() ? `<li><i>Waiting for players… (up to ${net.maxPlayers()})</i></li>` : '');
@@ -117,10 +197,15 @@ export function initLobby(cb) {
       $('mpNet').classList.toggle('hidden', n <= 8 && !c.big);
       $('mpNet').textContent = `Big room: the host needs about ${mbps.toFixed(1)} Mbps upload. Best on wired or strong Wi-Fi, not a phone hotspot.` + (relayed ? ' Some players are relayed: they may lag.' : '');
       if (cfg && net.session.client) fillSettings(cfg);
-      updateStart();
+      updateStart(); refreshPhone(); // also redraws the chips / tiles once we know we're the host
     },
   });
   $('openMp').addEventListener('click', () => openMp());
+  $('mp').querySelector('.mpp-tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { panel().dataset.tab = b.dataset.tab; refreshTabs(); } });
+  for (const [box, sel] of [['mpModeChips', 'mpMode'], ['mpMapTiles', 'mpMap']]) $(box).addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b || !net.session.host || $(sel).value === b.dataset.v) return;
+    $(sel).value = b.dataset.v; $(sel).dispatchEvent(new Event('change')); // the same path as picking from the list
+  });
   $('mpName').addEventListener('change', name);
   $('mpHost').addEventListener('click', () => {
     setState('host'); $('mpRoomCode').textContent = '·····';
@@ -179,10 +264,12 @@ export function initLobby(cb) {
     el.classList.toggle('hidden', !on);
     if (on) el.textContent = `PING ${net.pingMs()} ms`;
     if (!$('mp').classList.contains('hidden') && G.mp && G.mp.host) updateStart();
+    if (!$('mp').classList.contains('hidden')) refreshTabs();
   }, 500);
 }
 
 export function openMp(msg) {
+  phoneLayout(); // touch screens: tabs down the left (re-checked each time: touch controls can be switched in Settings)
   $('mpName').value = saved.name;
   const s = net.session;
   setState(s.host ? 'host' : s.client ? 'client' : 'choose');

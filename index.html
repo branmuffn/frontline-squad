@@ -261,7 +261,7 @@
 </section>
 
 <section id="mp" class="screen hidden">
-  <div class="panel wide fit" data-state="choose">
+  <div class="panel wide fit" data-state="choose" data-tab="match">
     <div class="ptitle"><button class="back-top" data-back="mpBack" type="button"><span aria-hidden="true">‹</span>Back</button><h2>Multiplayer</h2></div>
     <p class="lede small">Up to 12 players (16 experimental), peer to peer, no account, any network. Co-op or versus, bots optional.</p>
     <div class="pbody">
@@ -310,6 +310,23 @@
             <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
           </div>
         </div>
+      </div>
+      <!-- Phones (VT2, Brian 2026-11-15): host / joiner lobby as tabs down the left; lobby.js moves the controls in -->
+      <div class="mpp">
+        <nav class="mpp-tabs" role="tablist" aria-label="Lobby">
+          <button type="button" role="tab" data-tab="match"><b>Match</b><small id="mpSumMatch"></small></button>
+          <button type="button" role="tab" data-tab="players"><b>Players <i id="mpSumPlayersN"></i></b><small id="mpSumPlayers"></small></button>
+          <button type="button" role="tab" data-tab="rules"><b>Rules</b><small id="mpSumRules"></small></button>
+          <button type="button" role="tab" data-tab="chat"><b>Chat <i id="mpSumChatN"></i></b><small id="mpSumChat"></small></button>
+        </nav>
+        <div class="mpp-pane" data-pane="match">
+          <div class="mpp-line"><span class="flabel">Mode</span><div id="mpModeChips" class="mpp-chips"></div></div>
+          <div class="mpp-line" id="mpMapLine"><span class="flabel">Map</span><div id="mpMapTiles" class="mpp-maps"></div></div>
+          <div id="mppBots" class="mpp-fields"></div>
+        </div>
+        <div class="mpp-pane" data-pane="players" id="mppPlayers"></div>
+        <div class="mpp-pane mpp-fields" data-pane="rules" id="mppRules"></div>
+        <div class="mpp-pane" data-pane="chat" id="mppChat"></div>
       </div>
     </div>
     <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpReady" class="btn-primary" type="button">Ready</button><button id="mpWarm" class="btn-ghost" type="button" title="Free-for-all while people gather: no score, no XP">Warm-up</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>

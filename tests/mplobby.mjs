@@ -43,6 +43,8 @@ async function mk(tag, phone) {
 }
 // press a button the way that device would (tap on phones, click on laptops)
 const press = (p, sel) => (p.phone ? p.locator(sel).tap() : p.locator(sel).click());
+// pick a mode / map the way that device shows it: phones tap the chips / tiles (VT2), laptops use the lists
+const pick = async (p, what, v) => { if (p.phone) { await p.evaluate(() => document.querySelector('.mpp-tabs [data-tab=match]').click()); await p.locator(`#${what === 'mode' ? 'mpModeChips' : 'mpMapTiles'} [data-v="${v}"]`).tap(); } else await p.selectOption(what === 'mode' ? '#mpMode' : '#mpMap', v); };
 const state = (p) => p.evaluate(() => { const f = window.__frontline, G = f.G; return { state: G.state, map: G.world && G.world.id, mode: G.match && G.match.mode, spec: !!G.spectating, live: !!f.net.session.live }; });
 
 // Opens Multiplayer on both, host presses "Host a game", then the copy-paste codes join the second page.
@@ -70,12 +72,21 @@ async function settle(P, n = 12) { for (let i = 0; i < n; i++) { await P.step(10
   const want = await H.evaluate(() => Object.keys(window.__frontline.MAPS || {}));
   check('map list filled', opts.length >= 6 && !opts.includes('range') && !opts.includes('custom'), opts);
   const seen = [];
-  for (const id of opts) { await H.selectOption('#mpMap', id); await sleep(150); await P.step(); seen.push(await C.evaluate(() => document.getElementById('mpMap').value)); }
+  for (const id of opts) { await pick(H, 'map', id); await sleep(150); await P.step(); seen.push(await C.evaluate(() => document.getElementById('mpMap').value)); }
   check('every map reaches the joiner', seen.join() === opts.join(), { opts, seen });
-  await H.selectOption('#mpMode', 'tdm'); await sleep(100);
-  await H.selectOption('#mpMap', 'harbour'); await sleep(200); await P.step();
+  await pick(H, 'mode', 'tdm'); await sleep(100);
+  await pick(H, 'map', 'harbour'); await sleep(200); await P.step();
   const cfg = await H.evaluate(() => window.__frontline.net.session.cfg);
   check('host picks map', cfg.mode === 'tdm' && cfg.map === 'harbour', { mode: cfg.mode, map: cfg.map, want: want.length });
+  // phone room (VT2): tabs down the left with summaries, each tab fits without scrolling, the laptop keeps its columns
+  const tabs = await H.evaluate(() => {
+    const out = {};
+    for (const t of ['match', 'players', 'rules', 'chat']) { document.querySelector(`.mpp-tabs [data-tab=${t}]`).click(); const b = document.querySelector('#mp .pbody'); out[t] = { over: b.scrollHeight - b.clientHeight, panes: [...document.querySelectorAll('.mpp-pane')].filter((p) => p.offsetParent).map((p) => p.dataset.pane).join() }; }
+    document.querySelector('.mpp-tabs [data-tab=match]').click();
+    return { out, sum: document.getElementById('mpSumMatch').textContent, nav: !!document.querySelector('.mpp-tabs').offsetParent, list: !!document.getElementById('mpMode').offsetParent };
+  });
+  check('phone: tabs down the left, one pane at a time, each fits', tabs.nav && !tabs.list && Object.entries(tabs.out).every(([t, o]) => o.panes === t && o.over <= 2) && tabs.sum === 'Team DM · Harbour', tabs);
+  check('laptop keeps the two-column lobby', await C.evaluate(() => !document.querySelector('.mpp-tabs').offsetParent && !!document.getElementById('mpMode').offsetParent), '');
   check('joiner sees the pick', (await C.evaluate(() => document.getElementById('mpMap').value)) === 'harbour', await C.evaluate(() => document.getElementById('mpMap').value));
   await press(C, '#mpReady'); await sleep(300); await P.step();
   check('start enabled when ready', !(await H.evaluate(() => document.getElementById('mpStart').disabled)), await H.evaluate(() => document.getElementById('mpStart').textContent));
@@ -106,7 +117,7 @@ async function settle(P, n = 12) { for (let i = 0; i < n; i++) { await P.step(10
   const modes = await H.evaluate(() => window.__frontline.net.MP_MODES);
   const bad = {};
   for (const mode of modes) {
-    await H.selectOption('#mpMode', mode); await sleep(150); await P.step();
+    await pick(H, 'mode', mode); await sleep(150); await P.step();
     await press(H, '#mpStart'); await settle(P, 8);
     const h = await state(H), c = await state(C), e = errors.length;
     if (!(c.state === 'playing' && c.spec && c.live && h.mode === mode && c.mode === mode) || e) bad[mode] = { h, c, e: errors.slice(-1) };
@@ -154,7 +165,7 @@ async function settle(P, n = 12) { for (let i = 0; i < n; i++) { await P.step(10
 // --- 5. laptop host + phone joiner, 6. phone + phone
 for (const [hp, jp, name] of [[false, true, 'laptop host + phone'], [true, true, 'phone host + phone']]) {
   const P = await pair(hp, jp), { H, C } = P;
-  await H.selectOption('#mpMap', 'gorge').catch(() => {}); await sleep(200); await P.step();
+  await pick(H, 'map', 'gorge'); await sleep(200); await P.step();
   await press(C, '#mpReady'); await sleep(300); await P.step();
   await press(H, '#mpStart'); await settle(P);
   const h = await state(H), c = await state(C);

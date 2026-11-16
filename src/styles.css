@@ -868,3 +868,41 @@ body.touch #xhPrev { height: 56px; margin: 4px 0 6px; }
   #loadout .lo-mid.guns .lo-card b { font-size: 12.5px; line-height: 1.1; }
   #loadout .lo-mid.guns .lo-card small { font-size: 10.5px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* ---------- Phones: multiplayer room as tabs down the left (VT2, Brian 2026-11-15). Computers keep the two columns. ---------- */
+.mpp { display: none; }
+body.touch #mp .panel:is([data-state=host], [data-state=client]) :is(.lede, .mp-top, #mpBuild, .mp-room, #mpBack) { display: none; }
+body.touch #mp .panel:is([data-state=host], [data-state=client]) .mpp { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 14px; align-items: start; }
+body.touch #mp .ptitle .mp-codebox { margin-left: auto; gap: 8px; }
+body.touch #mp .ptitle .mp-codebox .flabel { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+body.touch #mp .ptitle .mp-codebox b { font-size: 24px; letter-spacing: 0.2em; }
+body.touch #mp .ptitle .mp-codebox .btn-ghost { padding: 5px 11px; font-size: 15px; }
+body.touch #mp .btn-row { align-items: center; }
+body.touch #mp .btn-row #mpStatus { margin: 0 auto 0 0; min-height: 0; font-size: 15px; line-height: 1.2; max-width: 55%; }
+.mpp-tabs { position: sticky; top: 0; display: flex; flex-direction: column; gap: 4px; }
+.mpp-tabs button { text-align: left; background: none; border: 1px solid var(--line); color: var(--ink-dim); font: 600 17px var(--font); padding: 5px 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.mpp-tabs button.on { color: var(--ink); background: var(--panel-2); border-color: var(--line-2); box-shadow: inset 3px 0 0 var(--brass); }
+.mpp-tabs b { font-weight: 600; } .mpp-tabs i { font-style: normal; color: var(--brass); }
+.mpp-tabs small { display: block; font: 500 13px var(--font); text-transform: none; letter-spacing: 0; color: var(--ink-faint); margin-top: 1px; }
+.mpp-tabs button.on small { color: var(--ink-dim); }
+@media (max-height: 340px) { .mpp-tabs small { display: none; } } /* short phones: plain tabs */
+.mpp .mpp-pane { display: none; min-width: 0; } /* (two classes: beats .mpp-fields' grid on the Rules pane) */
+#mp .panel[data-tab=match] .mpp-pane[data-pane=match], #mp .panel[data-tab=players] .mpp-pane[data-pane=players],
+#mp .panel[data-tab=chat] .mpp-pane[data-pane=chat] { display: block; }
+#mp .panel[data-tab=rules] .mpp-pane[data-pane=rules] { display: grid; }
+.mpp-line { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .mpp-line > .flabel { width: 40px; flex: none; }
+.mpp-chips, .mpp-maps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; padding-bottom: 2px; }
+.mpp-chips button { flex: none; border: 1px solid var(--line-2); background: none; color: var(--ink); font: 600 15px var(--font); padding: 6px 11px; text-transform: uppercase; }
+.mpp-chips button.sel { background: var(--brass); color: #18160f; border-color: var(--brass); }
+.mpp-maps button { flex: none; width: 104px; border: 1px solid var(--line-2); background: none; padding: 4px; color: var(--ink); font: 600 13px var(--font); text-transform: uppercase; line-height: 1.15; }
+.mpp-maps canvas { display: block; width: 100%; height: 52px; margin-bottom: 3px; }
+.mpp-maps button.sel { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); color: var(--brass); }
+.mpp-chips button:disabled, .mpp-maps button:disabled { cursor: default; }
+.mpp-chips button:disabled:not(.sel), .mpp-maps button:disabled:not(.sel) { opacity: 0.55; }
+.mpp-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+#mppRules { grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; } #mppRules .mp-botrules { grid-column: 1 / -1; }
+.mpp-fields select { width: 100%; min-width: 0; }
+#mppPlayers .mp-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 4px; } #mppPlayers .mp-players li { margin: 0; }
+#mppPlayers .mp-manual { margin-top: 8px; }
+#mp [data-state=client] .mpp select { pointer-events: none; opacity: 0.75; } /* joiners see the host's settings */
+#mppChat .mp-chat { margin-top: 0; } #mppChat .mp-chatlog { height: auto; min-height: 7.5em; }
