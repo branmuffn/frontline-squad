@@ -131,10 +131,10 @@ function press(p) {
     if (r === 'look' || r === 'move' || r === 'fire') { h.onMouseDown(0); if (r !== 'look') return; }
   }
   if (r === 'move') {
-    const z = root.querySelector('.t-left').getBoundingClientRect();
-    p.cx = Math.min(Math.max(p.x, z.left + R + 10), z.right - R - 10);
-    p.cy = Math.min(Math.max(p.y, z.top + R + 60), z.bottom - R - 10);
-    stick.classList.add('free'); stick.style.transform = `translate(${p.cx}px, ${p.cy}px)`;
+    // Fixed stick (Brian, 2026-11-15): it stays in its corner instead of jumping to where the thumb lands. The thumb can
+    // still land anywhere on the left side; the knob points from the stick's centre toward it.
+    const s = stick.getBoundingClientRect();
+    p.cx = s.left + s.width / 2; p.cy = s.top + s.height / 2;
     stickTo(p);
   } else if (r === 'fire') { input.fire = true; h.onMouseDown(0); }
   else if (r === 'aim') {
@@ -160,7 +160,7 @@ function release(p) {
   if (r === 'move') {
     input.moveX = input.moveY = 0;
     for (const a of ['forward', 'back', 'left', 'right', 'sprint']) setKey(a, false);
-    stick.classList.remove('free', 'sprint'); stick.style.transform = ''; knob.style.transform = '';
+    stick.classList.remove('sprint'); knob.style.transform = '';
   } else if (r === 'fire') { if (![...ptrs.values()].some((q) => q.role === 'fire')) input.fire = false; }
   else if (r === 'jump') keyUp('jump');
   else if (r === 'crouch') {

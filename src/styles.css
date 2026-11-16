@@ -599,7 +599,6 @@ body.touch.t-play #touchUI { display: block; }
 .t-board { left: 50%; top: 0; width: 220px; height: 64px; transform: translateX(-50%); }
 .t-weapon { left: 50%; bottom: 0; width: 170px; height: 76px; transform: translateX(-50%); }
 .t-stick { position: absolute; left: calc(34px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); width: 116px; height: 116px; border-radius: 50%; border: 2px solid rgba(235, 230, 214, 0.45); background: rgba(14, 19, 21, 0.25); pointer-events: none; }
-.t-stick.free { left: -58px; top: -58px; bottom: auto; }
 .t-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(235, 230, 214, 0.55); border: 2px solid rgba(235, 230, 214, 0.8); }
 .t-stick.sprint { border-color: var(--brass); }
 .t-stick.sprint .t-knob { background: rgba(229, 180, 67, 0.8); border-color: var(--brass); }

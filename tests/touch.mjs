@@ -1,4 +1,4 @@
-// Touch controls (phones/tablets): desktop shows none of it; on a touch screen the stick moves, the right side looks,
+// Touch controls (phones/tablets): desktop shows none of it; on a touch screen the fixed stick moves you, the right side looks,
 // and every button works (fire, aim, reload, crouch/prone, jump, grenade, weapon, scoreboard, pause/resume, use);
 // light aim assist slows turning over an enemy; phone defaults (Balanced at 2x sharpness) apply once; portrait asks to rotate;
 // phone menus keep every screen's main button on screen.
@@ -65,8 +65,13 @@ const openYaw = () => ev(() => { const F = window.__frontline, P = F.G.player; l
   for (let i = 0; i < 16; i++) { const y = i * Math.PI / 8, h = F.physics.rayWorld(P.x, P.y + 0.5, P.z, -Math.sin(y), 0, -Math.cos(y), 40); const t = h ? h.t : 40; if (t > bt) { bt = t; best = y; } }
   P.yaw = best; P.pitch = 0; return { x: P.x, z: P.z, yaw: best, free: bt }; });
 const fwdOf = (a, b) => (a.x - b.x) * Math.sin(a.yaw) + (a.z - b.z) * Math.cos(a.yaw); // distance moved along the facing direction
+// fixed stick (Brian, 2026-11-15): it stays in its corner; the thumb lands on it and pushes
+const stickBox = () => ev(() => { const r = document.querySelector('.t-stick').getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)]; });
+const home = await stickBox();
+const [sx, sy] = await center('.t-stick');
 let a = await openYaw();
-await down(1, 150, 300); await move(1, 150, 270); await move(1, 150, 236); await page.waitForFunction(() => window.__frontline.input.moveY > 0.95); await step(40);
+await down(1, sx, sy); await move(1, sx, sy - 30); await move(1, sx, sy - 64); await page.waitForFunction(() => window.__frontline.input.moveY > 0.95); await step(40);
+const held = await stickBox();
 let b = await ev(() => { const F = window.__frontline, P = F.G.player; return { x: P.x, z: P.z, sprint: P.sprinting, my: F.input.moveY, label: document.querySelector('.t-stick').classList.contains('sprint') }; });
 await up(1); await step(30);
 const fwd = fwdOf(a, b);
@@ -74,9 +79,15 @@ check('stick: moves forward', fwd > 3 && Math.hypot(b.x - a.x, b.z - a.z) - fwd 
 check('stick: rim = sprint (with the SPRINT label)', b.sprint === true && b.my > 0.95 && b.label === true, b);
 const rest = await ev(() => ({ my: window.__frontline.input.moveY, k: window.__frontline.input.keys.KeyW }));
 check('stick: release stops', rest.my === 0 && !rest.k, rest);
+check('stick: stays put while pushed and after', JSON.stringify(held) === JSON.stringify(home) && JSON.stringify(await stickBox()) === JSON.stringify(home), { home, held });
+// a thumb landing beside the stick (not on it) pushes toward itself; the stick doesn't move there
+await down(1, sx + 90, sy - 10); await step(2);
+const side = await ev(() => ({ mx: window.__frontline.input.moveX, my: window.__frontline.input.moveY }));
+const sideBox = await stickBox(); await up(1); await step(2);
+check('stick: thumb right of the stick = move right, stick stays', side.mx > 0.9 && Math.abs(side.my) < 0.3 && JSON.stringify(sideBox) === JSON.stringify(home), { side, sideBox, home });
 // half push walks slower
 a = await openYaw();
-await down(1, 150, 300); await move(1, 150, 276); await page.waitForFunction(() => window.__frontline.input.moveY > 0.2); await step(40);
+await down(1, sx, sy); await move(1, sx, sy - 24); await page.waitForFunction(() => window.__frontline.input.moveY > 0.2); await step(40);
 b = await ev(() => { const P = window.__frontline.G.player; return { x: P.x, z: P.z, sprint: P.sprinting }; }); await up(1); await step(30);
 const half = fwdOf(a, b);
 check('stick: half push = slower, no sprint', half > 0.5 && half < fwd * 0.7 && !b.sprint, { half, fwd, a });
