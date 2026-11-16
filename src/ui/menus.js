@@ -317,7 +317,7 @@ function refreshSettings() {
   for (const [k, , , , , f] of SL) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
   const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
     ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1],
-    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy'], ['autoFire', 'Auto-fire (touch only): shoots when the crosshair is on an enemy']] : [])];
+    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy'], ['autoFire', 'Auto-fire (touch only): shoots when the crosshair is on an enemy'], ['tapFire', 'Tap to fire (touch only): a quick tap where you turn shoots']] : [])];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
   const MOUSE = ['scopeToggle', 'wheelSwitch'], HUD = ['killcam', 'showFps'];
   const tg = ([k, l]) => `<label class="toggle${MOUSE.includes(k) ? ' mouse-only' : ''}"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;

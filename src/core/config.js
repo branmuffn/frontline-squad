@@ -9,7 +9,13 @@ export const AIM_ASSIST = { range: 70, radius: 0.9, slow: 0.55 };
 // visible enemy is within `radius` m of the aim line (+ `grow` per metre), up to the gun's falloff end (max `range`).
 // Snipers, launchers, crossbows, power weapons and melee stay manual. Turn-around button: 180° in `turn` s.
 // Quick swipes turn faster: moves over `flick` px per event get up to `flickMax` x the turn.
-export const AUTO_FIRE = { radius: 0.45, grow: 0.008, range: 70, skip: /sniper|launcher|crossbow|power|melee/i, turn: 0.18, flick: 12, flickSpan: 28, flickMax: 2 };
+export const AUTO_FIRE = { radius: 0.45, grow: 0.008, range: 70, skip: /sniper|launcher|crossbow|power|melee/i, turn: 0.18, flick: 12, flickSpan: 28, flickMax: 2,
+  // auto-fire waits until the gun does real damage (Brian 2026-11-16: a shotgun fired from across the map): damage share
+  minDmg: 0.6, minDmgPellets: 0.75,
+  // buttons: a tap acts on lift, a swipe that starts on a button turns instead (Brian 2026-11-16); hold still to cook a frag
+  swipe: 14, nadeHold: 0.3,
+  // Tap to fire (Settings, off by default): a quick tap (s) where you turn shoots for tapShot s
+  tapFire: 0.25, tapShot: 0.15 };
 export const PHYS = {
   fallSafe: 4,         // drops up to this height (m) are free
   fallLethal: 12,      // drops from this height kill

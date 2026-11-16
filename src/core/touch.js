@@ -108,14 +108,28 @@ function onDown(e) {
   if (p.role === 'move' && !onStick(p.x, p.y)) p.role = 'look';
   ptrs.set(e.pointerId, p);
   el.classList.add('down');
+  const P = G.player;
+  // Tap vs swipe (Brian, 2026-11-16): action buttons act when the thumb lifts; a swipe that starts on one turns instead.
+  if (DEFER.has(p.role) && P && P.alive && !P.vehicle && G.state === 'playing' && !killcamActive()) {
+    p.wait = true; p.sx = p.x; p.sy = p.y; return;
+  }
   press(p);
 }
+const DEFER = new Set(['aim', 'reload', 'jump', 'crouch', 'nade', 'use', 'streak', 'equip', 'armory', 'turn']);
 function onMove(e) {
   const p = ptrs.get(e.pointerId);
   if (!p) return;
   e.preventDefault();
+  if (p.wait) {
+    const tx = e.clientX - p.sx, ty = e.clientY - p.sy;
+    p.x = e.clientX; p.y = e.clientY;
+    if (Math.hypot(tx, ty) < AUTO_FIRE.swipe) return;
+    p.wait = false; p.role = 'look'; p.moved = AUTO_FIRE.swipe; p.el.classList.remove('down');
+    look(tx, ty); return;
+  }
   const dx = e.clientX - p.x, dy = e.clientY - p.y;
   p.x = e.clientX; p.y = e.clientY;
+  p.moved = (p.moved || 0) + Math.hypot(dx, dy);
   if (p.role === 'look' || p.role === 'fire') look(dx, dy);
   else if (p.role === 'move') stickTo(p);
 }
@@ -124,7 +138,13 @@ function onUp(e) {
   if (!p) return;
   ptrs.delete(e.pointerId);
   p.el.classList.remove('down');
+  if (p.wait) { p.wait = false; press(p); } // a tap: act now
   release(p);
+  const P = G.player;
+  if (p.role === 'look' && G.profile.settings.tapFire && (p.moved || 0) < AUTO_FIRE.swipe && G.realTime - p.t0 < AUTO_FIRE.tapFire
+    && P && P.alive && !P.vehicle && G.state === 'playing' && !G.spectating && !killcamActive()) {
+    tapShotUntil = G.realTime + AUTO_FIRE.tapShot; input.fire = true; input.h.onMouseDown(0);
+  }
 }
 
 function look(dx, dy) {
@@ -209,7 +229,7 @@ function stickTo(p) {
 }
 
 function releaseAll() {
-  for (const p of ptrs.values()) { p.el.classList.remove('down'); release(p); }
+  for (const p of ptrs.values()) { p.el.classList.remove('down'); if (!p.wait) release(p); }
   ptrs.clear();
   input.fire = false; input.moveX = input.moveY = 0;
 }
@@ -217,11 +237,18 @@ function releaseAll() {
 // Every frame: show the controls only during play, swap buttons for the situation, long-press Crouch = prone.
 // Auto-fire (phones; Settings switch, on by default): holds the trigger while an enemy is under the crosshair (single-shot
 // guns get a fresh pull each frame); the Fire button still works and takes over while pressed.
-let turnLeft = 0, lastTick = 0, autoOn = false, autoPulse = false;
+let turnLeft = 0, lastTick = 0, autoOn = false, autoPulse = false, tapShotUntil = 0;
+// Auto-fire only reaches as far as the gun still does real damage (minDmg of full; more for shotguns), at most `range` m.
+export function autoReach(w) {
+  const F = AUTO_FIRE;
+  if (!w.falloff) return Math.min(F.range, w.range || F.range);
+  const [f0, f1, mn] = w.falloff, want = (w.pellets || 1) > 1 ? F.minDmgPellets : F.minDmg;
+  return Math.min(F.range, mn >= want ? f1 : f0 + (f1 - f0) * (1 - want) / (1 - mn));
+}
 function autoFire(P, alive) {
   const s = G.profile.settings, w = alive && P.weapons ? WEAPONS[P.weapons[P.slot]] : null;
   const manual = [...ptrs.values()].some((q) => q.role === 'fire');
-  const reach = w ? Math.min(AUTO_FIRE.range, w.falloff ? w.falloff[1] : w.range || AUTO_FIRE.range) : 0;
+  const reach = w ? autoReach(w) : 0;
   const want = !!(s.autoFire && w && !manual && !w.melee && !AUTO_FIRE.skip.test(w.cls || '') && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
   if (want) { autoPulse = w.auto ? true : !autoPulse; input.fire = autoPulse; autoOn = true; }
   else if (autoOn) { if (!manual) input.fire = false; autoOn = false; }
@@ -241,11 +268,13 @@ export function touchTick() {
   cls(tip, 'show', alive && G.realTime < tipUntil);
   const now = G.realTime, dt = Math.min(0.05, Math.max(0, now - (lastTick || now))); lastTick = now;
   if (turnLeft > 0 && alive && !P.vehicle) { const st = Math.min(turnLeft, dt * Math.PI / AUTO_FIRE.turn); P.yaw += st; turnLeft -= st; } else turnLeft = 0;
+  if (tapShotUntil && G.realTime > tapShotUntil) { tapShotUntil = 0; if (!autoOn && ![...ptrs.values()].some((q) => q.role === 'fire')) input.fire = false; }
   autoFire(P, alive);
   for (const p of ptrs.values()) {
     if (p.role === 'crouch' && !p.long && alive && !P.vehicle && G.realTime - p.t0 > LONG) {
-      p.long = true; keyUp('crouch'); if (!P.prone) tap('prone');
+      p.long = true; p.wait = false; keyUp('crouch'); if (!P.prone) tap('prone');
     }
+    if (p.wait && p.role === 'nade' && G.realTime - p.t0 > AUTO_FIRE.nadeHold) { p.wait = false; press(p); } // held still: cook
   }
   if (G.realTime < ctxT && G.realTime > ctxT - 1) return;
   ctxT = G.realTime + 0.12;

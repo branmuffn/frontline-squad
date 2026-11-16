@@ -155,7 +155,7 @@ check('jump', await ev(() => { const P = window.__frontline.G.player; return !P.
 await step(90);
 const n0 = await ev(() => window.__frontline.G.player.grenades);
 const nade = await center('.t-nade');
-await down(5, ...nade); await step(10);
+await down(5, ...nade); await step(30); // hold still past AUTO_FIRE.nadeHold (a tap waits for the lift)
 const cook = await ev(() => window.__frontline.G.player.cookStart >= 0);
 await up(5); await step(60);
 check('grenade: hold cooks, release throws', cook && await ev(() => window.__frontline.G.player.grenades) === n0 - 1, { cook, n0 });
@@ -166,6 +166,30 @@ await down(6, ...(await center('.t-board'))); await step(2);
 const bd = await ev(() => !document.getElementById('board').classList.contains('hidden'));
 await up(6); await step(2);
 check('scoreboard: hold shows', bd && await ev(() => document.getElementById('board').classList.contains('hidden')), bd);
+
+// Tap vs swipe on buttons (Brian, 2026-11-16): a button acts when the thumb lifts; a swipe that starts on one turns instead.
+await step(120);
+const magOf = () => ev(() => { const P = window.__frontline.G.player; return P.ammo[P.weapons[P.slot]].mag; });
+await ev(() => { const P = window.__frontline.G.player; P.ammo[P.weapons[P.slot]].mag -= 3; P.reloadStart = -1; });
+const rl = await center('.t-reload'), yR = await ev(() => window.__frontline.G.player.yaw);
+await down(7, ...rl); for (let i = 1; i <= 4; i++) { await move(7, rl[0] - 20 * i, rl[1]); await step(1); } await up(7); await step(2);
+const sw = await ev(() => { const P = window.__frontline.G.player; return { yaw: P.yaw, rs: P.reloadStart }; });
+check('button swipe: turns, no reload', Math.abs(sw.yaw - yR) > 0.05 && sw.rs < 0, { yR, sw });
+const am = await center('.t-aim');
+await down(8, ...am); await step(2);
+const aimHeld = await ev(() => window.__frontline.input.aim);
+await up(8); await step(2);
+check('button tap: acts on lift', aimHeld === false && await ev(() => window.__frontline.input.aim) === true, { aimHeld });
+await tapAt(am); await step(2);
+// Tap to fire (Settings, off by default): a quick tap where you turn shoots
+await ev(() => { const P = window.__frontline.G.player; P.reloadStart = -1; P.ammo[P.weapons[P.slot]].mag = 20; });
+let mT = await magOf(); await tapAt([560, 200]); await step(10);
+check('tap to fire: off by default, a tap does not shoot', await magOf() === mT, { mT });
+await ev(() => { window.__frontline.G.profile.settings.tapFire = true; });
+mT = await magOf(); await tapAt([560, 200]); await step(10);
+const mT2 = await magOf();
+await ev(() => { window.__frontline.G.profile.settings.tapFire = false; });
+check('tap to fire: on, a quick tap shoots and stops', mT2 < mT && await ev(() => window.__frontline.input.fire) === false, { mT, mT2 });
 
 // aim assist: slower turn while an enemy sits on the crosshair, normal with the setting off
 // (enemy 20 m straight ahead; a short drag keeps the crosshair on it; step 4 frames so the 20 Hz check refreshes)
