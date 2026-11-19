@@ -308,7 +308,7 @@
             <label class="field"><span class="flabel">Health &amp; ammo pickups</span><select id="mpPick"><option value="1">On</option><option value="0">Off</option></select></label>
             <label class="field"><span class="flabel">Power weapons</span><select id="mpPower"><option value="1">On</option><option value="0">Off</option></select></label>
             <label class="field"><span class="flabel">Room size</span><select id="mpBig"><option value="0">Up to 12</option><option value="1">Up to 16 (experimental)</option></select></label>
-            <label class="field" id="mpTeamRow"><span class="flabel">Players</span><select id="mpTeams"><option value="0">Opposite teams</option><option value="1">Same team</option></select></label>
+            <label class="field" id="mpTeamRow"><span class="flabel">Play as</span><select id="mpTeams"><option value="0">Versus (players split into 2 teams)</option><option value="1">Co-op (all players vs bots)</option></select></label>
           </div>
         </div>
       </div>
@@ -330,7 +330,7 @@
         <div class="mpp-pane" data-pane="chat" id="mppChat"></div>
       </div>
     </div>
-    <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpReady" class="btn-primary" type="button">Ready</button><button id="mpWarm" class="btn-ghost" type="button" title="Free-for-all while people gather: no score, no XP">Warm-up</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>
+    <div class="btn-row"><button id="mpBack" class="btn-ghost" type="button">Leave</button><button id="mpLoadout" class="btn-ghost" type="button" title="Pick your guns, attachments and gear before you ready up">Loadout</button><button id="mpReady" class="btn-primary" type="button">Ready</button><button id="mpWarm" class="btn-ghost" type="button" title="Free-for-all while people gather: no score, no XP">Warm-up</button><button id="mpStart" class="btn-primary" type="button">Start match</button></div>
   </div>
 </section>
 
@@ -370,6 +370,7 @@
   <div id="vignette"></div>
   <div id="dmgflash"></div>
   <div id="flashbang"></div>
+  <div id="reddot" aria-hidden="true"><i></i></div>
   <div id="scope"><div class="reticle"></div><div id="scopeMag" class="scope-mag"></div></div>
   <div class="hud-tl"><canvas id="radar" width="180" height="180"></canvas><div id="mapLabel"></div></div>
   <div id="score" class="score"></div>
@@ -405,7 +406,7 @@
     <div id="streakReady"></div>
   </div>
   <div id="tags"></div>
-  <div id="killcam" class="hidden"><i class="kc-bar top"></i><i class="kc-bar bot"></i><div class="kc-tag"><b>Kill cam</b><span id="killcamName"></span><em id="killcamInfo"></em><small>Press any key to skip</small></div><div class="kc-slow">FINAL BLOW</div></div>
+  <div id="killcam" class="hidden"><i class="kc-xh"></i><i class="kc-dot"><i></i></i><i class="kc-bar top"></i><i class="kc-bar bot"></i><div class="kc-tag"><b>Kill cam</b><span id="killcamName"></span><em id="killcamInfo"></em><small>Press any key to skip</small></div><div class="kc-slow">FINAL BLOW</div></div>
   <div id="vehHud" class="hidden"><div class="vh-row"><b id="vhName">Jeep</b><span id="vhSpeed"></span></div><div class="vh-bar"><i id="vhHp"></i></div><div class="vh-heat hidden" id="vhHeatWrap"><span>Gun heat</span><div class="vh-bar heat"><i id="vhHeat"></i></div></div><small id="vhKeys"></small></div>
   <div id="death" class="hidden"><div id="deathTitle"></div><div id="deathSub"></div><div id="deathTimer"></div><small>Hold Tab for the scoreboard</small></div>
   <div id="board" class="hidden"></div>

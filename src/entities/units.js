@@ -42,6 +42,8 @@ export function weaponLabel(src) { return WEAPONS[src] ? WEAPONS[src].name : SOU
 // info: { weapon, zone, headshot, sx, sz (source position), melee, explosive, noStreak, dist }
 export function damage(victim, amount, attacker, info = {}) {
   if (!victim.alive || !(G.state === 'playing' || G.state === 'dead' || G.state === 'intermission')) return 0;
+  // Brian (2026-11-19): in Infection any knife hit kills at once (infected hunting survivors, or a survivor knifing one)
+  if (info.weapon === 'knife' && G.match && G.match.mode === 'infection') amount = Math.max(amount, 999);
   if (G.mp && G.mp.live) { // multiplayer: clients claim their hits; the host ignores mirrored (cosmetic) remote shots
     if (G.mp.client) return G.mp.clientDamage(victim, amount, attacker, info);
     if (attacker && attacker.remote && !info.claim && !info.explosive) return 0;

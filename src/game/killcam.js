@@ -59,7 +59,8 @@ function aimView(u, id) {
   const w = WEAPONS[id]; if (!w || w.melee) return [1, 0];
   const ads = u.isPlayer ? (u.adsT || 0) : u.brain ? (w.scope && u.brain.visible && u.brain.target ? 1 : 0) : (u.adsT || 0);
   const mag = w.mags ? w.mags[Math.min(u.zoomIdx || 0, w.mags.length - 1)] : 0, zoom = mag ? 1 / mag : (w.adsZoom || 1);
-  return [Math.round(lerp(1, zoom, ads * ads) * 100) / 100, w.scope && ads > 0.9 ? 1 : 0];
+  const ot = u.isPlayer && u.attW && u.attW[id] && u.attW[id].att && u.attW[id].att.includes('optic') ? 1 : 0; // red dot fitted
+  return [Math.round(lerp(1, zoom, ads * ads) * 100) / 100, w.scope && ads > 0.9 ? 1 : 0, Math.round(ads * 20) / 20, ot];
 }
 const weaponOf = (u) => u.isPlayer ? (u.weapons ? u.weapons[u.slot] : null) : (u.brain ? u.brain.weapon : u.weapon || null);
 
@@ -68,7 +69,7 @@ export function recordFrame() {
   if (G.now < nextSample) return;
   nextSample = G.now + RATE;
   const us = [];
-  for (const u of G.units) { const w = weaponOf(u), [fk, sc] = aimView(u, w); us.push({ u, sw: u.lastSwipe, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w, v: u.vehicle ? 1 : 0, fk, sc }); }
+  for (const u of G.units) { const w = weaponOf(u), [fk, sc, ad, ot] = aimView(u, w); us.push({ u, sw: u.lastSwipe, x: u.x, y: u.y, z: u.z, yaw: u.yaw, pitch: u.isPlayer ? u.pitch : (u.aimPitch || 0), alive: u.alive, crouchT: u.crouchT || 0, speed: u.moveSpeed || 0, w, v: u.vehicle ? 1 : 0, fk, sc, ad, ot }); }
   frames.push({ t: G.now, us });
   while (frames.length && frames[0].t < G.now - KEEP) frames.shift();
   while (shots.length && shots[0].t < G.now - KEEP) shots.shift();
@@ -79,6 +80,8 @@ export function recordShot(s) { if (G.match && !G.match.ended) shots.push({ t: G
 export function recordNetShot(u, w, x0, y0, z0, ex, ey, ez) { if (G.match && !G.match.ended) shots.push({ t: G.now, s: { shooter: u, w, k: 0, x: ex, y: ey, z: ez }, x0, y0, z0, done: false }); }
 
 // sample a unit's state at time t (linear interpolation between ~20 Hz frames)
+const kcShow = (sel, on) => { const el = document.querySelector('#killcam ' + sel); if (el) el.style.display = on ? 'block' : 'none'; };
+
 function sample(u, t) {
   let a = null, b = null;
   for (let i = frames.length - 1; i >= 0; i--) { if (frames[i].t <= t) { a = frames[i]; b = frames[i + 1] || a; break; } }
@@ -89,7 +92,7 @@ function sample(u, t) {
   const k = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
   const dy = Math.atan2(Math.sin(eb.yaw - ea.yaw), Math.cos(eb.yaw - ea.yaw));
   return { x: lerp(ea.x, eb.x, k), y: lerp(ea.y, eb.y, k), z: lerp(ea.z, eb.z, k), yaw: ea.yaw + dy * k, pitch: lerp(ea.pitch, eb.pitch, k),
-    sw: eb.sw != null ? eb.sw : ea.sw, alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w, v: ea.v, fk: lerp(ea.fk || 1, eb.fk || 1, k), sc: k < 0.5 ? ea.sc : eb.sc };
+    sw: eb.sw != null ? eb.sw : ea.sw, alive: k < 0.5 ? ea.alive : eb.alive, crouchT: lerp(ea.crouchT, eb.crouchT, k), speed: lerp(ea.speed, eb.speed, k), w: ea.w, v: ea.v, fk: lerp(ea.fk || 1, eb.fk || 1, k), sc: k < 0.5 ? ea.sc : eb.sc, ad: lerp(ea.ad || 0, eb.ad || 0, k), ot: ea.ot };
 }
 
 function ensureBody(P) {
@@ -265,6 +268,10 @@ function replayStep(dt, P) {
     }
     const f2 = bcam ? lerp(fov, G.profile.settings.fov * 0.8, b) : fov; if (Math.abs(G.camera.fov - f2) > 0.1) { G.camera.fov = f2; G.camera.updateProjectionMatrix(); }
     document.getElementById('scope').classList.toggle('on', !!ks.sc && (!bcam || b < 0.25));
+    // Brian (2026-11-19): the killer's exact view: hip-fire crosshair if they didn't aim, iron sights / red dot if they did
+    const inEyes = !bcam || b < 0.25, aimed = (ks.ad || 0) > 0.55;
+    kcShow('.kc-xh', inEyes && !WEAPONS[w].melee && !ks.sc && !aimed);
+    kcShow('.kc-dot', inEyes && !ks.sc && aimed && !!ks.ot);
     setListener(ks.x, ks.y + eye, ks.z, ks.yaw);
     // replay shots that happened up to now in the footage
     while (r.shotI < shots.length && shots[r.shotI].t <= r.t) {
@@ -274,7 +281,7 @@ function replayStep(dt, P) {
       tracer(mine ? ks.x + Math.sin(-ks.yaw) * 0.0 : e.x0, mine ? ks.y + eye - 0.12 : e.y0, mine ? ks.z : e.z0, ex, ey, ez, 0xffe0a0, 420);
       if (s.k === 0 && s.w && s.w.sound) play(s.w.sound, mine ? null : { x: e.x0, y: e.y0, z: e.z0 }, { gain: mine ? 0.7 : 0.5 });
     }
-    updateViewmodel(dt, { weapon: w, visible: !WEAPONS[w].melee, loaded: true, adsT: 0, sprintT: 0, bob: 0, bobAmp: 0, mdx: 0, mdy: 0, reload: -1, switchT: 1, melee: -1, meleeHeavy: false, throwT: -1, cooking: false, crouchT: ks.crouchT, pump: -1, bolt: -1 });
+    updateViewmodel(dt, { weapon: w, visible: !WEAPONS[w].melee, loaded: true, adsT: WEAPONS[w].scope ? 0 : (ks.ad || 0), sprintT: 0, bob: 0, bobAmp: 0, mdx: 0, mdy: 0, reload: -1, switchT: 1, melee: -1, meleeHeavy: false, throwT: -1, cooking: false, crouchT: ks.crouchT, pump: -1, bolt: -1 });
     return !WEAPONS[w].melee && !(ks.sc && !bcam) && !bcam;
   }
   return false;

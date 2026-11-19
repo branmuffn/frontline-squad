@@ -76,7 +76,7 @@ export function vehicleHud(v, seat, kmh, heat, over, alt = -1) {
   $('hud').classList.toggle('gunner', seat === 1);
   const kf = v.type + seat; if (vhKeysFor !== kf) { vhKeysFor = kf; $('vhKeys').innerHTML = [`<kbd>${esc(keyName('interact'))}</kbd> Get out`, ...(v.seats.length > 1 ? [`<kbd>1</kbd> ${v.spec.fly ? 'Fly' : 'Drive'}`, '<kbd>2</kbd> Gun'] : []), ...(seat === 0 && v.spec.fly ? ['<kbd>Mouse 1</kbd> Nose guns'] : []), ...(seat === 0 ? v.spec.keys.map(([k, t]) => `<kbd>${k}</kbd> ${t}`) : [])].map((t) => `<span>${t}</span>`).join(''); }
 }
-export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); $('board').classList.add('hidden'); boardOpen = false; }
+export function endMatch() { $('hud').classList.remove('active'); $('scope').classList.remove('on'); set('reddot', 'display', 'none'); $('board').classList.add('hidden'); boardOpen = false; }
 
 export function scoreChanged() {
   const m = G.match, P = G.player; if (!m || !P) return;
@@ -221,6 +221,9 @@ export function updatePlayerHud(P, o) {
   set('vignette', 'opacity', String(clamp((45 - hp) / 45, 0, 0.85).toFixed(2)));
   setAmmo(P);
   const scoped = !!(w.scope && P.adsT > 0.9);
+  // Brian (2026-11-19, "red dot add-on not working"): the Red dot attachment now shows a red-dot sight while aiming
+  const wa = (P.attW && P.attW[P.weapons[P.slot]]) || w, dotOn = !!(wa.att && wa.att.includes('optic') && !w.scope && P.adsT > 0.55 && G.player === P && P.alive);
+  set('reddot', 'display', dotOn ? 'block' : 'none');
   $('scope').classList.toggle('on', scoped);
   if (scoped && w.mags) { const m = w.mags[Math.min(P.zoomIdx || 0, w.mags.length - 1)], t = m + '×' + (w.mags.length > 1 && !input.touch ? '   (wheel or ' + keyName('zoom') + ' to change)' : ''); if (hudMagText !== t) { hudMagText = t; $('scopeMag').textContent = t; } }
   const hideCh = (P.adsT > 0.55 && !w.melee && !(w.pellets > 1)) || (w.scope && P.adsT < 0.9) || P.sprintT > 0.6;

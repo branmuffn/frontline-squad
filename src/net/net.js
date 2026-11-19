@@ -107,6 +107,10 @@ function dropRemote(r, why) {
   status(`${r.name} left.`, 'warn');
   bcast({ t: 'lobby', p: players(), cfg: S.cfg });
   refreshUi();
+  // Brian (2026-11-19): everyone else left mid-match, so end it now instead of playing on alone (bots don't count)
+  if (r.hello && S.host && S.live && G.match && !G.match.ended && !S.remotes.some((o) => o.hello && !o.spec)) {
+    hud.notice('Everyone else left, so the match is over.'); endMatch('time');
+  }
 }
 // Brian (2026-11-19): lobby shows who plays on a phone/tablet vs a computer. Touch-only screen = phone (touch laptops count as computers).
 export function myDevice() { try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches ? 'phone' : 'pc'; } catch { return input.touch ? 'phone' : 'pc'; } }
@@ -210,7 +214,7 @@ export const notReady = () => joined().filter((r) => !r.ready && !r.spec).map((r
 export const canStart = () => S.host && joined().length > 0 && !notReady().length && MP_MODES.includes(S.cfg.mode);
 // teams are dealt when the match starts: TDM alternates by join order (host first), so sides stay even
 function dealTeams(mode) {
-  joined().filter((r) => !r.spec).sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) || mode === 'infection' ? 0 : ['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(mode) ? (S.cfg.sameTeam && mode === 'tdm' ? 0 : (i + 1) % 2) : 100 + r.slot; });
+  joined().filter((r) => !r.spec).sort((a, b) => a.slot - b.slot).forEach((r, i) => { r.team = COOP(mode) || mode === 'infection' ? 0 : ['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(mode) ? (S.cfg.sameTeam ? 0 : (i + 1) % 2) : 100 + r.slot; });
 }
 export function lookFor(team, slot, mode, skin) {
   const k = skin ? skinLook(skin) : null;

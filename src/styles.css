@@ -185,6 +185,8 @@ tr.dead td { opacity: 0.5; }
 #hud.active { display: block; }
 #vignette { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(160, 20, 10, 0.75) 100%); }
 #dmgflash { position: absolute; inset: 0; opacity: 0; background: rgba(170, 30, 15, 0.45); }
+#reddot { position: absolute; left: 50%; top: 50%; width: 15vmin; height: 15vmin; transform: translate(-50%, -50%); display: none; pointer-events: none; border-radius: 50%; border: 0.9vmin solid rgba(20, 22, 24, 0.92); box-shadow: inset 0 0 2.2vmin rgba(120, 190, 255, 0.18); background: rgba(150, 200, 255, 0.05); }
+#reddot i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #ff2a1f; box-shadow: 0 0 6px 2px rgba(255, 40, 30, 0.75); }
 #scope { position: absolute; inset: 0; display: none; background: radial-gradient(circle at center, transparent 0, transparent 33vmin, #050607 33.4vmin); }
 #scope.on { display: block; }
 #scope .reticle { position: absolute; left: 50%; top: 50%; width: 66vmin; height: 66vmin; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(0, 0, 0, 0.6);
@@ -420,6 +422,9 @@ h3 { margin-top: clamp(10px, 2.2vh, 22px); }
 
 /* kill cam */
 #killcam { position: absolute; inset: 0; pointer-events: none; }
+#killcam .kc-xh { display: none; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); background: linear-gradient(#fff, #fff) center/2px 100% no-repeat, linear-gradient(#fff, #fff) center/100% 2px no-repeat; -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.5px); mask: radial-gradient(circle, transparent 4px, #000 4.5px); opacity: 0.85; }
+#killcam .kc-dot { display: none; position: absolute; left: 50%; top: 50%; width: 15vmin; height: 15vmin; transform: translate(-50%, -50%); border-radius: 50%; border: 0.9vmin solid rgba(20, 22, 24, 0.92); background: rgba(150, 200, 255, 0.05); }
+#killcam .kc-dot i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #ff2a1f; box-shadow: 0 0 6px 2px rgba(255, 40, 30, 0.75); }
 #killcam .kc-bar { position: absolute; left: 0; right: 0; height: 7vh; background: rgba(6, 8, 9, 0.88); }
 #killcam .kc-bar.top { top: 0; } #killcam .kc-bar.bot { bottom: 0; }
 #killcam .kc-tag { position: absolute; top: calc(7vh + 14px); left: 50%; transform: translateX(-50%); display: flex; align-items: baseline; gap: 10px; padding: 6px 14px; background: rgba(14, 19, 21, 0.8); border-left: 3px solid #c8452f; }
@@ -951,3 +956,6 @@ body.touch #mp .btn-row #mpStatus { margin: 0 auto 0 0; min-height: 0; font-size
 /* Brian (2026-11-16): a way back to the browser bar (close the tab, switch tabs) from the main menu in full screen */
 .exit-full { position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); z-index: 5;
   font: 600 12px/1 inherit; padding: 7px 10px; color: var(--muted, #9aa); background: rgba(29, 36, 40, 0.75); border: 1px solid var(--line); cursor: pointer; }
+
+/* short landscape phones (Brian 2026-11-19: two more touch toggles): settings toggles in two columns so the tab fits */
+@media (max-height: 460px) and (min-width: 700px) { #settings #toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; } }

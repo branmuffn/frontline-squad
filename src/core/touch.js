@@ -141,12 +141,17 @@ function onUp(e) {
   if (p.wait) { p.wait = false; press(p); } // a tap: act now
   release(p);
   const P = G.player;
-  if (p.role === 'look' && G.profile.settings.tapFire && (p.moved || 0) < AUTO_FIRE.swipe && G.realTime - p.t0 < AUTO_FIRE.tapFire
+  // double tap to fire (Brian, 2026-11-19): the second of two quick taps shoots
+  const quick = p.role === 'look' && (p.moved || 0) < AUTO_FIRE.swipe && G.realTime - p.t0 < AUTO_FIRE.tapFire;
+  let dbl = false;
+  if (quick && G.profile.settings.dblFire) { dbl = G.realTime - lastTapAt < 0.35; lastTapAt = dbl ? -9 : G.realTime; }
+  if (quick && (G.profile.settings.tapFire || dbl)
     && P && P.alive && !P.vehicle && G.state === 'playing' && !G.spectating && !killcamActive()) {
     tapShotUntil = G.realTime + AUTO_FIRE.tapShot; input.fire = true; input.h.onMouseDown(0);
   }
 }
 
+let lastTapAt = -9;
 function look(dx, dy) {
   const s = G.profile.settings, F = AUTO_FIRE, m = Math.hypot(dx, dy);
   // quick swipes turn faster (up to 2x), so a half turn doesn't take a long thumb drag; slow drags stay precise
@@ -254,7 +259,9 @@ function autoFire(P, alive) {
   // each auto shot lands where you aim instead of climbing (pistols, shotguns, marksman rifles).
   const scoped = w && w.scope && P.adsT > 0.3;
   const settled = !w || w.auto || !w.recoil || Math.abs(P.recoilP) < w.recoil.v * 0.65 * AUTO_FIRE.settle;
-  const want = !!(s.autoFire && w && !manual && !w.melee && !scoped && !AUTO_FIRE.skip.test(w.cls || '') && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
+  // Brian (2026-11-19): optional sniper auto-fire (off by default) lifts both the sniper skip and the scope rule
+  const sniperOk = s.sniperAuto && /sniper/i.test(w ? w.cls || '' : '');
+  const want = !!(s.autoFire && w && !manual && !w.melee && (!scoped || s.sniperAuto) && (sniperOk || !AUTO_FIRE.skip.test(w.cls || '')) && G.state === 'playing' && !P.vehicle && enemyUnderCrosshair(P, reach));
   if (want && !settled) { input.fire = false; autoPulse = false; autoOn = true; cls(btn.fire, 'auto', true); return; }
   if (want) { autoPulse = w.auto ? true : !autoPulse; input.fire = autoPulse; autoOn = true; }
   else if (autoOn) { if (!manual) input.fire = false; autoOn = false; }

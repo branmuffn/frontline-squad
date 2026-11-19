@@ -265,8 +265,10 @@ function streakSummary() {
 }
 
 // prematch = shown after Deploy, before the match loads
-export function showLoadout(isPrematch, tab) {
-  prematch = !!isPrematch; if (tab) loTab = tab;
+// back = the screen Done returns to (Brian, 2026-11-19: Loadout button in the multiplayer lobby returns there)
+let loReturn = 'menu';
+export function showLoadout(isPrematch, tab, back) {
+  prematch = !!isPrematch; if (tab) loTab = tab; loReturn = back || 'menu';
   const L = G.profile.lobby;
   $('loTitle').textContent = prematch ? 'Choose your loadout' : 'Loadout';
   $('loLede').textContent = prematch ? `${MODES[L.mode].name} on ${MAP_LIST.find((m) => m.id === L.map).name}. Pick a preset, then deploy.` : 'Three saved presets. Pick one, set it up, and it’s remembered.';
@@ -317,7 +319,7 @@ function refreshSettings() {
   for (const [k, , , , , f] of SL) $('set_' + k).addEventListener('input', (e) => { s[k] = Number(e.target.value); $('out_' + k).textContent = f(s[k]); cb.onSetting(k); saveProfile(); });
   const TOG = [['invertY', 'Invert vertical look'], ['killcam', 'Kill cam after death'], ['scopeToggle', 'Right-click toggles aim'], ['wheelSwitch', 'Mouse wheel switches weapons'], ['showFps', 'Performance readout (fps, ms, draws)'],
     ['autoRes', 'Auto resolution (only if fps drops)', 1], ['lowMenus', 'Low-power menus (30 fps, no shadow redraw)', 1], ['shadowFull', 'Shadows every frame (Max)', 1], ['previewSmooth', 'Smooth loadout preview (60 fps)', 1],
-    ...(tOk ? [['aimAssist', 'Aim assist (touch only): turning slows over an enemy'], ['autoFire', 'Auto-fire (touch only): shoots when the crosshair is on an enemy'], ['tapFire', 'Tap to fire (touch only): a quick tap where you turn shoots']] : [])];
+    ...(tOk ? [['aimAssist', 'Aim assist: turning slows over an enemy'], ['autoFire', 'Auto-fire when the crosshair is on an enemy'], ['tapFire', 'Tap to fire (quick tap where you turn)'], ['dblFire', 'Double tap to fire'], ['sniperAuto', 'Sniper auto-fire (also through a scope)']] : [])];
   const getT = (k) => k === 'shadowFull' ? s.shadowRate === 'full' : k === 'previewSmooth' ? s.previewFps === 60 : !!s[k];
   const MOUSE = ['scopeToggle', 'wheelSwitch'], HUD = ['killcam', 'showFps'];
   const tg = ([k, l]) => `<label class="toggle${MOUSE.includes(k) ? ' mouse-only' : ''}"><input type="checkbox" id="set_${k}" ${getT(k) ? 'checked' : ''}><span>${l}</span></label>`;
@@ -467,6 +469,7 @@ export function initMenus(callbacks) {
   cb = callbacks;
   $('deploy').addEventListener('click', () => showLoadout(true));
   $('openLoadout').addEventListener('click', () => showLoadout(false));
+  $('mpLoadout').addEventListener('click', () => showLoadout(false, 'g0', 'mp'));
   $('openOperator').addEventListener('click', () => showLoadout(false, 'op'));
   for (const [id, k] of [['mpSkinU', 'uniform'], ['mpSkinP', 'pattern'], ['mpSkinH', 'helmet']]) $(id).addEventListener('change', (e) => { G.profile.skin[k] = e.target.value; saveProfile(); cb.onSkin && cb.onSkin(G.profile.skin); refreshLoadout(); });
   $('loadoutBack').addEventListener('click', () => showScreen('menu'));
@@ -475,7 +478,7 @@ export function initMenus(callbacks) {
   $('openCareer').addEventListener('click', () => { refreshCareer(); open('career'); });
   $('openControls').addEventListener('click', () => open('controls', 'menu'));
   $('loadoutDone').addEventListener('click', () => {
-    if (!prematch) { showScreen('menu'); return; }
+    if (!prematch) { showScreen(loReturn); return; }
     const L = G.profile.lobby;
     cb.onDeploy({ mode: L.mode, map: L.map, difficulty: skillBand(L.skill), skill: L.skill, zdiff: L.zdiff, bots: { ...L.bots }, pickups: L.pickups, power: L.power !== false, limits: { [L.mode]: { ...(L.limits[L.mode] || {}) } }, count: L.counts[L.mode] ?? MODES[L.mode].defaultCount });
   });
@@ -529,3 +532,26 @@ export function initMenus(callbacks) {
   $('armClose').addEventListener('click', () => cb.onArmory({ action: 'close' }));
   $('endMenu').addEventListener('click', () => cb.onQuit());
 }
+
+// Brian (2026-11-19): on phones the keyboard covered the name / room code / chat boxes in Multiplayer. While a menu
+// text box has focus, lift its panel so the box sits just above the keyboard (visualViewport = the part still visible).
+(function keyboardLift() {
+  const vv = typeof window !== 'undefined' && window.visualViewport; if (!vv) return;
+  let lifted = null;
+  const fit = () => {
+    const el = document.activeElement;
+    const box = el && el.matches && el.matches('.screen input:not([type]), .screen input[type=text]') ? el : null;
+    const panel = box ? box.closest('.panel') : null;
+    if (lifted && lifted !== panel) { lifted.style.transform = ''; lifted = null; }
+    if (!panel) return;
+    panel.style.transform = '';
+    const r = box.getBoundingClientRect(), bottom = vv.offsetTop + vv.height - 12, top = vv.offsetTop + 8;
+    let dy = 0;
+    if (r.bottom > bottom) dy = bottom - r.bottom;
+    if (r.top + dy < top) dy = top - r.top;
+    if (dy) { panel.style.transform = `translateY(${Math.round(dy)}px)`; lifted = panel; }
+  };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+  document.addEventListener('focusin', () => { fit(); setTimeout(fit, 350); });
+  document.addEventListener('focusout', () => setTimeout(fit, 60));
+})();

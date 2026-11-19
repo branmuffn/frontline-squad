@@ -61,7 +61,7 @@ function fillSettings(cfg) {
   $('mpScoreLabel').textContent = cfg.mode === 'tdm' ? 'Team score to win' : 'Kills to win';
   $('mpPick').value = cfg.pickups === false ? '0' : '1'; $('mpBig').value = cfg.big ? '1' : '0'; $('mpPower').value = cfg.power === false ? '0' : '1'; $('mpPower').disabled = !host; $('mpBig').disabled = !host;
   $('mpBotRules').innerHTML = BOT_RULES.map(([k, label]) => `<button type="button" data-k="${k}" class="${cfg.bots && cfg.bots[k] === false ? '' : 'on'}" aria-pressed="${!(cfg.bots && cfg.bots[k] === false)}"${host ? '' : ' disabled'}>${label}</button>`).join('');
-  $('mpTeamRow').classList.toggle('hidden', cfg.mode !== 'tdm');
+  $('mpTeamRow').classList.toggle('hidden', !['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode)); // Brian 2026-11-19: Versus / Co-op in every team mode
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
   $('mpVehRow').classList.toggle('hidden', !vOk); $('mpVeh').value = cfg.vehicles ? '1' : '0';
   $('mpTeams').value = cfg.sameTeam ? '1' : '0';

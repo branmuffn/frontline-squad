@@ -242,13 +242,17 @@ function nearStation() {
   for (const s of stations) { const d = Math.hypot(s.x - P.x, s.z - P.z); if (d < bd && Math.abs(s.y - P.y) < 1.5) { bd = d; best = s; } }
   return best;
 }
+// guns this player has ever bought this match: buying one back costs half (Brian, 2026-11-19)
+function zHave() { const P = G.player; return [...new Set([...(P.weapons || []), ...(P.zBought || [])])]; }
 function zGive(id) {
   const P = G.player, guns = P.weapons.filter((w) => w !== 'knife');
+  if (!P.zBought) P.zBought = []; if (!P.zBought.includes(id)) P.zBought.push(id);
   const max = G.match.slots === 'overkill' ? 3 : 2;
   if (guns.includes(id)) { const w = WEAPONS[id]; P.ammo[id] = { mag: w.mag, res: w.reserve }; hud.setAmmo(P); return; }
   if (guns.length < max) guns.push(id);
   else { const held = P.weapons[P.slot]; const i = guns.indexOf(held); guns[i >= 0 ? i : 0] = id; }
   giveWeapons([...guns, 'knife'], id);
+  P.zKeep = [...guns, 'knife'];
 }
 function spend(n) { const m = G.match; if (m.points < n) { play('deny'); hud.notice('Not enough points'); return false; } m.points -= n; hud.scoreChanged(); return true; }
 function addPoints(n) { const m = G.match; m.points += Math.round(n * (m.mode === 'zombies' ? zd().pts : 1)) * (G.now < m.doubleUntil ? 2 : 1); hud.scoreChanged(); }
@@ -268,7 +272,7 @@ function stationPrompt(P) {
   const s = P.alive && nearStation();
   if (!s) hud.prompt('');
   else if (s.kind === 'box') hud.prompt(boxRoll ? 'The box is spinning…' : `<kbd>${keyE()}</kbd> Mystery box · ${Z.box}`);
-  else { const owned = P.weapons.includes(s.id); hud.prompt(`<kbd>${keyE()}</kbd> ${owned ? 'Ammo for' : 'Buy'} ${WEAPONS[s.id].name} · ${owned ? Math.round(s.cost / 2) : s.cost}`); }
+  else { const owned = P.weapons.includes(s.id), again = !owned && zHave().includes(s.id); hud.prompt(`<kbd>${keyE()}</kbd> ${owned ? 'Ammo for' : again ? 'Buy back' : 'Buy'} ${WEAPONS[s.id].name} · ${owned || again ? Math.round(s.cost / 2) : s.cost}`); }
 }
 function squadResupply() {
   const P = G.player; if (P.alive) { refillAmmo(); hud.setAmmo(P); }
@@ -304,9 +308,10 @@ function reviveTick(dt) {
 function zombieName(r) { return r >= 8 && chance(0.2) ? 'BRUTE' : 'ZOMBIE'; }
 const zombies = {
   noDrops: true, noStreaks: true, noPickups: true, waves: true, prompting: true,
-  setup(m) { for (const u of G.units) u.downed = 0; m.points = 500; m.round = 0; m.wave = 0; m.roundState = 'none'; m.insta = 0; m.doubleUntil = 0; m.lives = 3; buildStations(); disposeAll(powerups); boxRoll = null; },
+  setup(m) { for (const u of G.units) u.downed = 0; if (G.player) { G.player.zKeep = null; G.player.zBought = []; } m.points = 500; m.round = 0; m.wave = 0; m.roundState = 'none'; m.insta = 0; m.doubleUntil = 0; m.lives = 3; buildStations(); disposeAll(powerups); boxRoll = null; },
   cleanup() { disposeAll(stations); disposeAll(powerups); boxRoll = null; },
-  weapons(u) { return u.isPlayer ? ['usp', 'knife'] : ['knife']; },
+  // Brian (2026-11-19): respawn with the guns you had (bought guns are kept), not back to the pistol
+  weapons(u) { return u.isPlayer ? (u.zKeep && u.zKeep.length ? u.zKeep.slice() : ['usp', 'knife']) : ['knife']; },
   modDamage(v, a, amt) {
     if (coop(a) && v.zombie && G.now < G.match.insta) return v.health + 1;
     if (v.downed) return 0;
@@ -324,9 +329,9 @@ const zombies = {
   interact() {
     if (G.player.downed || nearDowned(G.player)) return true; // E is the revive key here
     const s = nearStation(); if (!s) return false;
-    if (G.mp && G.mp.live && G.mp.client) { G.mp.send({ t: 'buy', s: stations.indexOf(s), have: G.player.weapons }); return true; } // the host keeps the squad's points
+    if (G.mp && G.mp.live && G.mp.client) { G.mp.send({ t: 'buy', s: stations.indexOf(s), have: zHave() }); return true; } // the host keeps the squad's points
     if (s.kind === 'wall') {
-      const owned = G.player.weapons.includes(s.id), cost = owned ? Math.round(s.cost / 2) : s.cost;
+      const owned = G.player.weapons.includes(s.id), cost = zHave().includes(s.id) ? Math.round(s.cost / 2) : s.cost;
       if (spend(cost)) { zGive(s.id); play('pickup'); hud.notice(owned ? `${WEAPONS[s.id].name} ammo` : `Bought ${WEAPONS[s.id].name}`); }
     } else if (!boxRoll && spend(Z.box)) {
       const pool = shuffle(ALL_GUNS.concat(['rpg']).filter((g) => !G.player.weapons.includes(g)));
