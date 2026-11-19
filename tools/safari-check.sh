@@ -14,6 +14,8 @@ echo "Installing (first run takes a few minutes)..."
 npm ci --silent >/dev/null 2>&1 || npm install --silent >/dev/null 2>&1
 npx playwright install webkit >/dev/null 2>&1
 node scripts/build-standalone.mjs >/dev/null
+sh tests/setup.sh >/dev/null 2>&1 # three.js for the test harness (the 2026-11-19 run crashed on every 3D test without it)
+mkdir -p safari-logs
 # every test's chromium.launch() runs WebKit instead
 cat > /tmp/fl-webkit.mjs <<EOF
 import { createRequire } from 'module';
@@ -28,8 +30,12 @@ TESTS="buildlabel power touch menulayout mappreview phoneui phonefit stamina kil
   for t in $TESTS; do
     [ -f "tests/$t.mjs" ] || continue
     printf '%-12s ' "$t"
-    FPS_LOOPBACK=1 node --import /tmp/fl-webkit.mjs "tests/$t.mjs" 2>&1 | tail -1 | cut -c1-300
+    FPS_LOOPBACK=1 node --import /tmp/fl-webkit.mjs "tests/$t.mjs" > "safari-logs/$t.txt" 2>&1
+    last=$(tail -1 "safari-logs/$t.txt")
+    case "$last" in Node.js*) # a crash: show the error itself, not Node's version line
+      last="CRASH: $(grep -m1 -E 'Error|error:' "safari-logs/$t.txt")";; esac
+    echo "$last" | cut -c1-300
   done
 } | tee "$OUT"
 echo
-echo "Done. Results saved to $OUT"
+echo "Done. Results saved to $OUT (full logs: $DIR/safari-logs)"

@@ -3,3 +3,4 @@ dist/
 site/
 tests/three.min.js
 .DS_Store
+safari-logs/
