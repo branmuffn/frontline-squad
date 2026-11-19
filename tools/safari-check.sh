@@ -2,6 +2,7 @@
 # Frontline Squad in Safari's engine (WebKit), run ON THE M4 (Apple Silicon: WebGL works there, not on the M14).
 # Brian pastes one line in the M4's Terminal:
 #   curl -fsSL https://raw.githubusercontent.com/branmuffn/frontline-squad/main/tools/safari-check.sh | bash
+#   (only some tests: ... | bash -s touch mp)  It removes its own files at the end.
 # (this file is copied there). It needs Node 18+ (https://nodejs.org) and ~600 MB for the WebKit download.
 # Results: ~/Desktop/frontline-safari-results.txt (paste it to Claude). Nothing is sent anywhere.
 set -u
@@ -23,7 +24,8 @@ const require = createRequire('$DIR/package.json');
 const pw = require('playwright');
 pw.chromium.launch = (o = {}) => pw.webkit.launch({ headless: o.headless });
 EOF
-TESTS="buildlabel power touch menulayout mappreview phoneui phonefit stamina killcam kcscope kcshot hitbox fire gear graphics ladder doorways bots heli mapsmoke mp mplobby mpmodes mpvote mpveh mpstreaks mpwarm mpmatrix"
+ALL="buildlabel power touch menulayout mappreview phoneui phonefit stamina killcam kcscope kcshot hitbox fire gear graphics ladder doorways bots heli mapsmoke mp mplobby mpmodes mpvote mpveh mpstreaks mpwarm mpmatrix"
+TESTS="${*:-$ALL}" # names after `bash -s` run only those, e.g. `| bash -s touch`
 {
   echo "Frontline Safari (WebKit) check on $(hostname) $(date)"
   echo "build $(git log --oneline -1)"
@@ -33,9 +35,12 @@ TESTS="buildlabel power touch menulayout mappreview phoneui phonefit stamina kil
     FPS_LOOPBACK=1 node --import /tmp/fl-webkit.mjs "tests/$t.mjs" > "safari-logs/$t.txt" 2>&1
     last=$(tail -1 "safari-logs/$t.txt")
     case "$last" in Node.js*) # a crash: show the error itself, not Node's version line
-      last="CRASH: $(grep -m1 -E 'Error|error:' "safari-logs/$t.txt")";; esac
+      last="CRASH (details below)";; esac
     echo "$last" | cut -c1-300
+    case "$last" in CRASH*) sed -n '1,40p' "safari-logs/$t.txt" | grep -v '^\s*$' | head -25 | sed 's/^/      | /';; esac
   done
 } | tee "$OUT"
+# Brian (2026-11-19): clean up after itself; crash details are already in the results file
+cd "$HOME" && rm -rf "$DIR" /tmp/fl-webkit.mjs "$HOME/Library/Caches/ms-playwright"/webkit-*
 echo
-echo "Done. Results saved to $OUT (full logs: $DIR/safari-logs)"
+echo "Done. Results saved to $OUT. The test copy and the WebKit download were removed; delete the results file once Claude has it."
