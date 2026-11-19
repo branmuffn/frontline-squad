@@ -175,6 +175,37 @@ for (const [hp, jp, name] of [[false, true, 'laptop host + phone'], [true, true,
   check(name + ': both in', ['deploy', 'playing'].includes(h.state) && ['deploy', 'playing'].includes(c.state) && c.live && h.map === c.map, { h, c });
   await P.close();
 }
+// --- 7. Ready / Not ready / Ready (Brian 2026-11-19: "after hitting ready and then unready" the lobby looked wrong):
+// both screens agree after every press, a lost Ready message is re-sent, and Start puts the joiner in the match
+{
+  const P = await pair(false, true), { H, C } = P;
+  const look = async () => ({ host: await H.evaluate(() => window.__frontline.net.session.remotes[0].ready), btn: await C.evaluate(() => document.getElementById('mpReady').textContent), list: await C.evaluate(() => document.getElementById('mpPlayers').innerText) });
+  const seen = [];
+  for (let i = 0; i < 4; i++) { await press(C, '#mpReady'); await sleep(300); await P.step(); seen.push(await look()); }
+  const want = [true, false, true, false];
+  check('ready toggles agree on both screens', seen.every((v, i) => v.host === want[i] && v.btn === (want[i] ? 'Ready ✓' : 'Ready') && (want[i] ? /\bready/.test(v.list.replace(/not ready/g, '')) : /not ready/.test(v.list))), seen);
+  // the next Ready message goes missing: the button says "…" until the re-send lands
+  await C.evaluate(() => { const L = window.__frontline.net.session.link, send = L.send.bind(L); let n = 0; L.send = (o) => { if (o.t === 'ready' && !n++) return; send(o); }; });
+  await press(C, '#mpReady'); await sleep(300); await P.step();
+  const mid = await look();
+  await sleep(3200); await P.step(); const after = await look();
+  check('lost Ready is re-sent', mid.host === false && / …$/.test(mid.btn) && after.host === true && after.btn === 'Ready ✓', { mid, after });
+  await press(H, '#mpStart'); await settle(P);
+  const h = await state(H), c = await state(C), go = await H.evaluate(() => window.__frontline.net.session.remotes[0].go);
+  check('after toggling, Start puts the joiner in (and it confirms)', c.live && ['deploy', 'playing'].includes(c.state) && h.live && go === true, { h, c, go });
+  await P.close();
+}
+// --- 8. a joiner that goes silent (phone locked, link half-dead) is dropped instead of staying as a ghost
+{
+  const P = await pair(false, true), { H, C } = P;
+  await press(C, '#mpReady'); await sleep(300); await P.step();
+  await C.evaluate(() => { const L = window.__frontline.net.session.link; L.send = () => {}; L.sendFast = () => {}; });
+  await sleep(14000); await P.step();
+  const r = await H.evaluate(() => ({ n: window.__frontline.net.session.remotes.length, start: document.getElementById('mpStart').disabled, st: document.getElementById('mpStatus').textContent }));
+  const c = await C.evaluate(() => ({ link: !!window.__frontline.net.session.link, btn: document.getElementById('mpReady').textContent }));
+  check('silent joiner dropped; joiner shows Not connected', r.n === 0 && r.start && /Lost the connection/.test(r.st) && !c.link && c.btn === 'Not connected', { r, c });
+  await P.close();
+}
 check('no errors', errors.length === 0, errors.slice(0, 6));
 console.log(JSON.stringify(out, null, 1));
 console.log(fail.length ? 'FAIL: ' + fail.join(', ') : 'PASS');

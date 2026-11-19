@@ -156,7 +156,11 @@ function updateStart() {
   $('mpWarm').classList.toggle('hidden', !net.session.host); $('mpWarm').disabled = !net.session.host || !net.session.remotes.some((r) => r.hello);
   $('mpStart').textContent = wait.length ? `Waiting: ${wait.length} not ready` : 'Start match';
   $('mpReady').classList.toggle('hidden', !!(net.session.client && net.session.spectate)); // spectators are always ready
-  $('mpReady').classList.toggle('on', !!net.session.ready); $('mpReady').textContent = net.session.ready ? 'Ready ✓' : 'Ready';
+  // joiner: the button shows what the host has; "…" while the host hasn't caught up yet (net.js re-sends)
+  const s = net.session, said = net.hostSaysReady(), off = !!(s.client && !s.link);
+  $('mpReady').disabled = off;
+  $('mpReady').classList.toggle('on', !!s.ready && !off);
+  $('mpReady').textContent = off ? 'Not connected' : (s.ready ? 'Ready ✓' : 'Ready') + (s.client && said !== null && said !== !!s.ready ? ' …' : '');
 }
 // skins: uniform / pattern / helmet, locked until the listed rank
 function fillSkins() {
@@ -263,7 +267,7 @@ export function initLobby(cb) {
     const el = $('netPing'), on = !!(G.mp && G.mp.live);
     el.classList.toggle('hidden', !on);
     if (on) el.textContent = `PING ${net.pingMs()} ms`;
-    if (!$('mp').classList.contains('hidden') && G.mp && G.mp.host) updateStart();
+    if (!$('mp').classList.contains('hidden') && net.session.role) updateStart();
     if (!$('mp').classList.contains('hidden')) refreshTabs();
   }, 500);
 }

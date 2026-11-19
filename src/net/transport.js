@@ -50,11 +50,12 @@ export class Link {
   constructor(sendRel, relOpen, pc, fast) {
     this._sendRel = sendRel; this._relOpen = relOpen; this.pc = pc; this.fast = fast;
     this.onmsg = null; this.onclose = null; this.closed = false; this.rtt = 0;
+    this.heard = Date.now(); // last time anything arrived (net.js drops a link that goes silent)
     if (fast) { fast.binaryType = 'arraybuffer'; fast.onmessage = (e) => this._recv(e.data); }
     this.bytesOut = 0; this.bytesJson = 0; // traffic counters (binary vs what JSON would have cost)
     if (pc) pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this._end(); });
   }
-  _recv(data) { if (this.closed || !this.onmsg) return; let m; try { m = typeof data === 'string' ? JSON.parse(data) : decode(data); } catch { return; } if (!m) return; try { this.onmsg(m); } catch (e) { console.error(e); } }
+  _recv(data) { if (this.closed) return; this.heard = Date.now(); if (!this.onmsg) return; let m; try { m = typeof data === 'string' ? JSON.parse(data) : decode(data); } catch { return; } if (!m) return; try { this.onmsg(m); } catch (e) { console.error(e); } }
   _end() { if (this.closed) return; this.closed = true; if (this.onclose) this.onclose(); }
   send(o) { if (!this.closed && this._relOpen()) { const j = JSON.stringify(o); this.bytesRel = (this.bytesRel || 0) + j.length; this._sendRel(j); } }
   sendFast(o) {

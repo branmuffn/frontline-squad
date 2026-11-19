@@ -104,7 +104,7 @@ function dropRemote(r, why) {
   if (r.unit && S.live) S.dropped[r.name] = { kills: r.unit.kills, deaths: r.unit.deaths, team: r.unit.team };
   if (r.unit) removeRemoteUnit(r);
   if (r.hello) { const msg = `${r.name} ${why === 'left' ? 'left the game' : why === 'kicked' ? 'was removed by the host' : 'was disconnected'}`; hud.notice(msg); chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }); }
-  status(`${r.name} left.`, 'warn');
+  status(why === 'lost' ? `Lost the connection to ${r.name}. They can join again with the room code.` : `${r.name} left.`, 'warn');
   bcast({ t: 'lobby', p: players(), cfg: S.cfg });
   refreshUi();
   // Brian (2026-11-19): everyone else left mid-match, so end it now instead of playing on alone (bots don't count)
@@ -122,8 +122,34 @@ export function kick(slot) {
   const r = S.remotes.find((x) => x.slot === slot); if (!S.host || !r) return;
   r.link.send({ t: 'kicked' }); dropRemote(r, 'kicked'); setTimeout(() => r.link.close(), 300);
 }
-// joiner: ready toggle (the host starts once everyone is ready)
-export function setReady(on) { S.ready = !!on; if (S.client && S.link) S.link.send({ t: 'ready', on: S.ready }); }
+// joiner: ready toggle (the host starts once everyone is ready). The button shows what the HOST has (the lobby list),
+// and the watchdog below re-sends until the host agrees (Brian 2026-11-19: Ready / Not ready looked out of sync).
+export function setReady(on) { S.ready = !!on; S.readyT = Date.now(); if (S.client && S.link) S.link.send({ t: 'ready', on: S.ready }); }
+export function hostSaysReady() { const me = S.client && (S.lobby || []).find((p) => p.slot === S.slot); return me ? !!me.ready : null; }
+// ---- watchdog (Brian 2026-11-19: phone/computer lobby out of sync, the joiner missing from the match) ----
+// A phone that locks or switches apps can leave a WebRTC link half-dead: nothing arrives, but the browser can take 30 s+
+// to call it closed, so the host kept a "ghost" (stale ready state, a start it never got). Both sides ping every second,
+// so 12 s of silence (15 s in a match) means gone: close it. A joiner that loses the host in the lobby rejoins the room
+// code by itself. The host also re-sends a start that a joiner didn't confirm.
+let visT = Date.now();
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { visT = Date.now(); });
+const SILENT = () => (S.live ? 15000 : 12000);
+function watchdog() {
+  const t = Date.now();
+  if (typeof document !== 'undefined' && document.hidden) return; // our own timers are throttled: don't judge others
+  const awake = t - visT > SILENT(); // just came back to the page: give the links a fresh window first
+  if (S.host) {
+    for (const r of S.remotes.slice()) {
+      if (awake && t - r.link.heard > SILENT()) { dropRemote(r, 'lost'); r.link.close(); continue; }
+      if (S.live && r.hello && r.ack && r.unit && !r.go && t - (r.startT || t) > 4000 && (r.resends || 0) < 4) { r.resends = (r.resends || 0) + 1; r.startT = t; resendStart(r); }
+    }
+  } else if (S.client && S.link) {
+    if (awake && t - S.link.heard > SILENT()) { S.link.close(); return; }
+    const h = hostSaysReady();
+    if (h !== null && h !== !!S.ready && t - (S.readyT || 0) > 2000) { S.readyT = t; S.link.send({ t: 'ready', on: !!S.ready }); }
+  }
+}
+if (typeof setInterval !== 'undefined') setInterval(watchdog, 1000);
 // ---- votes (host counts): /votekick NAME, /surrender (team modes; co-op: end the run), /yes, /no ----
 // Majority of the eligible people decides (kick: everyone but the target; surrender: the caller's team). 30 s to vote.
 function sys(msg) { chat.add('', msg, 'sys'); bcast({ t: 'chat', n: '', m: msg, k: 'sys' }); hud.notice(msg); }
@@ -170,15 +196,25 @@ export function sendChat(text, team) {
 }
 export async function joinCode(name, code, skin, spec) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec }); chat.reset();
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec, slot: undefined, lobby: [], joined: { code, skin, spec: !!spec } }); chat.reset();
   G.mp = S;
   status('Joining room ' + code.toUpperCase() + '…');
   const p = joinRoom(code); S.pending = p;
   try { attach(await p); } catch (e) { status(e.message, 'warn'); throw e; }
 }
+// lost the host while waiting in the lobby: rejoin the same room code (a few tries), keeping the Ready choice
+function rejoin(tries) {
+  const j = S.joined, wasReady = S.ready, name = S.name; if (!j || S.live) return;
+  status(`Lost the host. Reconnecting… (${tries}/5)`, 'warn');
+  setTimeout(() => {
+    if (!S.client || S.link || S.joined !== j) return; // left, or already back
+    joinCode(name, j.code, j.skin, j.spec).then(() => { if (wasReady) setReady(true); refreshUi(); })
+      .catch(() => { if (!S.client) return; if (tries < 5) { S.joined = j; rejoin(tries + 1); } else { status('Lost the host. Press Back, then Join again.', 'warn'); refreshUi(); } });
+  }, 1500);
+}
 export async function joinManual(name, invite, skin, spec) {
   leave(true);
-  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec }); chat.reset();
+  Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec, slot: undefined, lobby: [], joined: null }); chat.reset();
   G.mp = S;
   const r = await manualReply(invite); S.reply = r;
   r.link.then(attach).catch((e) => status(e.message, 'warn'));
@@ -188,8 +224,15 @@ export async function joinManual(name, invite, skin, spec) {
 function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
-  L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was && !S.leaving && S.succ && S.succ.code && migrate()) return; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
-  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate, dev: myDevice() });
+  L.onclose = () => {
+    if (S.link !== L) return; // an old link we already left (re-join, Back): not news
+    const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null;
+    if (was && !S.leaving && S.succ && S.succ.code && migrate()) return;
+    if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); }
+    else if (S.client && S.joined) rejoin(1);
+    refreshUi();
+  };
+  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate, dev: myDevice(), ack: 1 });
   status(S.spectate ? 'Connected as a spectator (watching only). Waiting for the host to start…' : 'Connected. Waiting for the host to start…', 'ok');
 }
 
@@ -203,7 +246,7 @@ export function leave(silent) {
   if (S.pending && S.pending.cancel) S.pending.cancel();
   if (S.reply) { if (!S.link) S.reply.close(); S.reply = null; }
   clearProxies();
-  Object.assign(S, { role: null, host: false, client: false, live: false });
+  Object.assign(S, { role: null, host: false, client: false, live: false, joined: null });
   if (G.mp === S) G.mp = null;
   if (!silent) status('');
 }
@@ -260,6 +303,7 @@ function lateJoin(r) {
   const [u] = makeRemoteUnits(mode, [r]);
   if (back) { u.kills = back.kills; u.deaths = back.deaths; delete S.dropped[r.name]; }
   spawnRemote(u, S.cb.pickSpawn(u), false);
+  Object.assign(r, { go: false, startT: Date.now(), resends: 0 });
   r.link.send({ t: 'start', cfg, uid: u.id, team: u.team, sp: spawnOf(u), seq: r.seq, hostName: S.name, late: true });
   sendRoster(true);
   sendSuccession();
@@ -280,6 +324,7 @@ function launch(cfg) {
   S.liveCfg = cfg; S.dropped = {};
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
+  for (const r of S.remotes) Object.assign(r, { go: false, startT: Date.now(), resends: 0 });
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
   for (const r of joined()) if (r.spec) sendSpecStart(r, cfg); // spectators watch from the start (they used to be left in the lobby)
   sendRoster(true); sendSuccession();
@@ -394,7 +439,7 @@ function hostMsg(r, m) {
   switch (m.t) {
     case 'hello':
       if (m.v !== VER) { r.link.send({ t: 'full', why: 'Version mismatch: both players need the same game file.' }); setTimeout(() => r.link.close(), 500); return; }
-      r.name = clean(m.name); r.dev = m.dev === 'phone' || m.dev === 'pc' ? m.dev : ''; r.hello = true; r.skin = cleanSkin(m.k); r.spec = !!m.spec; if (r.spec) r.ready = true;
+      r.name = clean(m.name); r.dev = m.dev === 'phone' || m.dev === 'pc' ? m.dev : ''; r.hello = true; r.skin = cleanSkin(m.k); r.spec = !!m.spec; r.ack = !!m.ack; if (r.spec) r.ready = true;
       if (m.b && m.b !== BUILD) { const w = `${clean(m.name)} is on ${m.b}, you are on ${BUILD}. Everyone should reload the same link.`; status(w, 'warn'); r.link.send({ t: 'chat', n: '', m: w, k: 'sys' }); }
       { let n = 2; const base = r.name; while ([S.name, ...S.remotes.filter((x) => x !== r && x.hello).map((x) => x.name)].includes(r.name)) r.name = (base.slice(0, 12) + n++); }
       r.link.send({ t: 'welcome', slot: r.slot });
@@ -417,6 +462,7 @@ function hostMsg(r, m) {
     }
     case 'quit': if (u) { removeRemoteUnit(r); hud.notice(`${r.name} left the match`); } else if (r.spec) r.out = true; return;
     case 'need': resendStart(r); return;
+    case 'go': r.go = true; return; // the joiner confirms it got its start
   }
   if (!S.live || !u) return;
   switch (m.t) {
@@ -512,6 +558,8 @@ function clientMsg(m) {
   }
 }
 function clientStart(m) {
+  if (S.link) S.link.send({ t: 'go' });
+  if (S.live && m.uid === S.uid && m.late) return; // a re-sent start we already have
   S.uid = m.uid; S.team = m.team; S.seq = m.seq; S.haveClock = false; S.mstr = '';
   clearProxies();
   S.live = true;
