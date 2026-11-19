@@ -57,7 +57,7 @@ export function init(cb) { S.cb = cb; }
 export function setUi(ui) { S.ui = ui; }
 function status(msg, kind) { if (S.ui) S.ui.status(msg, kind); }
 function players() {
-  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true, ready: true }].concat(S.remotes.filter((r) => r.hello).map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000), ready: r.ready, route: r.route, spec: r.spec || undefined })));
+  if (S.host) return [{ name: S.name, slot: 0, ping: 0, host: true, ready: true, dev: myDevice() }].concat(S.remotes.filter((r) => r.hello).map((r) => ({ name: r.name, slot: r.slot, ping: Math.round(r.rtt * 1000), ready: r.ready, route: r.route, spec: r.spec || undefined, dev: r.dev || undefined })));
   return S.lobby || [];
 }
 function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobbyCfg); }
@@ -108,6 +108,8 @@ function dropRemote(r, why) {
   bcast({ t: 'lobby', p: players(), cfg: S.cfg });
   refreshUi();
 }
+// Brian (2026-11-19): lobby shows who plays on a phone/tablet vs a computer. Touch-only screen = phone (touch laptops count as computers).
+export function myDevice() { try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches ? 'phone' : 'pc'; } catch { return input.touch ? 'phone' : 'pc'; } }
 function bcast(o, except) { for (const r of S.remotes) if (r !== except && r.hello) r.link.send(o); }
 function bcastFast(o) { for (const r of S.remotes) if (r.hello) r.link.sendFast(o); }
 
@@ -183,7 +185,7 @@ function attach(L) {
   S.link = L; S.lobby = [];
   L.onmsg = clientMsg;
   L.onclose = () => { const was = S.live; status('Disconnected from the host.', 'warn'); S.link = null; if (was && !S.leaving && S.succ && S.succ.code && migrate()) return; if (was) { S.live = false; S.cb.abort('Connection to the host was lost.'); } refreshUi(); };
-  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate });
+  L.send({ t: 'hello', name: S.name, v: VER, k: S.skin, b: BUILD, spec: !!S.spectate, dev: myDevice() });
   status(S.spectate ? 'Connected as a spectator (watching only). Waiting for the host to start…' : 'Connected. Waiting for the host to start…', 'ok');
 }
 
@@ -388,7 +390,7 @@ function hostMsg(r, m) {
   switch (m.t) {
     case 'hello':
       if (m.v !== VER) { r.link.send({ t: 'full', why: 'Version mismatch: both players need the same game file.' }); setTimeout(() => r.link.close(), 500); return; }
-      r.name = clean(m.name); r.hello = true; r.skin = cleanSkin(m.k); r.spec = !!m.spec; if (r.spec) r.ready = true;
+      r.name = clean(m.name); r.dev = m.dev === 'phone' || m.dev === 'pc' ? m.dev : ''; r.hello = true; r.skin = cleanSkin(m.k); r.spec = !!m.spec; if (r.spec) r.ready = true;
       if (m.b && m.b !== BUILD) { const w = `${clean(m.name)} is on ${m.b}, you are on ${BUILD}. Everyone should reload the same link.`; status(w, 'warn'); r.link.send({ t: 'chat', n: '', m: w, k: 'sys' }); }
       { let n = 2; const base = r.name; while ([S.name, ...S.remotes.filter((x) => x !== r && x.hello).map((x) => x.name)].includes(r.name)) r.name = (base.slice(0, 12) + n++); }
       r.link.send({ t: 'welcome', slot: r.slot });

@@ -101,6 +101,9 @@ async function settle(P, n = 12) { for (let i = 0; i < n; i++) { await P.step(10
   const P = await pair(true, false, { spectate: true }), { H, C } = P;
   const list = await H.evaluate(() => document.getElementById('mpPlayers').innerText);
   check('list says spectating', /spectating/.test(list) && !/\bready\b/.test(list.replace(/spectating/g, '')), list);
+  // Brian (2026-11-19): lobby icons, phone host (📱) and laptop joiner (💻), on both screens
+  const cl = await C.evaluate(() => document.getElementById('mpPlayers').innerText);
+  check('device icons: phone host, laptop joiner', /📱/.test(list) && /💻/.test(list) && /📱/.test(cl) && /💻/.test(cl), { list, cl });
   check('spectator has no Ready button', await C.evaluate(() => !document.getElementById('mpReady').offsetParent), '');
   await press(H, '#mpStart'); await settle(P);
   const h = await state(H), c = await state(C);

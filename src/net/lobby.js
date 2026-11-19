@@ -188,7 +188,7 @@ export function initLobby(cb) {
     players: (list, cfg) => {
       lastList = list;
       const host = net.session.host, route = { relay: 'relayed', lan: 'LAN', direct: 'direct' };
-      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${esc(p.name)}${p.host ? ' <i>host</i>' : p.spec ? ' <i class="rdy">spectating</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
+      $('mpPlayers').innerHTML = list.map((p) => `<li><span>${p.dev ? `<b class="dev" title="${p.dev === 'phone' ? 'Playing on a phone or tablet' : 'Playing on a computer'}" aria-label="${p.dev === 'phone' ? 'phone' : 'computer'}">${p.dev === 'phone' ? '📱' : '💻'}</b> ` : ''}${esc(p.name)}${p.host ? ' <i>host</i>' : p.spec ? ' <i class="rdy">spectating</i>' : ` <i class="${p.ready ? 'rdy' : 'nrdy'}">${p.ready ? 'ready' : 'not ready'}</i>`}</span><i>${p.host ? '' : [route[p.route] || '', p.ping ? p.ping + ' ms' : ''].filter(Boolean).join(' · ')}${host && !p.host ? `<button class="kick" data-slot="${p.slot}" type="button">Kick</button>` : ''}</i></li>`).join('')
         + (list.length < net.maxPlayers() ? `<li><i>Waiting for players… (up to ${net.maxPlayers()})</i></li>` : '');
       $('mpCount8').textContent = `${list.length}/${net.maxPlayers()}`;
       // big rooms: the host's upload grows with every player (each gets the whole match ~20-30 times a second)
