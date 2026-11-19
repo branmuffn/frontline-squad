@@ -64,15 +64,25 @@ function refreshUi() { if (S.ui) S.ui.players(players(), S.host ? S.cfg : S.lobb
 
 const cleanSkin = (k) => { k = k || {}; const pick = (list, id) => (list.find((e) => e[0] === id) || list[0])[0]; return { uniform: pick(SKINS.uniform, k.uniform), pattern: pick(SKINS.pattern, k.pattern), helmet: pick(SKINS.helmet, k.helmet), op: OPERATORS.some((o) => o.id === k.op) ? k.op : 'rex' }; };
 export function setSkin(k) { S.skin = cleanSkin(k); if (S.client && S.link) S.link.send({ t: 'skin', k: S.skin }); }
-export function hostOpen(name, cfg, skin, wantCode) {
+// Phone host mode (Brian, A3 2026-11-19): while in a multiplayer room or match, keep the screen on. A phone that dims and
+// locks hides the page, which pauses the game and drops everyone's link. Wake Lock is in Chrome, Edge and Safari 16.4+;
+// elsewhere this quietly does nothing. The browser lets go when the tab is hidden, so take it again on return.
+let wake = null;
+function awake(on) {
+  if (!on) { if (wake) { wake.release().catch(() => {}); wake = null; } return; }
+  if (wake || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+  navigator.wakeLock.request('screen').then((w) => { if (!S.role) { w.release().catch(() => {}); return; } wake = w; w.addEventListener('release', () => { if (wake === w) wake = null; }); }).catch(() => {});
+}
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.role) awake(true); });
+export function hostOpen(name, cfg, skin, wantCode, note) {
   leave(true);
   Object.assign(S, { role: 'host', host: true, client: false, name: clean(name), cfg, remotes: [], nextSlot: 1, skin: cleanSkin(skin || S.skin) });
   chat.reset();
-  G.mp = S;
+  G.mp = S; awake(true);
   status('Opening room…');
-  if ((window.__NET_OPTS || {}).nobroker) { status('Room ready (manual codes only).', 'ok'); refreshUi(); return; }
+  if ((window.__NET_OPTS || {}).nobroker) { status('Room ready (manual codes only).' + (note ? ' ' + note : ''), 'ok'); refreshUi(); return; }
   S.room = hostRoom(addLink, (st, v) => {
-    if (st === 'ready') { S.code = v; status('Room open. Share the code; your friend presses Join and types it.', 'ok'); if (S.ui) S.ui.code(v); }
+    if (st === 'ready') { S.code = v; status('Room open. Share the code; your friend presses Join and types it.' + (note ? ' ' + note : ''), 'ok'); if (S.ui) S.ui.code(v); }
     else status(v + ' (Manual codes still work.)', 'warn');
   }, wantCode);
   refreshUi();
@@ -197,7 +207,7 @@ export function sendChat(text, team) {
 export async function joinCode(name, code, skin, spec) {
   leave(true);
   Object.assign(S, { role: 'client', host: false, client: true, name: clean(name), skin: cleanSkin(skin || S.skin), ready: false, spectate: !!spec, slot: undefined, lobby: [], joined: { code, skin, spec: !!spec } }); chat.reset();
-  G.mp = S;
+  G.mp = S; awake(true);
   status('Joining room ' + code.toUpperCase() + '…');
   const p = joinRoom(code); S.pending = p;
   try { attach(await p); } catch (e) { status(e.message, 'warn'); throw e; }
@@ -247,6 +257,7 @@ export function leave(silent) {
   if (S.reply) { if (!S.link) S.reply.close(); S.reply = null; }
   clearProxies();
   Object.assign(S, { role: null, host: false, client: false, live: false, joined: null });
+  awake(false);
   if (G.mp === S) G.mp = null;
   if (!silent) status('');
 }

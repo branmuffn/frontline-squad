@@ -26,7 +26,7 @@ Desktop browser with a mouse and keyboard (press **Controls** in the main menu f
 
 - **Engine:** three.js (r128) with a custom game loop, collision, bot pathfinding and netcode. No game framework.
 - **Collision and bots:** maps are data. They are merged into a few meshes plus axis-aligned colliders in a spatial hash. A 2 m navigation grid drives A* pathfinding, which runs on a Web Worker.
-- **Multiplayer:** the host is the referee. Anything with consequences (damage, deaths, rewards, rounds) has exactly one owner, the host, and joiners mirror it. Joiners move and shoot locally so there is no input lag, and the host checks their hit claims. Rooms connect directly when possible and fall back to a free relay. No server of mine is involved, only a free public matchmaking broker and STUN/TURN servers.
+- **Multiplayer:** the host is the referee. Anything with consequences (damage, deaths, rewards, rounds) has exactly one owner, the host, and joiners mirror it. Joiners move and shoot locally so there is no input lag, and the host checks their hit claims. Rooms connect directly when possible. For strict networks the game can hand out short-lived logins to a Cloudflare TURN relay from a tiny serverless function (`api/turn.js`); without it, only direct links work. No game server is involved, only a free public matchmaking broker and STUN/TURN servers.
 - **Build:** a Vite project in `src/`, bundled into the single HTML file by `scripts/build-standalone.mjs` (esbuild).
 - **Tests:** 68 headless-Chromium (Playwright) test scripts cover every mode on every map, multiplayer with 2 to 16 simulated pages, screen fit at four resolutions, a visual-vs-collider audit of every map, spawn separation, vehicles and the editor.
 

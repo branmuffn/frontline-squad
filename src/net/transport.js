@@ -14,9 +14,25 @@ const loSdp = (sdp) => (opts().loopback ? sdp.replace(HOST_CAND, (_, head, addr,
 // STUN finds a direct route (works for most home networks). When both sides sit behind strict NATs (mobile hotspots,
 // carrier-grade NAT, some office/school Wi-Fi) only a TURN relay can forward the traffic. PeerJS's free relay
 // (eu-0/us-0.turn.peerjs.com) was shut down by the PeerJS team (late 2023; the names no longer resolve, checked
-// 2026-11-15), so there is no built-in relay right now: only the optional relay of the user's own (lobby > Advanced).
+// 2026-11-15). Built-in relay (2026-11-19): the game's own Vercel function /api/turn hands out short-lived Cloudflare TURN
+// logins (api/turn.js). It's fetched once when multiplayer starts, kept for the session, and skipped quietly when it
+// isn't set up or can't be reached (offline file, local dev, tests): then only direct links work, as before.
 const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-const RELAY = [];
+let RELAY = [];
+let relayAsk = null;
+export function loadRelay() {
+  if (relayAsk) return relayAsk;
+  const KEY = 'frontline_relay_v1';
+  try { const c = JSON.parse(sessionStorage.getItem(KEY)); if (c && c.expires > Date.now()) { RELAY = c.iceServers; return (relayAsk = Promise.resolve()); } } catch {}
+  if (opts().nostun || !/^https?:$/.test(location.protocol)) return (relayAsk = Promise.resolve());
+  const ask = fetch('/api/turn', { signal: AbortSignal.timeout ? AbortSignal.timeout(2500) : undefined })
+    .then((r) => (r.status === 200 ? r.json() : null))
+    .then((j) => { if (j && Array.isArray(j.iceServers)) { RELAY = j.iceServers; try { sessionStorage.setItem(KEY, JSON.stringify(j)); } catch {} } })
+    .catch(() => {});
+  // never hold up a room for more than 2.5 s: if the relay is slow, connect without it
+  relayAsk = Promise.race([ask, new Promise((r) => setTimeout(r, 2500))]);
+  return relayAsk;
+}
 export function customTurn() {
   try { const t = (JSON.parse(localStorage.getItem('frontline_mp_v1')) || {}).turn; if (t && /^turns?:/.test(t.url || '')) return { urls: t.url.trim(), username: (t.user || '').trim(), credential: (t.pass || '').trim() }; } catch {}
   return null;
@@ -97,6 +113,7 @@ const brokerMsg = (e) => e && e.type === 'peer-unavailable' ? 'Room not found. C
 export function hostRoom(onLink, onStatus, want) {
   let peer = null, code = null, dead = false;
   const start = () => {
+    if (dead) return;
     code = want || newCode(); want = null; // a migrating host takes over a known code
     peer = new Peer(PREFIX + code, peerOpts());
     peer.on('open', () => onStatus('ready', code));
@@ -109,22 +126,24 @@ export function hostRoom(onLink, onStatus, want) {
     });
     peer.on('disconnected', () => { if (!dead) setTimeout(() => { try { if (!dead && peer.disconnected && !peer.destroyed) peer.reconnect(); } catch {} }, 2000); });
   };
-  start();
-  return { get code() { return code; }, close() { dead = true; try { peer.destroy(); } catch {} } };
+  loadRelay().then(start);
+  return { get code() { return code; }, close() { dead = true; try { peer && peer.destroy(); } catch {} } };
 }
 
 // Client: connect to a room code. Resolves with a Link.
 export function joinRoom(code) {
-  const peer = new Peer(peerOpts());
-  const p = new Promise((resolve, reject) => {
+  let peer = null, cancelled = false;
+  const p = loadRelay().then(() => new Promise((resolve, reject) => {
+    if (cancelled) return reject(new Error('Cancelled.'));
+    peer = new Peer(peerOpts());
     const t = setTimeout(() => reject(new Error('No answer from the host. Check the code, and that the host is still in the lobby.')), 25000);
     peer.on('open', () => {
       const conn = peer.connect(PREFIX + code.trim().toUpperCase(), { serialization: 'raw', reliable: true });
       fromPeerConn(conn).then((L) => { clearTimeout(t); L.peer = peer; resolve(L); }).catch((e) => { clearTimeout(t); reject(new Error(brokerMsg(e))); });
     });
     peer.on('error', (e) => { clearTimeout(t); reject(new Error(brokerMsg(e))); });
-  });
-  p.cancel = () => { try { peer.destroy(); } catch {} };
+  }));
+  p.cancel = () => { cancelled = true; try { peer && peer.destroy(); } catch {} };
   return p;
 }
 
@@ -165,6 +184,7 @@ function rawPair() {
 }
 // Host side: make an invite code; accept(replyCode) resolves with the Link.
 export async function manualInvite() {
+  await loadRelay();
   const { pc, opened } = rawPair();
   await pc.setLocalDescription(await pc.createOffer());
   await gathered(pc);
@@ -182,6 +202,7 @@ export async function manualInvite() {
 // Joiner side: take the invite code, return a reply code plus a promise of the Link.
 export async function manualReply(invite) {
   const r = await unpack(invite); if (r.k !== 'o') throw new Error('Paste the INVITE code from the host here.');
+  await loadRelay();
   const { pc, opened } = rawPair();
   await pc.setRemoteDescription({ type: 'offer', sdp: r.sdp });
   await pc.setLocalDescription(await pc.createAnswer());

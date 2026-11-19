@@ -18,5 +18,6 @@ t tests/phonefit.mjs
 t tests/stamina.mjs
 t tests/regress.mjs 6
 t tests/mp.mjs
+t tests/relay.mjs
 if [ ${#failed[@]} -gt 0 ]; then echo "quick.sh: FAILED: ${failed[*]}"; exit 1; fi
 echo "quick.sh: all passed"

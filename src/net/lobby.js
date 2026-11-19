@@ -75,6 +75,15 @@ function fillSettings(cfg) {
 const SHORT = { survival: 'Survival', zombies: 'Zombies', ffa: 'Free for all', tdm: 'Team DM', gungame: 'Gun Game', ctf: 'Capture the Flag', dom: 'Domination', koth: 'King of the Hill', snd: 'Search & Destroy', infection: 'Infection', range: 'Practice range' };
 let phoneMoved = null, manualMark = null, lastList = [], chatSeen = 0, tilesKey = '';
 const isPhone = () => document.body.classList.contains('touch');
+// Phone host mode (Brian, A3 2026-11-19): the host's device runs every bot for everyone, which is heavy for a phone.
+// Opening a room on a phone starts with at most PHONE_BOTS bots (team modes: 3 v 3); the host can still pick more.
+const PHONE_BOTS = { ffa: 3, gungame: 3, infection: 5, tdm: 3, ctf: 3, dom: 3, koth: 3, snd: 3 };
+function phoneHostBots(cfg) {
+  const cap = PHONE_BOTS[cfg.mode];
+  if (!isPhone() || cap === undefined || +cfg.count <= cap) return '';
+  cfg.count = cap; persist();
+  return `Phone host: bots set to ${['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode) ? cap + ' v ' + cap : cap} to keep it smooth (change it on the Match tab).`;
+}
 const title = (s) => String(s).toLowerCase().replace(/(^|[\s·-])(\w)/g, (m, a, c) => a + c.toUpperCase()); // HARBOUR -> Harbour
 function phoneLayout() {
   if (isPhone() === !!phoneMoved) return;
@@ -213,7 +222,8 @@ export function initLobby(cb) {
   $('mpName').addEventListener('change', name);
   $('mpHost').addEventListener('click', () => {
     setState('host'); $('mpRoomCode').textContent = '·····';
-    fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }, G.profile.skin); updateStart();
+    const note = phoneHostBots(saved.cfg);
+    fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }, G.profile.skin, undefined, note); updateStart();
   });
   $('mpPlayers').addEventListener('click', (e) => { const b = e.target.closest('.kick'); if (b) net.kick(+b.dataset.slot); });
   $('mpReady').addEventListener('click', () => { net.setReady(!net.session.ready); updateStart(); });
