@@ -269,7 +269,7 @@
       <div class="mp-top">
         <label class="field mp-name"><span class="flabel">Your name</span><input id="mpName" maxlength="14" autocomplete="off" spellcheck="false"></label>
         <div class="mp-choose">
-          <button id="mpHost" class="btn-primary" type="button">Host a game</button>
+          <button id="mpHost" class="btn-primary" type="button">Host a game</button><p id="mpPhoneHostNote" class="small hidden">Host from a computer; phones can join.</p>
           <div class="mp-join"><input id="mpCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="mpJoin" class="btn-ghost" type="button">Join</button><button id="mpWatch" class="btn-ghost" type="button" title="Join without playing (spectate)">Watch</button></div>
         </div>
         <div class="mp-codebox"><span class="flabel">Room code</span><b id="mpRoomCode">·····</b><button id="mpCopyCode" class="btn-ghost" type="button">Copy</button><button id="mpCopyLink" class="btn-ghost hidden" type="button">Copy invite link</button></div>
@@ -309,6 +309,7 @@
             <label class="field"><span class="flabel">Power weapons</span><select id="mpPower"><option value="1">On</option><option value="0">Off</option></select></label>
             <label class="field"><span class="flabel">Room size</span><select id="mpBig"><option value="0">Up to 12</option><option value="1">Up to 16 (experimental)</option></select></label>
             <label class="field" id="mpTeamRow"><span class="flabel">Play as</span><select id="mpTeams"><option value="0">Versus (players split into 2 teams)</option><option value="1">Co-op (all players vs bots)</option></select></label>
+            <label class="field" id="mpHostPlayRow"><span class="flabel">You (host)</span><select id="mpHostPlay"><option value="1">Play</option><option value="0">Just watch (run the match for the others)</option></select></label>
           </div>
         </div>
       </div>

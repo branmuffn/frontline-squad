@@ -32,7 +32,7 @@ async function mk(tag, phone, room) {
   await page.route('**/fonts.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('**/fonts.gstatic.com/**', (r) => r.abort());
   await page.route('http://game.local/', (r) => r.fulfill({ contentType: 'text/html', body: html }));
-  await page.addInitScript(STEP + (room ? (LOOP ? ICE_LOOP : '') + 'window.__NET_OPTS={};' : `window.__NET_OPTS={nostun:true,nobroker:true,loopback:${LOOP}};`));
+  await page.addInitScript(STEP + (room ? (LOOP ? ICE_LOOP : '') + 'window.__NET_OPTS={phoneHost:true};' : `window.__NET_OPTS={phoneHost:true,nostun:true,nobroker:true,loopback:${LOOP}};`));
   await page.goto('http://game.local/');
   await page.waitForFunction(() => window.__frontline, null, { timeout: 30000 });
   await page.evaluate(() => { const r = window.__frontline.G.renderer; r.clear = () => {}; r.clearDepth = () => {}; r.render = (s, c) => { s.updateMatrixWorld(); if (c && !c.parent) c.updateMatrixWorld(); }; });
@@ -145,7 +145,25 @@ if (PARTS.includes('c')) {
     const r = await play(P, { mode, map });
     row('c', name, r.ok && errors.length === e0, { ...r.detail, errors: errors.slice(e0) });
   }
+  { // Brian 2026-11-19: the host just watches (runs the match): their soldier isn't in it, the joiner plays the bots
+    const e0 = errors.length;
+    await set('mpHostPlay', '0'); await pick(P.H, 'mode', 'tdm'); await sleep(120); await P.step();
+    if (await P.H.evaluate(() => document.getElementById('mpStart').disabled)) { await press(P.C, '#mpReady'); await sleep(250); await P.step(); }
+    await press(P.H, '#mpStart'); for (let i = 0; i < 24; i++) { await P.step(10); await sleep(40); }
+    const h = await P.H.evaluate(() => { const F = window.__frontline, G = F.G; return { inMatch: G.units.includes(G.player), watching: !!G.spectating, remote: G.units.filter((u) => u.remote).length, name: F.net.session.name }; });
+    const c = await P.C.evaluate(() => { const S = window.__frontline.net.session; return { live: !!S.live, names: [...S.proxies.values()].map((u) => u.name) }; });
+    row('c', 'host just watches (TDM)', !h.inMatch && h.watching && h.remote === 1 && c.live && c.names.length > 0 && !c.names.includes(h.name) && errors.length === e0, { h, c, errors: errors.slice(e0) });
+    await P.H.evaluate(() => document.getElementById('quit').click()); for (let i = 0; i < 8; i++) { await P.step(5); await sleep(40); }
+    await set('mpHostPlay', '1');
+  }
   await P.close();
+  { // Brian 2026-11-19: phones can't host (real phone hosts failed); they still Join and Watch
+    const Ph = await mk('PHONE', true, false);
+    await Ph.evaluate(() => { window.__NET_OPTS.phoneHost = false; document.getElementById('openMp').click(); });
+    const v = await Ph.evaluate(() => { const vis = (id) => !document.getElementById(id).classList.contains('hidden') && document.getElementById(id).offsetParent !== null; return { host: vis('mpHost'), note: vis('mpPhoneHostNote'), join: vis('mpJoin'), watch: vis('mpWatch') }; });
+    row('c', 'phone: no Host button, Join + Watch stay', !v.host && v.note && v.join && v.watch, v);
+    await Ph.ctx.close();
+  }
   // touch controls switched off on a phone: the phone gets the computer lobby and still hosts
   errors = [];
   const Q = await pair({ hostPhone: false, joinPhone: false });

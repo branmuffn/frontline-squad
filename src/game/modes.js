@@ -75,7 +75,7 @@ const infection = {
     for (const u of G.units) u.team = 0;
     m.teams = true;
     if (G.mp && G.mp.live && G.mp.client) return; // the host picks patient zero
-    const first = pick(G.units.filter((u) => !u.isPlayer).concat(chance(1 / G.units.length) ? [G.player] : []));
+    const first = pick(G.units.filter((u) => !u.isPlayer).concat(chance(1 / G.units.length) && G.units.includes(G.player) ? [G.player] : []));
     infect(first); m.firstInfected = first;
   },
   weapons(u) { return u.team === 1 ? ['knife'] : null; },

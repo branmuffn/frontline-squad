@@ -72,7 +72,7 @@ export function startMatch(cfg) {
     for (let i = 0; i < nb; i++) addBot({ name: names[i], team: i + 1, weapon: pickWeapon(), uniform: UNIFORMS[i % UNIFORMS.length], accent: ACCENTS[i % ACCENTS.length] });
   } else if (m.teams) {
     const squads = cfg.mode === 'tdm' || mode.teamSize;
-    let allies = squads ? cfg.count - 1 : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies;
+    let allies = squads ? cfg.count - 1 + (G.mp && G.mp.live && G.mp.host && cfg.hostWatch ? 1 : 0) : Math.floor(cfg.count / 2), foes = squads ? cfg.count : cfg.count - allies; // a watching host leaves a gap for a bot
     allies = Math.max(0, allies - rt.filter((t) => t === 0).length); foes = Math.max(0, foes - rt.filter((t) => t === 1).length);
     for (let i = 0; i < allies; i++) addBot({ name: names[i], team: 0, weapon: pickWeapon(), uniform: pick([0x5f6a52, 0x857b5f, 0x6d6255]), accent: TEAMS[0].hex, helmet: 0x4a5340 });
     for (let i = 0; i < foes; i++) addBot({ name: names[allies + i], team: 1, weapon: pickWeapon(), uniform: pick([0x3a3f44, 0x46423c, 0x2f3438]), accent: TEAMS[1].hex, helmet: 0x26292b });

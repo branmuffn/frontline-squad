@@ -290,7 +290,7 @@ function migrate() {
   const sc = S.succ, m = G.match; if (!sc || !m) return false;
   const keep = { time: m.time, ts: m.teamScores && m.teamScores.slice(), scores: {} };
   for (const u of G.units) if (u.isPlayer || u.human) keep.scores[u.isPlayer ? S.name : u.name] = { kills: u.kills, deaths: u.deaths, team: u.team };
-  const me = S.name, first = sc.order[0] === me, cfg = { ...sc.cfg }, skin = S.skin;
+  const me = S.name, first = sc.order[0] === me, cfg = { ...sc.cfg, hostWatch: false }, skin = S.skin; // the new host was playing: they keep playing
   hud.banner('Host left', first ? 'You are taking over the match…' : `${sc.order[0]} is taking over…`);
   S.live = false; clearProxies();
   if (first) {
@@ -335,11 +335,22 @@ function launch(cfg) {
   S.liveCfg = cfg; S.dropped = {};
   S.live = true; S.shots = []; S.rosterKey = ''; S.snapAcc = 0;
   S.cb.deploy(cfg);         // startMatch → makeRemoteUnits + spawnRemote
+  if (cfg.hostWatch) hostWatch();
   for (const r of S.remotes) Object.assign(r, { go: false, startT: Date.now(), resends: 0 });
   for (const r of S.remotes) if (r.unit) r.link.send({ t: 'start', cfg, uid: r.unit.id, team: r.unit.team, sp: spawnOf(r.unit), seq: r.seq, hostName: S.name });
   for (const r of joined()) if (r.spec) sendSpecStart(r, cfg); // spectators watch from the start (they used to be left in the lobby)
   sendRoster(true); sendSuccession();
   return true;
+}
+// Brian (2026-11-19): the host can just run the match and watch (e.g. two phones play fairly while a computer hosts).
+// Their own soldier leaves the match: not in G.units, so bots, scores, teams and snapshots never see it; the camera
+// follows the players like a joiner who pressed Watch.
+function hostWatch() {
+  const P = G.player; if (!P) return;
+  G.units = G.units.filter((u) => u !== P);
+  P.alive = false; P.x = 0; P.y = -50; P.z = 0;
+  G.spectating = { i: 0, fp: false };
+  hud.notice(input.touch ? 'You are hosting and watching · tap: next player' : 'You are hosting and watching · click: next player · V: their eyes / chase cam');
 }
 const spawnOf = (u) => ({ x: u.x, y: u.y, z: u.z, yaw: u.yaw });
 const sendSpecStart = (r, cfg) => (r.out = false, r.link.send({ t: 'start', cfg, uid: 0, team: -1, spec: true, sp: { x: 0, y: 0, z: 0, yaw: 0 }, seq: 0, hostName: S.name }));

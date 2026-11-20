@@ -65,6 +65,7 @@ function fillSettings(cfg) {
   const vOk = !!(MAPS[cfg.map] && MAPS[cfg.map].vehicles) && VEHICLE_MODES.includes(cfg.mode);
   $('mpVehRow').classList.toggle('hidden', !vOk); $('mpVeh').value = cfg.vehicles ? '1' : '0';
   $('mpTeams').value = cfg.sameTeam ? '1' : '0';
+  $('mpHostPlay').value = cfg.hostWatch ? '0' : '1'; $('mpHostPlayRow').classList.toggle('hidden', !host || isPhone()); // phones don't host (and the Rules tab must fit) // Brian 2026-11-19: host can just watch
   refreshPhone();
 }
 
@@ -84,6 +85,13 @@ function phoneHostBots(cfg) {
   cfg.count = cap; persist();
   return `Phone host: bots set to ${['tdm', 'ctf', 'dom', 'koth', 'snd'].includes(cfg.mode) ? cap + ' v ' + cap : cap} to keep it smooth (change it on the Match tab).`;
 }
+// Brian (2026-11-19): hosting from a phone didn't work for him (joiners never entered the match), so phones can join,
+// watch and play but not host. The code stays (phoneHostBots, Wake Lock); tests switch it back on with __NET_OPTS.phoneHost.
+function phoneNoHost() {
+  const off = isPhone() && !(window.__NET_OPTS || {}).phoneHost;
+  $('mpHost').classList.toggle('hidden', off); $('mpPhoneHostNote').classList.toggle('hidden', !off);
+  $('mp').querySelector('.mp-host-only').classList.toggle('hidden', off);
+}
 const title = (s) => String(s).toLowerCase().replace(/(^|[\s·-])(\w)/g, (m, a, c) => a + c.toUpperCase()); // HARBOUR -> Harbour
 function phoneLayout() {
   if (isPhone() === !!phoneMoved) return;
@@ -93,7 +101,7 @@ function phoneLayout() {
     [field('mpDiff'), 'mppBots'], [field('mpZdiff'), 'mppBots'], [$('mpCountRow'), 'mppBots'],
     [mp.querySelector('.mp-plist'), 'mppPlayers'],
     [$('mpScoreRow'), 'mppRules'], [$('mpTimeRow'), 'mppRules'], [field('mpPick'), 'mppRules'], [field('mpPower'), 'mppRules'],
-    [$('mpVehRow'), 'mppRules'], [field('mpBig'), 'mppRules'], [$('mpTeamRow'), 'mppRules'], [mp.querySelector('.mp-botrules'), 'mppRules'],
+    [$('mpVehRow'), 'mppRules'], [field('mpBig'), 'mppRules'], [$('mpTeamRow'), 'mppRules'], [$('mpHostPlayRow'), 'mppRules'], [mp.querySelector('.mp-botrules'), 'mppRules'],
     [mp.querySelector('.mp-chat'), 'mppChat'],
     [mp.querySelector('.mp-codebox'), mp.querySelector('.ptitle')], // room code beside the title
     [$('mpStatus'), mp.querySelector('.btn-row'), true], // status line bottom-left, beside the buttons
@@ -152,7 +160,7 @@ function refreshTabs() {
 function readSettings() {
   const c = saved.cfg;
   c.mode = $('mpMode').value; c.map = $('mpMap').value; c.skill = +$('mpDiff').value || 5; c.zdiff = $('mpZdiff').value || 'normal'; c.difficulty = skillBand(c.skill);
-  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.big = $('mpBig').value === '1'; c.power = $('mpPower').value === '1'; c.pickups = $('mpPick').value === '1';
+  c.count = $('mpCount').value === '' ? MODES[c.mode].defaultCount || 0 : +$('mpCount').value; c.sameTeam = $('mpTeams').value === '1'; c.vehicles = $('mpVeh').value === '1'; c.big = $('mpBig').value === '1'; c.power = $('mpPower').value === '1'; c.pickups = $('mpPick').value === '1'; c.hostWatch = $('mpHostPlay').value === '0';
   c.limits = c.limits || {}; c.limits[c.mode] = { score: +$('mpScore').value, time: +$('mpTime').value };
   fillSettings(c); persist();
   if (G.state === 'menu') import('../world/maps/index.js').then((m) => m.loadMap(c.map));
@@ -238,7 +246,7 @@ export function initLobby(cb) {
   $('mpJoin').addEventListener('click', () => join(false));
   $('mpWatch').addEventListener('click', () => join(true));
   $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(false); e.stopPropagation(); });
-  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig', 'mpPower']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
+  for (const id of ['mpMode', 'mpMap', 'mpDiff', 'mpZdiff', 'mpCount', 'mpTeams', 'mpVeh', 'mpScore', 'mpTime', 'mpPick', 'mpBig', 'mpPower', 'mpHostPlay']) $(id).addEventListener('change', () => { if (net.session.host) readSettings(); });
   $('mpBotRules').addEventListener('click', (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k || !net.session.host) return; saved.cfg.bots[k] = !saved.cfg.bots[k]; readSettings(); });
   $('mpCopyCode').addEventListener('click', (e) => copy($('mpRoomCode').textContent, e.target));
   $('mpInvite').addEventListener('click', async () => {
@@ -283,7 +291,7 @@ export function initLobby(cb) {
 }
 
 export function openMp(msg) {
-  phoneLayout(); // touch screens: tabs down the left (re-checked each time: touch controls can be switched in Settings)
+  phoneLayout(); phoneNoHost(); // touch screens: tabs down the left (re-checked each time: touch controls can be switched in Settings)
   $('mpName').value = saved.name;
   const s = net.session;
   setState(s.host ? 'host' : s.client ? 'client' : 'choose');

@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
 const THREE = fs.readFileSync(path.join(HERE, 'three.min.js'), 'utf8');
 const html = fs.readFileSync(path.join(HERE, '../dist-standalone/frontline_solo_ops.html'), 'utf8');
 // a fake Wake Lock that records what the game asks for; nobroker: only manual codes (no internet needed)
-const INIT = `window.__rafq=[];window.requestAnimationFrame=function(f){window.__rafq.push(f);return window.__rafq.length;};window.__NET_OPTS={nobroker:true};window.__wake=[];
+const INIT = `window.__rafq=[];window.requestAnimationFrame=function(f){window.__rafq.push(f);return window.__rafq.length;};window.__NET_OPTS={phoneHost:true,nobroker:true};window.__wake=[];
 Object.defineProperty(navigator,'wakeLock',{value:{request:async()=>{const l={released:false,listeners:[],addEventListener(t,f){this.listeners.push(f);},release:async()=>{l.released=true;window.__wake.push('off');}};window.__wake.push('on');return l;}}});`;
 const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const out = {}, fail = [], errors = [];
