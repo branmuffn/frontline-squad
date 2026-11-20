@@ -79,6 +79,9 @@ await ev(C2, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: '
 await run(10); await sleep(200);
 const hlog = await ev(H, () => document.getElementById('chatlog').textContent);
 check('hud chat', hlog.includes('gg'), hlog);
+// Esc while typing: the browser drops the mouse lock (pointerlockchange); that must close the chat, not pause the game
+const esc = await ev(C2, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT' })); const open = !document.getElementById('chatIn').classList.contains('hidden'); document.dispatchEvent(new Event('pointerlockchange')); return { open, closed: document.getElementById('chatIn').classList.contains('hidden'), state: window.__frontline.G.state }; });
+check('esc closes chat, no pause', esc.open && esc.closed && esc.state !== 'paused', esc);
 if (mode === 'tdm') { // team chat from C1 (team 1) must not reach the host or C2 (team 0)
   await ev(C1, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyY' })); const i = document.getElementById('chatIn'); i.value = 'secret'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
   await run(10); await sleep(200);

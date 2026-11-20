@@ -22,7 +22,12 @@ export function open(send, team) {
   const i = el('chatIn'); if (!i) return;
   sendFn = send; i.value = ''; i.placeholder = team ? 'Team only… (Enter sends, Esc cancels)' : 'Everyone… (Enter sends, Esc cancels)'; i.classList.toggle('team', !!team); i.classList.remove('hidden'); el('chatlog').classList.add('fresh', 'typing'); i.focus();
 }
-function close() { const i = el('chatIn'); i.classList.add('hidden'); i.blur(); el('chatlog').classList.remove('typing'); clearTimeout(fade); fade = setTimeout(() => el('chatlog').classList.remove('fresh'), 6000); }
+// Brian (2026-11-19): Esc in chat also makes the browser drop the mouse lock, which used to open the pause menu.
+// main.js asks typingOrJustClosed() and skips the pause, so Esc only closes the chat.
+let closedT = 0;
+export const typingOrJustClosed = () => isOpen() || Date.now() - closedT < 400;
+function close() { closedT = Date.now(); const i = el('chatIn'); i.classList.add('hidden'); i.blur(); el('chatlog').classList.remove('typing'); clearTimeout(fade); fade = setTimeout(() => el('chatlog').classList.remove('fresh'), 6000); }
+export const closeChat = () => close();
 export function initChat() {
   const i = el('chatIn');
   i.addEventListener('keydown', (e) => {

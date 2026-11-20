@@ -220,7 +220,8 @@ function onLockChange(locked) {
     if (G.netPaused && wantResume) { G.netPaused = false; showScreen(null); }
     else if (G.state === 'paused' && wantResume) { G.state = G.pausedFrom; showScreen(null); }
     wantResume = false;
-  } else if (isLive() && !input.freeLook && !G.netPaused) pause(false);
+  } else if (chat.typingOrJustClosed()) { if (chat.isOpen()) chat.closeChat(); } // Esc while chatting: close the chat, keep playing (click to aim again)
+  else if (isLive() && !input.freeLook && !G.netPaused) pause(false);
 }
 function onLockError() {
   wantResume = false;
