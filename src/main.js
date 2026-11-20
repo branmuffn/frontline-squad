@@ -248,7 +248,7 @@ function onKeyDown(code, e) {
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code) || Object.values(G.profile.settings.keys).includes(code)) e.preventDefault();
   if (armoryOpen && (code === 'Escape' || matches('armory', code))) { onArmory({ action: 'close' }); return; }
   if (code === 'Escape' && input.freeLook && isLive()) { pause(false); return; }
-  if (G.mp && G.mp.live && isLive() && !G.netPaused && !e.repeat && (code === 'Enter' || matches('chat', code) || matches('teamChat', code))) { e.preventDefault(); clearInput(); toggleBoard(false); const team = matches('teamChat', code) && !!(G.match && G.match.teams); chat.open((t) => net.sendChat(t, team), team); return; }
+  if (G.mp && G.mp.live && isLive() && !G.netPaused && !e.repeat && (code === 'Enter' || matches('chat', code) || matches('teamChat', code))) { e.preventDefault(); clearInput(); toggleBoard(false); const teams = !!(G.match && G.match.teams); chat.open((t, tm) => net.sendChat(t, tm), matches('teamChat', code) && teams, teams); return; }
   if (!isLive() || G.netPaused) return;
   if (matches('scoreboard', code)) toggleBoard(true);
   if (e.repeat) return;

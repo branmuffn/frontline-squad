@@ -87,6 +87,12 @@ if (mode === 'tdm') { // team chat from C1 (team 1) must not reach the host or C
   await run(10); await sleep(200);
   const seen = await Promise.all([H, C2, C1].map((p) => ev(p, () => document.getElementById('mpChatLog').textContent.includes('secret'))));
   check('team chat private', !seen[0] && !seen[1] && seen[2], seen);
+  // desktop switch (2026-11-20): T opens To: All, Tab flips to Team while typing
+  await run(40);
+  const sw = await ev(C1, () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT' })); const i = document.getElementById('chatIn'); const before = i.placeholder; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })); const after = i.placeholder; i.value = 'tabbed'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return { before, after }; });
+  await run(10); await sleep(200);
+  const seen2 = await Promise.all([H, C2, C1].map((p) => ev(p, () => document.getElementById('mpChatLog').textContent.includes('tabbed'))));
+  check('tab switches to team', sw.before.startsWith('To: All') && sw.after.startsWith('To: Team') && !seen2[0] && !seen2[1] && seen2[2], { sw, seen2 });
 }
 // phone chat (D1): the touch chat button opens quick replies; a tap sends; "Type…" opens the input
 await ev(C1, () => { window.__frontline.input.touch = true; document.body.classList.add('touch'); });

@@ -18,9 +18,18 @@ function render(fresh) {
 }
 export const isOpen = () => { const i = el('chatIn'); return !!(i && !i.classList.contains('hidden')); };
 // in-match input; send(text) is net.sendChat
-export function open(send, team) {
+// Brian (2026-11-20): desktop can switch too. T opens To: All, Y opens To: Team; in team modes Tab flips while typing.
+// send(text, team) gets the side chosen at the moment Enter is pressed.
+let curTeam = false, canSwitch = false;
+function paintIn() {
   const i = el('chatIn'); if (!i) return;
-  sendFn = send; i.value = ''; i.placeholder = team ? 'Team only… (Enter sends, Esc cancels)' : 'Everyone… (Enter sends, Esc cancels)'; i.classList.toggle('team', !!team); i.classList.remove('hidden'); el('chatlog').classList.add('fresh', 'typing'); i.focus();
+  const sw = canSwitch ? ' · Tab: ' + (curTeam ? 'everyone' : 'team only') : '';
+  i.placeholder = (curTeam ? 'To: Team' : 'To: All') + sw + ' · Enter sends · Esc cancels';
+  i.classList.toggle('team', curTeam);
+}
+export function open(send, team, teams = !!team) {
+  const i = el('chatIn'); if (!i) return;
+  sendFn = send; curTeam = !!team; canSwitch = !!teams; i.value = ''; paintIn(); i.classList.remove('hidden'); el('chatlog').classList.add('fresh', 'typing'); i.focus();
 }
 // Brian (2026-11-19): Esc in chat also makes the browser drop the mouse lock, which used to open the pause menu.
 // main.js asks typingOrJustClosed() and skips the pause, so Esc only closes the chat.
@@ -32,7 +41,8 @@ export function initChat() {
   const i = el('chatIn');
   i.addEventListener('keydown', (e) => {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); const v = i.value; close(); if (v.trim() && sendFn) sendFn(v); }
+    if (e.key === 'Enter') { e.preventDefault(); const v = i.value; close(); if (v.trim() && sendFn) sendFn(v, curTeam); }
+    else if (e.key === 'Tab') { e.preventDefault(); if (canSwitch) { curTeam = !curTeam; paintIn(); } }
     else if (e.key === 'Escape') { e.preventDefault(); close(); }
   });
   i.addEventListener('keyup', (e) => e.stopPropagation());
@@ -55,7 +65,7 @@ export function toggleQuick(send, teams) {
       const b = e.target.closest('button'); if (!b) return; e.preventDefault();
       if (b.dataset.q === 'to') { qTeam = !qTeam; paintTo(); qTimer(); return; }
       hideQuick();
-      if (b.dataset.q === 'type') open((t) => qSend(t, qTeam), qTeam);
+      if (b.dataset.q === 'type') open((t) => qSend(t, qTeam), qTeam, false); // phones pick All/Team on the chip first
       else qSend(b.dataset.q, qTeam);
     });
     document.body.appendChild(qEl);
