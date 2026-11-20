@@ -110,6 +110,15 @@ await run(40); await tapChat(); const typ = await ev(C1, () => { document.queryS
 await run(10); await sleep(200);
 const tlog = await ev(H, () => document.getElementById('chatlog').textContent);
 check('phone type chat', typ.open && typ.tray && tlog.includes('typed on phone'), { typ, tlog: tlog.slice(-80) });
+// Brian (2026-11-20): a tap/swipe elsewhere closes the chat WITHOUT sending (quick column and typing box both)
+await run(10); await tapChat(); const away = await ev(C1, () => { const o = { bubbles: true, pointerId: 9, clientX: 200, clientY: 150 }; const g = document.querySelector('#touchUI [data-t="look"]') || document.body;
+  const q = document.getElementById('chatQuick'); const before = !q.classList.contains('hidden'); g.dispatchEvent(new PointerEvent('pointerdown', o)); g.dispatchEvent(new PointerEvent('pointerup', o)); const quickGone = q.classList.contains('hidden');
+  document.querySelector('#touchUI .t-chat').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 10, clientX: 1, clientY: 1 })); document.querySelector('#touchUI .t-chat').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 10, clientX: 1, clientY: 1 }));
+  q.querySelector('[data-q="type"]').click(); const i = document.getElementById('chatIn'); i.value = 'never sent'; g.dispatchEvent(new PointerEvent('pointerdown', { ...o, pointerId: 11 })); g.dispatchEvent(new PointerEvent('pointerup', { ...o, pointerId: 11 }));
+  return { before, quickGone, typingGone: i.classList.contains('hidden') }; });
+await run(10); await sleep(200);
+const alog = await ev(H, () => document.getElementById('chatlog').textContent);
+check('phone chat closes on outside tap, no send', away.before && away.quickGone && away.typingGone && !alog.includes('never sent'), { away, alog: alog.slice(-80) });
 await run(secs * 60);
 // kick C2
 const slot2 = await ev(H, () => window.__frontline.net.session.remotes[1].slot);

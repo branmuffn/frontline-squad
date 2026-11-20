@@ -47,6 +47,15 @@ export function initChat() {
   });
   i.addEventListener('keyup', (e) => e.stopPropagation());
   i.addEventListener('blur', () => { if (!i.classList.contains('hidden')) close(); });
+  // Brian (2026-11-20): with the chat open, a tap or swipe anywhere else closes it WITHOUT sending, and that same touch
+  // still moves, aims or shoots (capture phase, nothing is stopped). Only Enter / a reply button sends. Phones need
+  // this: the game's touch controls cancel the default action, so the text box never lost focus on its own.
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target;
+    if (t.closest && (t.closest('#chatIn') || t.closest('#chatQuick') || t.closest('[data-t="chat"]'))) return;
+    if (isOpen()) close();
+    if (quickOpen()) hideQuick();
+  }, true);
 }
 
 // Phone quick chat (Brian picked D1, 2026-11-20): the touch chat button opens one row of quick replies (a tap sends),
