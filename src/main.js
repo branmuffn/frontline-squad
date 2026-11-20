@@ -71,7 +71,7 @@ function boot() {
     onAimToggle: () => { const P = G.player; if (!input.aim) { input.aim = true; if (P) P.zoomIdx = 0; return; } if (P && scopeZoom(0) && P.zoomIdx !== 0) return; input.aim = false; if (P) P.zoomIdx = 0; },
     onLockChange, onLockError, onCanvasClick, onBlur: () => { if (isLive() && !input.freeLook) pause(false); },
   });
-  initTouch({ onPause: () => pause(false), onCycle: () => { const P = G.player; if (G.state === 'playing' && P && P.alive && !P.vehicle) cycleWeapon(1); } });
+  initTouch({ onPause: () => pause(false), onChat: () => { if (G.mp && G.mp.live && isLive() && !G.netPaused) chat.toggleQuick((t, team) => net.sendChat(t, team), !!(G.match && G.match.teams)); }, onCycle: () => { const P = G.player; if (G.state === 'playing' && P && P.alive && !P.vehicle) cycleWeapon(1); } });
   initChat();
   initLobby({ showScreen });
   net.init({ deploy: (cfg) => deploy(cfg), abort: (msg) => { leaveMpMatch(); openMp(msg); }, pickSpawn: (u) => pickSpawn(u) });

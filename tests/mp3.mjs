@@ -88,6 +88,18 @@ if (mode === 'tdm') { // team chat from C1 (team 1) must not reach the host or C
   const seen = await Promise.all([H, C2, C1].map((p) => ev(p, () => document.getElementById('mpChatLog').textContent.includes('secret'))));
   check('team chat private', !seen[0] && !seen[1] && seen[2], seen);
 }
+// phone chat (D1): the touch chat button opens quick replies; a tap sends; "Type…" opens the input
+await ev(C1, () => { window.__frontline.input.touch = true; document.body.classList.add('touch'); });
+await run(40); // the host drops a player's chat sent within 0.4 s of their last one
+const tapChat = () => ev(C1, () => { const b = document.querySelector('#touchUI .t-chat'); const o = { bubbles: true, pointerId: 7, clientX: 1, clientY: 1 }; b.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o)); const q = document.getElementById('chatQuick'); return { btn: getComputedStyle(b).display, tray: !!q && !q.classList.contains('hidden'), to: !!(q && q.querySelector('.cq-to')) }; });
+const q1 = await tapChat();
+await ev(C1, () => document.querySelector('#chatQuick [data-q="nice!"]').click()); await run(10); await sleep(200);
+const qlog = await ev(H, () => document.getElementById('chatlog').textContent);
+check('phone quick chat', q1.btn !== 'none' && q1.tray && q1.to === (mode === 'tdm') && qlog.includes('nice!'), { q1, qlog });
+await run(40); await tapChat(); const typ = await ev(C1, () => { document.querySelector('#chatQuick [data-q="type"]').click(); const i = document.getElementById('chatIn'); const r = { open: !i.classList.contains('hidden'), tray: document.getElementById('chatQuick').classList.contains('hidden') }; i.value = 'typed on phone'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return r; });
+await run(10); await sleep(200);
+const tlog = await ev(H, () => document.getElementById('chatlog').textContent);
+check('phone type chat', typ.open && typ.tray && tlog.includes('typed on phone'), { typ, tlog: tlog.slice(-80) });
 await run(secs * 60);
 // kick C2
 const slot2 = await ev(H, () => window.__frontline.net.session.remotes[1].slot);

@@ -639,7 +639,7 @@ body.touch.t-play #touchUI { display: block; }
   .t-nade { width: 44px; height: 44px; bottom: calc(230px + env(safe-area-inset-bottom, 0px)); }
 }
 .t-pause { width: 38px; height: 38px; border-radius: 10px; right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
-#touchUI.t-dead .t-btn:not(.t-pause), #touchUI.t-dead .t-weapon, #touchUI.t-dead .t-stick { display: none; }
+#touchUI.t-dead .t-btn:not(.t-pause):not(.t-chat), #touchUI.t-dead .t-weapon, #touchUI.t-dead .t-stick { display: none; }
 #touchUI.t-veh .t-aim, #touchUI.t-veh .t-reload, #touchUI.t-veh .t-nade, #touchUI.t-veh .t-weapon { display: none; }
 /* smaller HUD on touch screens, kept clear of the thumbs */
 body.touch #radar { width: 84px; height: 84px; }
@@ -959,3 +959,17 @@ body.touch #mp .btn-row #mpStatus { margin: 0 auto 0 0; min-height: 0; font-size
 
 /* short landscape phones (Brian 2026-11-19: two more touch toggles): settings toggles in two columns so the tab fits */
 @media (max-height: 460px) and (min-width: 700px) { #settings #toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; } }
+
+/* Phone chat (Brian picked D1, 2026-11-20): chat button left of Pause; tap = quick replies + "Type…" */
+.t-chat { display: none; width: 38px; height: 38px; border-radius: 10px; right: calc(56px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
+.t-chat.show { display: flex; }
+#touchUI.t-mp .t-armory { right: calc(102px + env(safe-area-inset-right, 0px)); }
+.chat-quick { position: fixed; z-index: 14; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(150px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.chat-quick button { flex: none; }
+.chat-quick.hidden { display: none; }
+.chat-quick button:first-child { margin-left: auto; }
+.chat-quick button { min-height: 38px; padding: 0 11px; border-radius: 999px; background: rgba(10, 13, 15, 0.8); color: var(--ink); border: 1px solid rgba(235, 230, 214, 0.55); font: inherit; font-size: 13px; font-weight: 700; touch-action: manipulation; }
+.chat-quick button:active { background: rgba(235, 230, 214, 0.3); }
+.chat-quick .cq-to { border-color: var(--brass); color: var(--brass); }
+.chat-quick .cq-to.team { border-color: #5b8fc9; color: #8fc2ff; }
+body.touch .chat-in { position: fixed; z-index: 14; left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; transform: translateX(-50%); width: min(460px, 70vw); }

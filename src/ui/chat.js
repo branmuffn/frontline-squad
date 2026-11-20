@@ -38,3 +38,30 @@ export function initChat() {
   i.addEventListener('keyup', (e) => e.stopPropagation());
   i.addEventListener('blur', () => { if (!i.classList.contains('hidden')) close(); });
 }
+
+// Phone quick chat (Brian picked D1, 2026-11-20): the touch chat button opens one row of quick replies (a tap sends),
+// "Type…" opens the keyboard. The game keeps running; the row hides after 5 s untouched.
+const QUICK = ['gg', 'nice!', 'help me', 'on my way', 'go go go', 'thanks'];
+let qEl = null, qHide = 0, qTeam = false, qSend = null;
+export const quickOpen = () => !!(qEl && !qEl.classList.contains('hidden'));
+export function hideQuick() { if (qEl) qEl.classList.add('hidden'); clearTimeout(qHide); }
+const qTimer = () => { clearTimeout(qHide); qHide = setTimeout(hideQuick, 5000); };
+export function toggleQuick(send, teams) {
+  if (quickOpen()) { hideQuick(); return; }
+  qSend = send; if (!teams) qTeam = false;
+  if (!qEl) {
+    qEl = document.createElement('div'); qEl.id = 'chatQuick'; qEl.className = 'chat-quick hidden';
+    qEl.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return; e.preventDefault();
+      if (b.dataset.q === 'to') { qTeam = !qTeam; paintTo(); qTimer(); return; }
+      hideQuick();
+      if (b.dataset.q === 'type') open((t) => qSend(t, qTeam), qTeam);
+      else qSend(b.dataset.q, qTeam);
+    });
+    document.body.appendChild(qEl);
+  }
+  qEl.innerHTML = (teams ? '<button type="button" class="cq-to" data-q="to"></button>' : '')
+    + QUICK.map((q) => `<button type="button" data-q="${q}">${q}</button>`).join('') + '<button type="button" data-q="type">Type…</button>';
+  paintTo(); qEl.classList.remove('hidden'); el('chatlog').classList.add('fresh'); qTimer();
+}
+function paintTo() { const b = qEl && qEl.querySelector('.cq-to'); if (b) { b.textContent = qTeam ? 'To: Team' : 'To: All'; b.classList.toggle('team', qTeam); } }

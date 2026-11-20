@@ -4,6 +4,7 @@
 // Buttons press the player's bound keys and the mouse handlers, so every action goes through the same code as the
 // keyboard (main.js onKeyDown / onKeyUp). Multiplayer sends state, not inputs, so touch and desktop players mix freely.
 import { G, isLive } from './state.js';
+import { hideQuick } from '../ui/chat.js';
 import { input, binding } from './input.js';
 import { WEAPONS, AUTO_FIRE } from './config.js';
 import { enemyUnderCrosshair } from '../entities/aimassist.js';
@@ -25,12 +26,13 @@ const ICON = {
   use: '<path d="M8 12l3 3 5-6"/><circle cx="12" cy="12" r="9"/>',
   streak: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   pause: '<path d="M9 6v12M15 6v12"/>',
+  chat: '<path d="M4 5h16v11H8l-4 4z"/>',
   equip: '<rect x="5" y="8" width="14" height="8" rx="1.5"/><path d="M8 16l-2 4M16 16l2 4M9 12h6"/>',
   armory: '<path d="M3 13h13l3-3h2M6 13v4h3l1-4M16 10V8"/>',
 };
 const BUTTONS = [ // [role, label, class]
   ['fire', 'Fire'], ['aim', 'Aim'], ['reload', 'Reload'], ['crouch', 'Crouch'], ['jump', 'Jump'], ['nade', 'Grenade'],
-  ['use', 'Use'], ['streak', 'Streak'], ['pause', ''],
+  ['use', 'Use'], ['streak', 'Streak'], ['pause', ''], ['chat', ''], // chat: multiplayer only (Brian picked D1, 2026-11-20)
   ['equip', 'Equip'], ['armory', 'Weapons'], ['turn', '180°'], // turn: turn around (Brian picked A, 2026-11-16) // claymore (when carried); Sandbox / Range weapon menu (B on keyboards)
 ];
 const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
@@ -191,6 +193,7 @@ function press(p) {
   else if (r === 'board') keyDown('scoreboard');
   else if (r === 'weapon') opts.onCycle();
   else if (r === 'pause') opts.onPause();
+  else if (r === 'chat') { if (opts.onChat) opts.onChat(); }
   else if (r === 'turn') { if (P && P.alive && !P.vehicle) turnLeft = Math.PI; }
 }
 
@@ -271,13 +274,14 @@ function autoFire(P, alive) {
 export function touchTick() {
   if (!input.touch || !root) return;
   const live = isLive() && !G.netPaused;
-  if (live !== playing) { playing = live; document.body.classList.toggle('t-play', live); if (!live) releaseAll(); }
+  if (live !== playing) { playing = live; document.body.classList.toggle('t-play', live); if (!live) { releaseAll(); hideQuick(); } }
   if (!live) return;
   const P = G.player, alive = !!(P && P.alive) && !G.spectating && (G.state === 'playing' || G.state === 'deploy');
   if (P && P !== lastP) { // a new match (or respawn): the sprint tip shows for the first few matches on this device
     lastP = P; const s = G.profile.settings;
     if (G.state === 'deploy' && (s.touchTipN || 0) < 3) { s.touchTipN = (s.touchTipN || 0) + 1; tipUntil = G.realTime + 8; }
   }
+  const mp = !!(G.mp && G.mp.live); cls(root, 't-mp', mp); cls(btn.chat, 'show', mp);
   cls(tip, 'show', alive && G.realTime < tipUntil);
   const now = G.realTime, dt = Math.min(0.05, Math.max(0, now - (lastTick || now))); lastTick = now;
   if (turnLeft > 0 && alive && !P.vehicle) { const st = Math.min(turnLeft, dt * Math.PI / AUTO_FIRE.turn); P.yaw += st; turnLeft -= st; } else turnLeft = 0;
