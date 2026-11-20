@@ -231,7 +231,7 @@ export function initLobby(cb) {
   $('mpHost').addEventListener('click', () => {
     setState('host'); $('mpRoomCode').textContent = '·····';
     const note = phoneHostBots(saved.cfg);
-    fillSettings(saved.cfg); net.hostOpen(name(), { ...saved.cfg }, G.profile.skin, undefined, note); updateStart();
+    net.hostOpen(name(), { ...saved.cfg }, G.profile.skin, undefined, note); fillSettings(saved.cfg); updateStart(); // fill after hostOpen: host-only rows ("You (host)") need session.host
   });
   $('mpPlayers').addEventListener('click', (e) => { const b = e.target.closest('.kick'); if (b) net.kick(+b.dataset.slot); });
   $('mpReady').addEventListener('click', () => { net.setReady(!net.session.ready); updateStart(); });

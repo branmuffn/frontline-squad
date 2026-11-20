@@ -147,6 +147,8 @@ if (PARTS.includes('c')) {
   }
   { // Brian 2026-11-19: the host just watches (runs the match): their soldier isn't in it, the joiner plays the bots
     const e0 = errors.length;
+    const shown = await P.H.evaluate(() => { const r = document.getElementById('mpHostPlayRow'); return !r.classList.contains('hidden') && r.offsetParent !== null; });
+    row('c', 'host sees the "You (host)" setting', shown, { shown });
     await set('mpHostPlay', '0'); await pick(P.H, 'mode', 'tdm'); await sleep(120); await P.step();
     if (await P.H.evaluate(() => document.getElementById('mpStart').disabled)) { await press(P.C, '#mpReady'); await sleep(250); await P.step(); }
     await press(P.H, '#mpStart'); for (let i = 0; i < 24; i++) { await P.step(10); await sleep(40); }
