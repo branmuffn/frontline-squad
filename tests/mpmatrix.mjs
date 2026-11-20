@@ -155,6 +155,18 @@ if (PARTS.includes('c')) {
     const h = await P.H.evaluate(() => { const F = window.__frontline, G = F.G; return { inMatch: G.units.includes(G.player), watching: !!G.spectating, remote: G.units.filter((u) => u.remote).length, name: F.net.session.name }; });
     const c = await P.C.evaluate(() => { const S = window.__frontline.net.session; return { live: !!S.live, names: [...S.proxies.values()].map((u) => u.name) }; });
     row('c', 'host just watches (TDM)', !h.inMatch && h.watching && h.remote === 1 && c.live && c.names.length > 0 && !c.names.includes(h.name) && errors.length === e0, { h, c, errors: errors.slice(e0) });
+    // watching host: → switches player, V = their eyes (camera in front of their face, looking their way), F = free camera
+    const key = (c, up) => P.H.evaluate(([c, up]) => window.dispatchEvent(new KeyboardEvent(up ? 'keyup' : 'keydown', { code: c })), [c, up]);
+    const i0 = await P.H.evaluate(() => window.__frontline.G.spectating.i); await key('ArrowRight'); await key('ArrowRight', 1); await P.step(2);
+    const i1 = await P.H.evaluate(() => window.__frontline.G.spectating.i);
+    await key('KeyV'); await key('KeyV', 1); await P.step(3);
+    const eyes = await P.H.evaluate(() => { const G = window.__frontline.G, c = G.camera.position, t = G.units.filter((u) => u !== G.player && u.alive).sort((a, b) => (b.remote ? 1 : 0) - (a.remote ? 1 : 0) || a.id - b.id); const sp = G.spectating, u = t[((sp.i % t.length) + t.length) % t.length];
+      const dx = c.x - u.x, dz = c.z - u.z; return { fp: sp.fp, ahead: -(dx * Math.sin(u.yaw) + dz * Math.cos(u.yaw)), d: Math.hypot(dx, dz) }; });
+    await key('KeyF'); await key('KeyF', 1); await P.step(1);
+    const p0 = await P.H.evaluate(() => ({ ...window.__frontline.G.camera.position }));
+    await key('KeyW'); for (let i = 0; i < 4; i++) { await P.step(10); await sleep(20); } await key('KeyW', 1);
+    const p1 = await P.H.evaluate(() => ({ free: window.__frontline.G.spectating.free, ...window.__frontline.G.camera.position }));
+    row('c', 'watching host: arrows switch, eyes view in front of the face, free camera moves', i1 === i0 + 1 && eyes.fp && eyes.ahead > 0.2 && eyes.d < 0.6 && p1.free && Math.hypot(p1.x - p0.x, p1.z - p0.z) > 1, { i0, i1, eyes, p0, p1 });
     await P.H.evaluate(() => document.getElementById('quit').click()); for (let i = 0; i < 8; i++) { await P.step(5); await sleep(40); }
     await set('mpHostPlay', '1');
   }

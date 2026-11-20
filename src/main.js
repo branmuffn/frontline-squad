@@ -39,7 +39,7 @@ import { kcDebug } from './game/killcam.js';
 import { recordFrame, killcamActive, skipKillcam, finaleStep } from './game/killcam.js';
 import { finishFinale } from './game/match.js';
 import { unitFoley } from './entities/units.js';
-import { spectateStep, spectateCycle, spectateToggleView } from './net/spectate.js';
+import { spectateStep, spectateCycle, spectateToggleView, spectateToggleFree } from './net/spectate.js';
 import { updateGear, useEquipment } from './entities/gear.js';
 import { openCrate } from './entities/streaks.js';
 import { updateDoors, doorInteract } from './world/doors.js';
@@ -240,6 +240,8 @@ function onKeyDown(code, e) {
   if (editorOn() && isLive() && !e.repeat && editorKey(code, editorReload, () => { stopEditor(); deploy({ mode: 'ffa', map: 'custom', skill: 5, count: 5 }); })) { e.preventDefault(); return; }
   if (G.state === 'finale') { if (!e.repeat && code !== 'Tab') skipKillcam(); return; }
   if (G.spectating && code === 'KeyV' && !e.repeat) { spectateToggleView(); return; }
+  if (G.spectating && !e.repeat && (code === 'ArrowRight' || code === 'ArrowLeft')) { spectateCycle(code === 'ArrowRight' ? 1 : -1); return; }
+  if (G.spectating && code === 'KeyF' && !e.repeat && !input.touch) { spectateToggleFree(); return; }
   if (!(isLive() || G.state === 'paused')) return;
   if (code === 'F9') { e.preventDefault(); toggleColliderDebug(); return; }
   if (G.state === 'dead' && !e.repeat && code !== 'Escape' && !matches('scoreboard', code) && skipKillcam()) return;
