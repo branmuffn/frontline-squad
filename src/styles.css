@@ -961,15 +961,18 @@ body.touch #mp .btn-row #mpStatus { margin: 0 auto 0 0; min-height: 0; font-size
 @media (max-height: 460px) and (min-width: 700px) { #settings #toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; } }
 
 /* Phone chat (Brian picked D1, 2026-11-20): chat button left of Pause; tap = quick replies + "Type…" */
-.t-chat { display: none; width: 38px; height: 38px; border-radius: 10px; right: calc(56px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); }
+/* Phone chat layout A (Brian, 2026-11-20): everything on the LEFT, under the health bar, so the right thumb only aims and
+   shoots; replies drop down in a short column; messages show small under the score instead of over the stick. */
+.t-chat { display: none; width: 38px; height: 38px; border-radius: 10px; left: calc(104px + env(safe-area-inset-left, 0px)); top: calc(54px + env(safe-area-inset-top, 0px)); }
 .t-chat.show { display: flex; }
 #touchUI.t-mp .t-armory { right: calc(102px + env(safe-area-inset-right, 0px)); }
-.chat-quick { position: fixed; z-index: 14; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(150px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.chat-quick { position: fixed; z-index: 14; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(150px + env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-height: calc(100% - 170px); overflow-y: auto; scrollbar-width: none; }
 .chat-quick button { flex: none; }
 .chat-quick.hidden { display: none; }
-.chat-quick button:first-child { margin-left: auto; }
-.chat-quick button { min-height: 38px; padding: 0 11px; border-radius: 999px; background: rgba(10, 13, 15, 0.8); color: var(--ink); border: 1px solid rgba(235, 230, 214, 0.55); font: inherit; font-size: 13px; font-weight: 700; touch-action: manipulation; }
+.chat-quick button { min-height: 36px; padding: 0 12px; border-radius: 999px; background: rgba(10, 13, 15, 0.8); color: var(--ink); border: 1px solid rgba(235, 230, 214, 0.55); font: inherit; font-size: 13px; font-weight: 700; touch-action: manipulation; }
 .chat-quick button:active { background: rgba(235, 230, 214, 0.3); }
 .chat-quick .cq-to { border-color: var(--brass); color: var(--brass); }
 .chat-quick .cq-to.team { border-color: #5b8fc9; color: #8fc2ff; }
+body.touch .chatlog { left: 50%; right: auto; bottom: auto; top: calc(56px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(420px, 56vw); align-items: center; text-align: center; font-size: 13px; }
+body.touch .chatlog .cl:nth-last-child(n+3) { display: none; }   /* phones: the last 2 lines only */
 body.touch .chat-in { position: fixed; z-index: 14; left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; transform: translateX(-50%); width: min(460px, 70vw); }

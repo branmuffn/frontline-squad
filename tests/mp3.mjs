@@ -99,6 +99,10 @@ await ev(C1, () => { window.__frontline.input.touch = true; document.body.classL
 await run(40); // the host drops a player's chat sent within 0.4 s of their last one
 const tapChat = () => ev(C1, () => { const b = document.querySelector('#touchUI .t-chat'); const o = { bubbles: true, pointerId: 7, clientX: 1, clientY: 1 }; b.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o)); const q = document.getElementById('chatQuick'); return { btn: getComputedStyle(b).display, tray: !!q && !q.classList.contains('hidden'), to: !!(q && q.querySelector('.cq-to')) }; });
 const q1 = await tapChat();
+// layout A (2026-11-20): button and replies on the left half, replies in one column, nothing over the right-hand controls
+const lay = await ev(C1, () => { const b = document.querySelector('#touchUI .t-chat').getBoundingClientRect(); const qs = [...document.querySelectorAll('#chatQuick button')].map((e) => e.getBoundingClientRect());
+  const f = document.querySelector('#touchUI .t-fire').getBoundingClientRect(); return { btnX: b.x, w: innerWidth, fireX: f.x, xs: [...new Set(qs.map((r) => Math.round(r.x)))].length, maxRight: Math.max(...qs.map((r) => r.right)), n: qs.length }; });
+check('phone chat on the left', lay.btnX < 160 && lay.xs === 1 && (lay.w < 600 || lay.maxRight < lay.fireX), lay);   // test window is 320 wide; phones sideways are 640+
 await ev(C1, () => document.querySelector('#chatQuick [data-q="nice!"]').click()); await run(10); await sleep(200);
 const qlog = await ev(H, () => document.getElementById('chatlog').textContent);
 check('phone quick chat', q1.btn !== 'none' && q1.tray && q1.to === (mode === 'tdm') && qlog.includes('nice!'), { q1, qlog });

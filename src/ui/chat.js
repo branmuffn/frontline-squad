@@ -51,7 +51,7 @@ export function initChat() {
 
 // Phone quick chat (Brian picked D1, 2026-11-20): the touch chat button opens one row of quick replies (a tap sends),
 // "Type…" opens the keyboard. The game keeps running; the row hides after 5 s untouched.
-const QUICK = ['gg', 'nice!', 'help me', 'on my way', 'go go go', 'thanks'];
+const QUICK = ['gg', 'nice!', 'help me', 'on my way']; // layout A: a short column on the left (Brian, 2026-11-20)
 let qEl = null, qHide = 0, qTeam = false, qSend = null;
 export const quickOpen = () => !!(qEl && !qEl.classList.contains('hidden'));
 export function hideQuick() { if (qEl) qEl.classList.add('hidden'); clearTimeout(qHide); }
