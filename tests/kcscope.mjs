@@ -15,7 +15,7 @@ const run = () => page.evaluate(() => {
     if (Math.abs(y - P.y) > 1 || ph.blocked(x, z, 0.4, y, 1.8) || !ph.losClear(x, y + 1.5, z, P.x, P.y + 1.3, P.z)) continue;
     b.x = x; b.z = z; b.y = y; placed = true;
   }
-  b.brain.weapon = 'l96'; b.weapon = 'l96';
+  b.brain.guns = ['l96']; F.setBotWeapon(b, 'l96', false); // only the rifle (bots with two guns switch back by range)
   for (let i = 0; i < 80; i++) { b.brain.state = 'engage'; b.brain.visible = true; b.brain.target = P; b.yaw = Math.atan2(-(P.x - b.x), -(P.z - b.z)); window.__step(1); }
   G.match.rules = { ...(G.match.rules || {}), passive: true }; // only the scripted sniper round may kill
   P.protectUntil = 0; P.health = 1;
@@ -28,7 +28,7 @@ const run = () => page.evaluate(() => {
     window.__step(1);
     const d = F.kcDebug(); if (!d || !d.slug) continue; nSlug++;
     // the scope view zooms in with the overlay on; the bullet camera is a plain 80% field of view
-    const scope = document.getElementById('scope').classList.contains('on'), fov = G.camera.fov, base = G.profile.settings.fov;
+    const se = document.getElementById('scope'), scope = se.classList.contains('on') && getComputedStyle(se).visibility === 'visible', fov = G.camera.fov, base = G.profile.settings.fov;
     const ph = scope && fov < base * 0.6 ? 'scope' : !scope && Math.abs(fov - base * 0.8) < 1 ? 'bullet' : 'eyes';
     if (seq[seq.length - 1] !== ph) seq.push(ph);
   }
@@ -38,7 +38,7 @@ const run = () => page.evaluate(() => {
 let r = await run(), tries = 1;
 while (!r.slugFrames && tries < 3) { r = await run(); tries++; }
 r.tries = tries;
-const ok = r.placed && /^((scope|eyes)>)+bullet$/.test(r.seq); // the killer's view (scoped if they were) first, then the round
+const ok = r.placed && /^(eyes>)?scope>/.test(r.seq) && /bullet$/.test(r.seq) && !/bullet.*scope/.test(r.seq); // Brian 2026-11-21: the killer's scope (overlay actually visible), then the round
 console.log(JSON.stringify(r), ok && !errors.length ? 'PASS kcscope' : 'FAIL kcscope', errors.slice(0, 3));
 process.exitCode = ok && !errors.length ? 0 : 1; // exit non-zero on FAIL
 await browser.close();

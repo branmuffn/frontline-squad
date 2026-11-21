@@ -188,3 +188,10 @@ See docs/ONE_PAGER.md "Roadmap" (17 suggestions: netcode, performance, content, 
 - The single HTML file must keep working and, from B2 on, run fully offline (three.js r128 inlined; no external scripts, fonts or requests). Multiplayer signaling (Phase 7) is the only future exception, and play must still work offline.
 - Original names for maps/modes; never use "Combat Arms", "Call of Duty", "Nuketown", "Halo" or "Kill Creek" in the game.
 - All audio generated in code; no copyrighted assets.
+
+## 2026-11-21 (Brian)
+- [x] Sniper kill cam: the killer's scope + crosshairs now actually show (the kill cam hid every HUD layer, the scope too);
+  the death box is one slim line during the kill cam. kcscope now fails if the scope overlay isn't visible.
+- [x] Bots more human: notice you later far away / off to the side (spot), aim worse right after being hit (flinch),
+  free-for-all bots no longer all prefer you (playerBias 8 -> 3 on Normal), snipers aim longer, Normal/Hard/Elite a bit
+  slower and less precise; vehicle gunners react first, fire in bursts with pauses, turn slower, spread more when moving.

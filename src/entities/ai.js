@@ -254,8 +254,12 @@ function think(u, cfg) {
   }
   const wasVisible = b.visible;
   if (best) {
-    if (best !== b.target) { b.reactAt = G.now + rand(cfg.react[0], cfg.react[1]) * (b.target ? 0.6 : 1); b.trackStart = G.now; b.burst = 0; b.aimStart = 0; }
-    else if (!wasVisible && G.now - b.lastSeen > 0.8) { b.reactAt = G.now + rand(cfg.react[0], cfg.react[1]) * 0.5; b.trackStart = G.now; }
+    // noticing takes longer far away and off to the side (cfg.spot per 30 m, Brian 2026-11-21: "acting instantaneously");
+    // someone who just shot this bot is noticed at once
+    const bd = Math.hypot(best.x - u.x, best.z - u.z), side = (((best.x - u.x) * fx + (best.z - u.z) * fz) / (bd || 1)) < 0.85 ? 1.6 : 1;
+    const spot = (u.lastAttacker === best && G.now - u.lastHitAt < 2.5) ? 0 : (cfg.spot || 0) * (bd / 30) * side;
+    if (best !== b.target) { b.reactAt = G.now + rand(cfg.react[0], cfg.react[1]) * (b.target ? 0.6 : 1) + spot; b.trackStart = G.now; b.burst = 0; b.aimStart = 0; }
+    else if (!wasVisible && G.now - b.lastSeen > 0.8) { b.reactAt = G.now + rand(cfg.react[0], cfg.react[1]) * 0.5 + spot * 0.5; b.trackStart = G.now; }
     b.target = best; b.visible = true; b.lastSeen = G.now; b.lastKnown = { x: best.x, y: best.y, z: best.z };
   } else {
     b.visible = false;
@@ -407,6 +411,7 @@ function fire(u, cfg) {
   err += (t.moveSpeed || 0) * 0.0068 * (1 - 0.4 * settle);
   if (u.moveSpeed > 1) err += 0.012;
   err += (b.scoped ? 0.002 : w.spread.hip * 0.3);
+  if (G.now - (u.lastHitAt || -9) < 0.7) err *= cfg.flinch || 1; // being shot throws a bot's aim off for a moment
   err *= b.T.acc;
   if (G.match.mode === 'survival') err *= Math.max(0.7, 1 - (G.match.wave - 1) * 0.03);
   const dir = { x: 0, y: 0, z: 0 };

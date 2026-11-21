@@ -23,7 +23,7 @@ import * as ballistics from './entities/ballistics.js';
 const { updateBullets, bullets } = ballistics;
 import * as worldprops from './entities/worldprops.js';
 const { updateWorldProps, tryPickup } = worldprops;
-import { updateBots } from './entities/ai.js';
+import { updateBots, setBotWeapon } from './entities/ai.js';
 import { separateUnits } from './entities/units.js';
 import { updateGrenades, throwGrenade, grenades } from './entities/grenades.js';
 import { updatePickups } from './entities/pickups.js';
@@ -95,7 +95,7 @@ function boot() {
   { const xf = document.getElementById('exitFull'), sync = () => xf.classList.toggle('hidden', !document.fullscreenElement);
     document.addEventListener('fullscreenchange', sync); sync();
     xf.addEventListener('click', () => { try { const o = screen.orientation; if (o && o.unlock) o.unlock(); } catch (e) { /* not supported */ } document.exitFullscreen?.().catch(() => {}); }); }
-  window.__frontline = { kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { setBotWeapon, kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

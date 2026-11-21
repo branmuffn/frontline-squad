@@ -667,17 +667,28 @@ export function botVehicle(u, dt) {
     u.vTarget = findTarget(u, v, gx, v.y + (u.seat === 1 ? GP.y : heli ? 0.9 : 1.6), gz, heli ? 140 : 110);
   }
   const t = u.vTarget && u.vTarget.alive ? u.vTarget : null;
+  // Brian (2026-11-21): vehicle bots fired the instant they had a target, nonstop. Now a new target takes a moment to
+  // react to (cfg.vReact, like a person), and the gun fires in bursts with pauses (cfg.vBurst / cfg.vGap).
+  if (t !== u.vSeen) { u.vSeen = t; const R = G.match.ai.vReact || [0.8, 1.3]; u.vReadyAt = G.now + R[0] + Math.random() * (R[1] - R[0]); }
   if (u.seat === 1) return botGunner(u, v, dt, t);
   if (heli) botPilot(u, v, dt, t); else botDriver(u, v, dt, t);
+}
+// may this bot's vehicle gun fire now? (after reacting, and only inside a burst)
+function vTrigger(u) {
+  if (G.now < (u.vReadyAt || 0)) return false;
+  const A = G.match.ai, B = A.vBurst || [1, 1.6], P = A.vGap || [0.8, 1.4];
+  if (!u.vBurstEnd || G.now > u.vBurstEnd + (u.vGapLen || 0)) { u.vBurstEnd = G.now + B[0] + Math.random() * (B[1] - B[0]); u.vGapLen = P[0] + Math.random() * (P[1] - P[0]); }
+  return G.now <= u.vBurstEnd;
 }
 function botGunner(u, v, dt, t) {
   if (!t) { v.gunPitch = damp(v.gunPitch, 0, 2, dt); return; }
   const GP = v.spec.gunPivot, [px, pz] = world(v, GP.x, GP.z), py = v.y + GP.y;
   const tx = t.x + (t.vx || 0) * 0.15, tz = t.z + (t.vz || 0) * 0.15, ty = t.y + (t.h || 1.6) * 0.6;
   const wantYaw = Math.atan2(-(tx - px), -(tz - pz)), wantPitch = Math.atan2(ty - py, Math.hypot(tx - px, tz - pz));
-  const cur = v.yaw + v.gunYaw, dy = wrapA(wantYaw - cur), turn = 2.6 * dt;
+  const cur = v.yaw + v.gunYaw, dy = wrapA(wantYaw - cur), turn = 1.8 * dt;
   const a = aimGun(v, cur + clamp(dy, -turn, turn), v.gunPitch + clamp(wantPitch - v.gunPitch, -turn, turn));
-  if (Math.abs(dy) < 0.09 && Math.abs(wantPitch - v.gunPitch) < 0.09) fireMG(v, u, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9, G.match.ai.mg || 0.03);
+  const moving = Math.abs(v.speed || 0) > 2 ? 1.5 : 1; // shooting from a moving vehicle is harder
+  if (Math.abs(dy) < 0.09 && Math.abs(wantPitch - v.gunPitch) < 0.09 && vTrigger(u)) fireMG(v, u, a.dx, a.dy, a.dz, a.ox + a.dx * 0.9, a.oy + 0.04, a.oz + a.dz * 0.9, (G.match.ai.mg || 0.03) * moving);
 }
 function botDriver(u, v, dt, t) {
   const r = u.vRoute; if (!r) { drive(v, dt, 0, 0, true); return; }
@@ -699,7 +710,7 @@ function botPilot(u, v, dt, t) {
   if (t) { // hover-turn toward the target and use the nose gun
     wantYaw = Math.atan2(-(t.x - v.x), -(t.z - v.z));
     const d = Math.hypot(t.x - v.x, t.z - v.z); fwd = d > 60 ? 0.6 : d < 25 ? -0.4 : 0;
-    if (Math.abs(wrapA(wantYaw - v.yaw)) < 0.12 && v.y > g + 4) {
+    if (Math.abs(wrapA(wantYaw - v.yaw)) < 0.12 && v.y > g + 4 && vTrigger(u)) {
       const [nx, nz] = world(v, 0, -2.5), ny = v.y + 0.75, tx = t.x - nx, ty = t.y + 1 - ny, tz = t.z - nz, l = Math.hypot(tx, ty, tz) || 1;
       fireMG(v, u, tx / l, ty / l, tz / l, nx, ny, nz, (G.match.ai.mg || 0.03) * 1.3);
     }

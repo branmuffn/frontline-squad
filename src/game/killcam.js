@@ -122,7 +122,7 @@ export function onDeathCam(P, killer, info = {}) {
 export const killcamActive = () => !!(cam && cam.phase === 'replay');
 export const deathCamActive = () => !!cam;
 // tests: replay time, victim hold/fall state, body + slug visibility
-export const kcDebug = () => { const r = cam && cam.phase === "replay" && cam.replay; return r ? { t: r.t, hitT: r.hitT, fell: r.fell, body: !!(body && body.s.root.visible), slug: !!(slug && slug.visible), flight: r.flight, vp: cam.victim === G.player, end: r.end, st: sample(G.player, r.t), dA: cam.deathAt, orbit: !!r.orbit } : null; };
+export const kcDebug = () => { const r = cam && cam.phase === "replay" && cam.replay; return r ? { t: r.t, hitT: r.hitT, fell: r.fell, body: !!(body && body.s.root.visible), slug: !!(slug && slug.visible), flight: r.flight, vp: cam.victim === G.player, end: r.end, st: sample(G.player, r.t), ks: cam.killer ? sample(cam.killer, r.t) : null, scoped: r.scoped, dA: cam.deathAt, orbit: !!r.orbit } : null; };
 export function skipKillcam() {
   if (!cam || cam.phase !== 'replay') return false;
   if ((cam.replay.age || 0) < GRACE) return true; // too soon: swallowed, so the key/tap does nothing else either
