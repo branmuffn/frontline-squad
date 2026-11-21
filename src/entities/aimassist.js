@@ -7,11 +7,12 @@ import { rayWorld } from '../world/physics.js';
 
 let nextT = 0, factor = 1;
 
-// Look-speed multiplier for this frame: AIM_ASSIST.slow over a visible enemy, else 1. Checked 20 times a second.
-export function aimAssistFactor(P) {
+// Look-speed multiplier for this frame: AIM_ASSIST.slow over a visible enemy (AIM_ASSIST.scope while sniper-scoped),
+// else 1. Checked 20 times a second.
+export function aimAssistFactor(P, scoped = false) {
   if (G.realTime < nextT && G.realTime > nextT - 1) return factor;
   nextT = G.realTime + 0.05; factor = 1;
-  const c = G.camera.position, A = AIM_ASSIST;
+  const c = G.camera.position, A = scoped ? AIM_ASSIST.scope : AIM_ASSIST, grow = scoped ? A.grow : 0.02;
   const fx = -Math.sin(P.yaw) * Math.cos(P.pitch), fy = Math.sin(P.pitch), fz = -Math.cos(P.yaw) * Math.cos(P.pitch);
   for (const u of G.units) {
     if (u === P || !u.alive || !isEnemy(P, u)) continue;
@@ -20,7 +21,7 @@ export function aimAssistFactor(P) {
     const along = dx * fx + dy * fy + dz * fz;
     if (along <= 0) continue;
     const off = Math.sqrt(Math.max(0, d * d - along * along)); // how far the enemy is from the aim line, in metres
-    if (off > A.radius + d * 0.02) continue;
+    if (off > A.radius + d * grow) continue;
     const hit = rayWorld(c.x, c.y, c.z, dx / d, dy / d, dz / d, d);
     if (hit && hit.t < d - 0.6) continue; // behind cover: no help
     factor = A.slow; break;

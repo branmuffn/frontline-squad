@@ -202,6 +202,12 @@ await placeEnemy(true); const tA = await look(12);
 await placeEnemy(false); const tB = await look(12);
 await ev(() => { window.__frontline.G.profile.settings.aimAssist = true; });
 check('aim assist: slower over an enemy', tA > 0 && tA < tB * 0.75, { tA, tB });
+// Brian 2026-11-21: stronger while sniper-scoped (0.35 instead of 0.55), and it reaches 200 m instead of 70
+const aaAt = (scoped) => ev((scoped) => { const F = window.__frontline, G = F.G, P = G.player, e = G.bots.find((u) => u.team !== P.team);
+  window.__step(4); e.x = P.x - Math.sin(P.yaw) * 20; e.z = P.z - Math.cos(P.yaw) * 20; e.y = P.y; e.alive = true;
+  return F.aimAssistFactor(P, scoped); }, scoped);
+await placeEnemy(true); const aaN = await aaAt(false); const aaS = await aaAt(true);
+check('aim assist: stronger while scoped', aaN === 0.55 && aaS === 0.35, { aaN, aaS });
 
 // use: appears with a prompt
 await ev(() => { document.getElementById('prompt').textContent = 'Pick up'; window.__step(10); });

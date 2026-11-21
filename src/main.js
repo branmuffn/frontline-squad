@@ -1,4 +1,5 @@
 import * as chat from './ui/chat.js';
+import { aimAssistFactor } from './entities/aimassist.js';
 import { streakState } from './entities/streaks.js';
 import { initChat } from './ui/chat.js';
 import { G, isLive } from './core/state.js';
@@ -95,7 +96,7 @@ function boot() {
   { const xf = document.getElementById('exitFull'), sync = () => xf.classList.toggle('hidden', !document.fullscreenElement);
     document.addEventListener('fullscreenchange', sync); sync();
     xf.addEventListener('click', () => { try { const o = screen.orientation; if (o && o.unlock) o.unlock(); } catch (e) { /* not supported */ } document.exitFullscreen?.().catch(() => {}); }); }
-  window.__frontline = { setBotWeapon, kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
+  window.__frontline = { aimAssistFactor, setBotWeapon, kcDebug, streakState, checkStreak, net, openMp, throwGrenade, grenades, G, physics, nav, loadMap, deploy, damage, input, rockets, bullets, ballistics, worldprops, musicScene, toggleColliderDebug, endMatch, vehicles, damageVehicle, ui: { showScreen, showPause, showArmory, showLoadout } };
   G.state = 'menu';
   showScreen('menu');
   $('loader').classList.add('hidden');

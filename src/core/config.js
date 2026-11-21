@@ -4,7 +4,8 @@
 // in refillSecs; once it runs out you're winded and can sprint again only at minToSprint (share of the bar).
 export const STAMINA = { sprintSecs: 6, refillSecs: 4, restDelay: 1, minToSprint: 0.3 };
 // Light aim assist, touch players only: turning slows while the crosshair is on a visible enemy (within range, radius m of the aim line).
-export const AIM_ASSIST = { range: 70, radius: 0.9, slow: 0.55 };
+// Brian (2026-11-21): stronger while scoped with a sniper (phones only): more slowdown and out to 200 m.
+export const AIM_ASSIST = { range: 70, radius: 0.9, slow: 0.55, scope: { range: 200, radius: 0.9, grow: 0.02, slow: 0.35 } };
 // Phone auto-fire (Brian picked A, 2026-11-16; like CoD Mobile's Simple mode / Fortnite's Auto Fire): fires while a
 // visible enemy is within `radius` m of the aim line (+ `grow` per metre), up to the gun's falloff end (max `range`).
 // Snipers, launchers, crossbows, power weapons and melee stay manual. Turn-around button: 180° in `turn` s.

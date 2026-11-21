@@ -354,7 +354,7 @@ export function updatePlayer(dt) {
   const w = W(), id = cur();
   // look
   const fovNow = G.camera.fov, adsScale = P.adsT > 0.5 ? s.adsSens * (fovNow / s.fov) : 1;
-  const aa = input.touch && s.aimAssist && !P.vehicle && (mdx || mdy) ? aimAssistFactor(P) : 1; // touch players only
+  const aa = input.touch && s.aimAssist && !P.vehicle && (mdx || mdy) ? aimAssistFactor(P, !!(w.scope && P.adsT > 0.9)) : 1; // touch players only
   const k = 0.0022 * s.sens * adsScale * aa;
   P.yaw -= mdx * k; P.pitch -= mdy * k * (s.invertY ? -1 : 1);
   const kl = 2.4 * dt;
